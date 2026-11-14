@@ -23,6 +23,8 @@ type BigButtonProps = {
   progress?: number;
   /** For screen readers: what it does, or why it isn't available yet. */
   accessibilityHint?: string;
+  /** For screen readers, when the words on the button say less than it does. */
+  accessibilityLabel?: string;
   testID?: string;
 };
 
@@ -38,6 +40,7 @@ export function BigButton({
   disabled,
   progress,
   accessibilityHint,
+  accessibilityLabel,
   testID,
 }: BigButtonProps) {
   const filled = primary || selected;
@@ -47,6 +50,7 @@ export function BigButton({
       testID={testID}
       accessibilityRole="button"
       accessibilityHint={accessibilityHint}
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected, disabled }}
       disabled={disabled}
       onPress={onPress}

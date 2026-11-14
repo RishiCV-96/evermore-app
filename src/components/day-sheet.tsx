@@ -8,7 +8,7 @@ import { Note, Stat } from '@/components/dashboard';
 import { ScoreRing } from '@/components/insight-ring';
 import { Sheet } from '@/components/sheet';
 import { MEMORY_SCORE } from '@/config/insights';
-import { FOUND_LABELS, STANDARD_WORDS, countAndShare, dayHint, dayName, extraPracticeText, pagerDays, stepDay, timeAgainst, type InsightsView } from '@/lib/insights';
+import { ASKED_FOR_HELP, FOUND_LABELS, STANDARD_WORDS, countAndShare, dayHint, dayName, extraPracticeText, pagerDays, stepDay, timeAgainst, type InsightsView } from '@/lib/insights';
 import { Colors } from '@/theme/colors';
 import { COMPACT_TAP, GUTTER, ICON, RADIUS, Space } from '@/theme/layout';
 
@@ -201,6 +201,8 @@ function DayPage({ dayKey, view, names, today, actions, onAction }: DayPageProps
             {([1, 2, 3] as const).map((on) => (
               <Stat key={on} label={FOUND_LABELS[on]} value={countAndShare(day!.resolutions.counts[on], day!.shares?.[on])} />
             ))}
+            {/* A plain count, already part of With help. */}
+            {day!.askedForHelp ? <Stat testID="asked-for-help" label={ASKED_FOR_HELP} value={String(day!.askedForHelp)} /> : null}
             {day!.standard ? <Stat label="Practice time" value={timeAgainst(day!.standard)} /> : null}
             {/* Counted in everything above, but not in the time against the standard. */}
             {day!.extraPractice.cards ? <Stat testID="extra-practice" label="Extra practice" value={extraPracticeText(day!.extraPractice)} /> : null}

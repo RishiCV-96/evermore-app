@@ -514,6 +514,17 @@ From existing pieces, compact scale, 44pt targets, no new colors in the app.
 
 **Checked** in the web build against the stand-in at 390x763 and 375x647 (32 checks): both choices, photos only once ticked, each file downloaded and read, offline's words, Try again and this phone's copy, the copy labelled incomplete, the export inside Delete account and Back, nothing wider than the page, targets at least 44, no red, no page errors. The report printed to PDF in Chrome from eight weeks of demo practice: two pages, nothing cut off.
 
+## "I'm not sure" (2026-11-13)
+
+From existing pieces, person scale, no new colors.
+
+| Piece | How it looks |
+| --- | --- |
+| The control | A quiet `BigButton` under the names: label only, `primaryDark`, body size, 48pt tall, full width. **I’m not sure**, and **Show me** for the tap that will show the answer. Never among the names or styled like one, gone once the answer is shown and on the success banner. |
+| The hint it brings | The existing hint box (`accentSoft`, bulb icon), with **That is okay. Here is a little help.** in bold in place of "Take your time." on a first hint it brought. Slides in like any hint; a plain fade with Reduce Motion. |
+
+**Checked** in the local-only web build at 375x647, 390x763 and 430x839, at Medium, Large and Extra large, with Reduce Motion on and off: the control below the names with a 48pt target, the calm first hint, each tap to Show me and the answer, the control gone then, the right name still tapped to finish, no red, no judging words, scores or timers, nothing wider than the page.
+
 ## No-login mode
 
 `AUTH_ENABLED` in `src/config/features.ts`, on by default since 2026-11-11; the local-only mode is `EXPO_PUBLIC_LOCAL_ONLY=1` (`npm run start:local`), for development. When it is `false`, the app opens on the person's home with no sign-in, practices the family kept on the phone (copied once from the example deck in `src/data/deck.ts`: the 7 family cards plus the two illustrated sample people), and makes no server calls. Holding **Caregiver** for a second opens the dashboard, where people can be added, edited, approved, archived and deleted on the phone. When it is `true`, the app opens on the sign-in welcome (above) until someone signs in, and works with Supabase.

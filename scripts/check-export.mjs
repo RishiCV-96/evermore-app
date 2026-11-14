@@ -57,7 +57,7 @@ const { unzipSync, strFromU8 } = await import('fflate');
 const store = await import('@/data/export-store');
 const { familyExport, exportText, exportFileName, photoEntries, EXPORT_FORMAT, EXPORT_PROBLEM, SECTION_WORDS } = await import('@/lib/export');
 const { reportOf, reportHtml, REPORT_NOTES } = await import('@/lib/insight-report');
-const { insightsFor, attemptsInView, resolutionsOf } = await import('@/lib/insights');
+const { insightsFor, attemptsInView, resolutionsOf, helpRequestsOf } = await import('@/lib/insights');
 const { toRow } = await import('@/lib/attempt-records');
 const { studyDayKey, studyDayStart, addStudyDays } = await import('@/lib/study-day');
 const { sessionDay } = await import('@/lib/activity');
@@ -172,6 +172,8 @@ for (let back = RECORD_DAYS - 1; back >= 0; back--) {
     const shown = studyDayStart(key).getTime() + 40 * 60_000 + index * 25_000;
     const misses = (index + back) % 5 === 0 ? 1 : (index * back) % 7 === 0 ? 2 : 0;
     const extraPractice = back % 4 === 0 && index >= 20;
+    // Now and then the person asks for help ("I'm not sure") before choosing the right name first.
+    const helped = misses === 0 && index % 11 === 3;
     const selections = [...Array(misses).keys()].map((at) => ({ at: new Date(shown + 2_000 + at * 1_500).toISOString(), right: false }));
     selections.push({ at: new Date(shown + 2_000 + misses * 1_500).toISOString(), right: true });
     records.push({
@@ -186,7 +188,8 @@ for (let back = RECORD_DAYS - 1; back >= 0; back--) {
       shownAt: new Date(shown).toISOString(),
       selections,
       choices: 3,
-      hints: ['letter', 'fact'].slice(0, misses),
+      hints: helped ? ['fact'] : ['letter', 'fact'].slice(0, misses),
+      ...(helped ? { help: [{ at: new Date(shown + 1_000).toISOString(), step: 'fact' }] } : {}),
       success: true,
       activeMs: 6_000 + misses * 3_000,
       firstSelectionMs: 2_000,
@@ -267,6 +270,9 @@ await check('the file holds everything: people with every answer, archived peopl
   assert.equal(copy.cardRecords.length, records.length);
   assert.ok(copy.cardRecords.some((record) => record.extraPractice) && copy.cardRecords.some((record) => !record.extraPractice), 'with extra practice marked');
   assert.ok(copy.cardRecords.some((record) => record.hintsShown.length === 2 && record.answersChosen.length === 3), 'and the hints shown');
+  const asked = copy.cardRecords.filter((record) => record.askedForHelp.length);
+  assert.ok(asked.length > 0 && asked.every((record) => record.askedForHelp.every((request) => request.hintReached === 'fact' && request.at) && record.answersChosen.every((answer) => answer.right)), 'and each help request with the hint it reached, never as an answer chosen');
+  assert.ok(copy.cardRecords.every((record) => Array.isArray(record.askedForHelp)), 'every record says, an empty list when none');
   assert.ok(copy.cardRecords.filter((record) => record.personId === LEO).length > 0, 'the archived person’s practice too');
   assert.deepEqual(copy.schedule, [{ cardId: cardIds[JUNE][0], step: 3, dueAt: '2026-11-20T10:30:00.000Z', updatedAt: '2026-11-10T10:00:00.000Z' }], 'the family’s schedule: the one changed last');
   assert.deepEqual(copy.linkedPhones, [
@@ -405,6 +411,8 @@ await check('the report’s figures are the Insights figures for the same days',
   const all = resolutionsOf(attemptsInView(source.records, source.people, { includeArchived: true, demo: false }));
   assert.equal(report.cards, all.cards);
   assert.deepEqual(report.found.map((group) => group.count), [all.counts[1], all.counts[2], all.counts[3]], 'how answers were found: the same counts');
+  assert.ok(report.askedForHelp > 0 && report.askedForHelp === [...view.days.values()].reduce((sum, day) => sum + day.askedForHelp, 0), 'asked for help: the same count as Insights’ days');
+  assert.equal(report.askedForHelp, helpRequestsOf(attemptsInView(source.records, source.people, { includeArchived: true, demo: false })));
   assert.equal(report.cards, [...view.days.values()].reduce((sum, day) => sum + day.cards, 0));
   assert.equal(report.daysPracticed, RECORD_DAYS);
   assert.equal(report.weeks.reduce((sum, week) => sum + week.cards, 0), report.cards, 'the weeks add up to the whole');
@@ -416,7 +424,7 @@ await check('the report’s figures are the Insights figures for the same days',
   assert.ok(report.mostReadily && report.mostSupport && report.mostReadily.score >= report.mostSupport.score);
   // Only within the one family's own practice, and the scores there are personScore's
   const html = reportHtml(report);
-  for (const words of [REPORT_NOTES.medical, 'Memory score over time', 'How answers were found', 'Week by week', 'Right away', 'On a second try', 'With help', 'Leo <span class="muted">(archived)</span>']) assert.ok(html.includes(words.replace(/’/g, '&#39;')) || html.includes(words), `the report shows "${words}"`);
+  for (const words of [REPORT_NOTES.medical, 'Memory score over time', 'How answers were found', 'Week by week', 'Right away', 'On a second try', 'With help', 'Asked for help: ', 'Leo <span class="muted">(archived)</span>']) assert.ok(html.includes(words.replace(/’/g, '&#39;')) || html.includes(words), `the report shows "${words}"`);
   assert.ok(html.includes('This report contains personal information'), 'with the note on personal information at the top');
   assert.ok(html.indexOf('personal information') < html.indexOf('Memory score over time'));
   assert.ok(html.includes('5:30 AM'), 'and the study day’s start');

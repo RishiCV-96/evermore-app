@@ -37,6 +37,9 @@ export type RecordRow = {
   study_day: string | null;
   /** Its round began once the day's session was complete. */
   extra_practice: boolean;
+  /** Each "I'm not sure" tap: when, and the hint step it reached. Empty when none, and on rows from before it was kept. */
+  help_at: string[];
+  help_steps: NonNullable<CardAttempt['help']>[number]['step'][];
 };
 
 /** What the caregiver's phone reads back: the same, and when the server took it. */
@@ -44,7 +47,7 @@ export type ServerRow = RecordRow & { uploaded_at: string };
 
 /** The columns the caregiver's phone reads. */
 export const RECORD_COLUMNS =
-  'id, caregiver_id, person_user_id, person_id, card_id, phrasing_id, shape, fact_type, source, session_id, shown_at, selected_at, selected_right, choices, hints, success, active_ms, first_selection_ms, goal, extra, study_day, extra_practice, uploaded_at';
+  'id, caregiver_id, person_user_id, person_id, card_id, phrasing_id, shape, fact_type, source, session_id, shown_at, selected_at, selected_right, choices, hints, success, active_ms, first_selection_ms, goal, extra, study_day, extra_practice, help_at, help_steps, uploaded_at';
 
 /** Records sent in one upload. Small, so a slow connection still gets each batch through. */
 export const RECORD_BATCH = 25;
@@ -66,7 +69,8 @@ export function uploadable(record: CardAttempt) {
     sendable({ row: { card_id: record.cardId } }) &&
     [record.id, record.personId, record.cardId, record.sessionId].every((id) => typeof id === 'string' && UUID.test(id)) &&
     Array.isArray(record.selections) &&
-    Array.isArray(record.hints)
+    Array.isArray(record.hints) &&
+    (record.help === undefined || Array.isArray(record.help))
   );
 }
 
@@ -95,14 +99,21 @@ export function toRow(record: CardAttempt, login: Login): RecordRow {
     extra: Boolean(record.extra),
     study_day: isStudyDay(record.studyDay) ? record.studyDay : null,
     extra_practice: Boolean(record.extraPractice),
+    help_at: (record.help ?? []).map((request) => request.at),
+    help_steps: (record.help ?? []).map((request) => request.step),
   };
 }
 
 /** A time as the phone writes it. The server sends "+00:00" where the phone writes "Z". */
 const isoTime = (time: string) => new Date(time).toISOString();
 
-/** A row back as the record the phone made, field for field, so insights read both the same way. */
-export function fromRow(row: RecordRow): CardAttempt {
+/**
+ * A row back as the record the phone made, field for field, so insights read both the same way. A row
+ * from before help requests were kept (or from a server whose schema is behind) has no help columns.
+ */
+export function fromRow(row: Omit<RecordRow, 'help_at' | 'help_steps'> & Partial<Pick<RecordRow, 'help_at' | 'help_steps'>>): CardAttempt {
+  const helpAt = Array.isArray(row.help_at) ? row.help_at : [];
+  const helpSteps = Array.isArray(row.help_steps) ? row.help_steps : [];
   return {
     id: row.id,
     sessionId: row.session_id,
@@ -116,6 +127,7 @@ export function fromRow(row: RecordRow): CardAttempt {
     selections: row.selected_at.map((at, index) => ({ at: isoTime(at), right: row.selected_right[index] })),
     choices: row.choices,
     hints: row.hints,
+    ...(helpSteps.length ? { help: helpSteps.map((step, index) => ({ at: isoTime(helpAt[index] ?? row.shown_at), step })) } : {}),
     success: row.success,
     activeMs: row.active_ms,
     ...(row.first_selection_ms === null ? {} : { firstSelectionMs: row.first_selection_ms }),

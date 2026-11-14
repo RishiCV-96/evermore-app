@@ -100,7 +100,7 @@ export const SECTION_WORDS: Record<ExportSection, string> = {
     'Every person, archived people and unfinished profiles too: their name, relationship, which hints practice may give, which questions were marked "Not applicable", whether they are in practice, and every answer you gave about them. Each answer is a fact, with the story practice shows, whether you approved it, skipped it or it is still waiting, and its dates.',
   aiSentences: 'AI sentences (only when they were turned on, with sign-in off): each sentence, whether you approved, rejected or edited it, or it is waiting, and the facts it came from.',
   sessions: 'Every practice session: the study day it counts toward, when it started and ended, how many of the day’s cards were finished, and the day’s target.',
-  cardRecords: `Each card practiced, kept for ${ATTEMPTS_KEPT_DAYS} days: the study day, whether it was extra practice, who was in the photo, the fact and how it was asked, each answer chosen and when, the hints shown, and time on screen. Practice activity, not a medical measure.`,
+  cardRecords: `Each card practiced, kept for ${ATTEMPTS_KEPT_DAYS} days: the study day, whether it was extra practice, who was in the photo, the fact and how it was asked, each answer chosen and when, the hints shown, each time the person asked for help with “I’m not sure” and the hint it reached (asking for help is not an answer), and time on screen. Practice activity, not a medical measure.`,
   schedule: 'When each fact comes back in practice, and its step.',
   linkedPhones: 'Phones paired with the person’s login: each phone’s name, when it was paired, last seen, and removed. No logins, PINs or secrets.',
 };
@@ -256,6 +256,7 @@ export function familyExport(source: ExportSource, now: Date, appVersion: string
         choicesOffered: record.choices,
         answersChosen: record.selections.map((selection) => ({ at: selection.at, right: selection.right })),
         hintsShown: record.hints,
+        askedForHelp: (record.help ?? []).map((request) => ({ at: request.at, hintReached: request.step })),
         endedOnTheAnswer: record.success,
         askedAgainAfterHint: Boolean(record.extra),
         activeMs: record.activeMs,

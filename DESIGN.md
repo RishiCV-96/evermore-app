@@ -12,10 +12,22 @@ Help a person with early memory loss keep recognizing the important people in th
 | --- | --- | --- |
 | Trigger | A card with a large photo and one sentence with a blank: "My aunt, ______, grows tomatoes and shares them every summer." The same fact can also be asked three other fixed ways (see [Question variety](#question-variety)). | `PracticeCard` in `src/components/practice-screen.tsx` |
 | Action | They tap one of up to 3 names: the right one, plus up to two others from the approved deck. A small deck can offer fewer. The other names and the right name's place rotate, so the answer can't be learned by pattern. | `chooseNames` in `src/lib/stories.ts` |
-| Feedback | Another name brings a gentle hint, one rung further each time, in a fixed order: another fact the caregiver gave, the relationship ("This is your aunt."), the first letter, then fewer names, and after the last one the answer itself ("It’s June.", that name’s button shown selected). The caregiver can turn rungs off per person. No red, no "wrong", no score, and every card ends on a success. Since 2026-11-11 (see [Question refinement](#question-refinement-2026-11-11)). | `hintAt` in `src/lib/stories.ts` |
+| Feedback | Another name brings a gentle hint, one rung further each time, in a fixed order: another fact the caregiver gave, the relationship ("This is your aunt."), the first letter, then fewer names, and after the last one the answer itself ("It’s June.", that name’s button shown selected). The caregiver can turn rungs off per person. No red, no "wrong", no score, and every card ends on a success. Since 2026-11-11 (see [Question refinement](#question-refinement-2026-11-11)). **I’m not sure**, under the names, starts the same hints with nothing chosen (since 2026-11-13, see ["I'm not sure"](#im-not-sure-2026-11-13)). | `hintAt` in `src/lib/stories.ts`, `src/lib/card-steps.ts` |
 | Reward | The blank fills in (or the question becomes the whole sentence), the photo stays, and a soft banner says "Yes, that's June." The whole sentence is read aloud, and stays on screen while the person decides to move on. One button moves on, ready at once. | `speak` in `src/lib/speak.ts` |
 
 There are no timers anywhere in the loop. Only cards the caregiver approved ever appear. Status: **built**. Since Phase 3 the cards come from the server, in the order the spaced-retrieval schedule chooses.
+
+## "I'm not sure" (2026-11-13)
+
+A calm way to ask for a hint without choosing a name first, so not knowing is never a mistake. The rules are in `CLAUDE.md`; this records the decisions.
+
+- **The same ladder, entered earlier.** Each tap is one hint step, as a different name would be (`src/lib/card-steps.ts`): no new hint content, and the existing order (another fact, the relationship, the letter, fewer names, then the answer). The calm line "That is okay. Here is a little help." replaces only "Take your time." on a first hint it brought; later hints keep their own words.
+- **"Show me" for the last tap.** The control's label changes on the tap that will show the answer, and it goes once the answer is shown. The person still taps the right name to finish, as on every card.
+- **Fewer names with nothing chosen.** The last other name chosen is set aside, or the first other name offered when none was. Names already rotate, so this says nothing about the answer.
+- **Scoring: "With help", the existing points.** A card with any help request counts as "With help" (0.3 points), whatever choice found it, the same as a card that took three tries. That is the existing scoring for the most hinted cards, with no penalty of its own; the alternative, counting it by its choice, would score a card the person said they didn't know as "Right away". For the clinician to review.
+- **Scheduling: like any hinted card.** Tries are the names chosen and every step is a hint used, so the card moves back a step, comes back later in the session, and gives no reveal unlock.
+- **Recorded as its own event.** `help` on the card record (each tap's time and the step reached), `help_at` and `help_steps` on the server, added with defaults so older rows and older apps keep working. A tap adds no selection, so nothing reads as a wrong answer. "Asked for help" is a plain count in Insights (under How answers were found, and on the day sheet), in the report, and as a list per card in the data file (format unchanged at 2: one added field).
+- **Answer speed is unchanged.** The time to the first choice still means the first name chosen, so a card where the person asked for help first takes longer to its first choice. Each help tap counts as a moment of use for active time.
 
 ## Consent and the privacy policy (2026-11-13)
 

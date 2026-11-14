@@ -7,7 +7,7 @@ import { Note } from '@/components/dashboard';
 import { FOUND_FILL, FoundChart } from '@/components/insight-charts';
 import { Sheet } from '@/components/sheet';
 import { MIN_CARDS_SHOWN } from '@/config/insights';
-import { chanceText, foundGroups, foundHeadline, foundSummary, wholePercents, type FoundGroup, type InsightsView, type Shares } from '@/lib/insights';
+import { ASKED_FOR_HELP_MEANING, chanceText, foundGroups, foundHeadline, foundSummary, helpCountText, wholePercents, type FoundGroup, type InsightsView, type Shares } from '@/lib/insights';
 import { Colors } from '@/theme/colors';
 import { Space } from '@/theme/layout';
 
@@ -41,6 +41,12 @@ export function FoundSection({ view, today }: { view: InsightsView; today: strin
           <SummaryBar groups={groups} percents={percents} chance={view.recent.chance} summary={foundSummary(view.recent)} />
           <FoundRows groups={groups} percents={percents} />
         </>
+      ) : null}
+      {view.recent.askedForHelp > 0 ? (
+        // A plain count, part of "With help" above.
+        <AppText testID="found-asked-for-help" size="caption" muted>
+          {`${helpCountText(view.recent.askedForHelp)}, counted in With help`}
+        </AppText>
       ) : null}
       {chance ? (
         <View testID="found-chance" style={styles.chanceRow}>
@@ -130,8 +136,9 @@ function FoundHelp({ chance, visible, onClose }: { chance?: string; visible: boo
           <AppText bold>On a second try:</AppText> another name came first, and a hint followed.
         </AppText>
         <AppText>
-          <AppText bold>With help:</AppText> it took a third try or more, with more hints.
+          <AppText bold>With help:</AppText> it took a third try or more, with more hints, or the person asked for a hint.
         </AppText>
+        <AppText>{ASKED_FOR_HELP_MEANING}</AppText>
         {chance ? <AppText>{`${chance} So the share found right away is best read against the same person’s other days.`}</AppText> : null}
         <AppText>{`A share shows once there are at least ${MIN_CARDS_SHOWN} cards.`}</AppText>
       </View>

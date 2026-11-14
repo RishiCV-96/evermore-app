@@ -13,6 +13,8 @@ import {
   peopleInsights,
   personScore,
   recordDay,
+  helpCountText,
+  helpRequestsOf,
   resolutionsOf,
   scoreFloor,
   scoreSentence,
@@ -64,6 +66,8 @@ export type Report = {
   cards: number;
   activeMs: number;
   found: FoundGroup[];
+  /** Of the cards, those where the person asked for help ("I'm not sure"): part of "With help". */
+  askedForHelp: number;
   chance?: number;
   bandDays: Record<BandName, number>;
   people: ReportPerson[];
@@ -127,6 +131,7 @@ export function reportOf(source: Pick<ExportSource, 'origin' | 'people' | 'cards
     cards: resolutions.cards,
     activeMs: timeOf(records),
     found: foundGroups(resolutions),
+    askedForHelp: helpRequestsOf(records),
     chance: chanceOf(records),
     bandDays,
     people,
@@ -176,6 +181,7 @@ export const REPORT_NOTES = {
   placeholders: 'Spacing intervals, session lengths and the day’s start time are placeholders, still to be reviewed by a speech-language pathologist.',
   kept: `Card records are kept for ${ATTEMPTS_KEPT_DAYS} days, so this report covers at most the last ${ATTEMPTS_KEPT_DAYS} days.`,
   score: `${scoreSentence()} A day needs at least ${MEMORY_SCORE.minCards} cards for a score. It summarizes one day of practice, is affected by sleep, mood and the time of day, and is compared only with the same person’s own history.`,
+  askedForHelp: 'These are cards where the person tapped “I’m not sure” for a hint before choosing. They are counted in “With help”, and earn the same points as any card found with help.',
   phoneCopy: 'Made from this phone’s copy while the server couldn’t be reached, so it may be missing the newest practice.',
 } as const;
 
@@ -264,6 +270,7 @@ export function reportHtml(report: Report) {
   <h2>How answers were found</h2>
   <table class="found"><tr>${report.found.map((group, index) => `<td><div class="value">${found[index]}</div><div class="label">${escape(group.label)} <span class="muted">(${group.count})</span></div></td>`).join('')}</tr></table>
   ${chance ? `<p class="small">${escape(chance)}</p>` : ''}
+  <p class="small">${escape(helpCountText(report.askedForHelp))}. ${escape(REPORT_NOTES.askedForHelp)}</p>
 
   <h2>People</h2>
   <table>

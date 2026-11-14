@@ -244,6 +244,16 @@ create index if not exists attempt_records_login on public.attempt_records (pers
 -- round began once the day's session was complete: extra practice, counted and labelled as such.
 alter table public.attempt_records add column if not exists study_day date;
 alter table public.attempt_records add column if not exists extra_practice boolean not null default false;
+-- Each "I'm not sure" tap on the card (added 2026-11-13): when, and the hint step it reached (a rung,
+-- 'wait' for "Take your time." with every rung off, or 'answer'). Asking for help, never a wrong
+-- answer: it adds nothing to selected_at. Empty on older records, so they read as before.
+alter table public.attempt_records add column if not exists help_at timestamptz[] not null default '{}';
+alter table public.attempt_records add column if not exists help_steps text[] not null default '{}';
+alter table public.attempt_records drop constraint if exists attempt_records_help_check;
+alter table public.attempt_records add constraint attempt_records_help_check check (
+  help_steps <@ array['fact', 'relationship', 'letter', 'fewer', 'wait', 'answer']
+  and cardinality(help_at) = cardinality(help_steps) and cardinality(help_steps) <= 200
+);
 
 -- When each card comes back. Steps and intervals are in src/config/schedule.ts.
 create table if not exists public.card_schedule (
@@ -769,7 +779,7 @@ grant select, insert, update, delete on public.profiles, public.people, public.c
 -- below decide whose rows each may touch.
 grant insert (id, caregiver_id, person_user_id, person_id, card_id, phrasing_id, shape, fact_type, source,
   session_id, shown_at, selected_at, selected_right, choices, hints, success, active_ms, first_selection_ms,
-  goal, extra, study_day, extra_practice) on public.attempt_records to authenticated;
+  goal, extra, study_day, extra_practice, help_at, help_steps) on public.attempt_records to authenticated;
 grant select, delete on public.attempt_records to authenticated;
 grant select, insert, update, delete on public.attempt_records to service_role;
 revoke execute on function public.attempt_records_prune() from public, anon, authenticated;

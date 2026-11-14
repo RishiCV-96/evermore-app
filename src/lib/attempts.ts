@@ -1,6 +1,6 @@
 import { ACTIVE_TIME, ATTEMPTS_KEPT_DAYS } from '@/config/insights';
 import { calendarKey, lastDays } from '@/lib/activity';
-import type { FactType, HintRung, PhrasingKind } from '@/lib/stories';
+import type { FactType, HintRung, HintStep, PhrasingKind } from '@/lib/stories';
 
 // One card as it was practiced: what it asked, each answer chosen and when, the hints it took, and
 // how long it was on screen while the app was in use. Kept on the phone with sign-in off; with
@@ -16,6 +16,12 @@ export type Selection = {
   at: string;
   /** The right answer. A card ends on its first right one. */
   right: boolean;
+};
+
+/** One "I'm not sure" tap: when, and the hint step it reached. Asking for help, never an answer. */
+export type HelpRequest = {
+  at: string;
+  step: HintStep;
 };
 
 export type CardAttempt = {
@@ -36,8 +42,13 @@ export type CardAttempt = {
   selections: Selection[];
   /** How many were offered at the start. */
   choices: number;
-  /** The hint rungs shown, one for each other answer chosen, in order. */
+  /** The hint rungs shown, one for each hint step (another answer chosen, or "I'm not sure"), in order. */
   hints: HintRung[];
+  /**
+   * Each time the person asked for help with "I'm not sure", and the step it reached. Missing when
+   * they never did, and on records from before it existed. Not a wrong answer: it adds no selection.
+   */
+  help?: HelpRequest[];
   /** Ended on the right answer. False only when the person left the card first. */
   success: boolean;
   /** On screen while the app was in use (ACTIVE_TIME). */
@@ -82,12 +93,21 @@ export const cappedMs = (ms: number) => Math.min(ms, ACTIVE_TIME.cardCapMs);
 
 export type Resolution = 1 | 2 | 3;
 
-/** On which choice a card was resolved: 1, 2, or 3 for the third or later. None if it never was. */
-export function resolvedOn(attempt: Pick<CardAttempt, 'selections' | 'success'>): Resolution | undefined {
+/**
+ * How a card was resolved: on the first choice (1), the second (2), or the third or later (3). A card
+ * where the person asked for help ("I'm not sure") is 3, "With help", whatever choice found it, and
+ * earns that group's points: the hint scoring that already was, with no penalty of its own. None if
+ * it never was resolved.
+ */
+export function resolvedOn(attempt: Pick<CardAttempt, 'selections' | 'success' | 'help'>): Resolution | undefined {
   if (!attempt.success) return undefined;
   const at = attempt.selections.findIndex((selection) => selection.right);
-  return at < 0 ? undefined : (Math.min(at + 1, 3) as Resolution);
+  if (at < 0) return undefined;
+  return askedForHelp(attempt) ? 3 : (Math.min(at + 1, 3) as Resolution);
 }
+
+/** The person asked for help on this card at least once. */
+export const askedForHelp = (attempt: Pick<CardAttempt, 'help'>) => Array.isArray(attempt.help) && attempt.help.length > 0;
 
 /** One of the day's cards, resolved: what every insight counts. Re-asks and the review pass don't count, as for completion. */
 export const counted = (attempt: CardAttempt) => !attempt.extra && resolvedOn(attempt) !== undefined;
@@ -109,6 +129,8 @@ export type CardTiming = {
   away: [number, number][];
   leftAt: number;
   hints: HintRung[];
+  /** Each "I'm not sure" tap and the step it reached. */
+  help?: { at: number; step: HintStep }[];
 };
 
 /** The record of one card, from the card as asked and what the practice card measured. */
@@ -118,7 +140,10 @@ export function attemptOf(
   context: { id: string; sessionId: string; goal: number; source: CardAttempt['source']; studyDay?: string; extraPractice?: boolean },
 ): CardAttempt {
   const picks = timing.selections;
+  const help = timing.help ?? [];
   const success = picks.some((pick) => pick.right);
+  // Every tap is a moment of use, a help tap too, so each stretch between taps is capped at the idle gap as usual.
+  const moments = [...picks.map((pick) => pick.at), ...help.map((request) => request.at)].sort((a, b) => a - b);
   return {
     id: context.id,
     sessionId: context.sessionId,
@@ -132,8 +157,9 @@ export function attemptOf(
     selections: picks.map((pick) => ({ at: new Date(pick.at).toISOString(), right: pick.right })),
     choices: card.choices.length,
     hints: timing.hints,
+    ...(help.length ? { help: help.map((request) => ({ at: new Date(request.at).toISOString(), step: request.step })) } : {}),
     success,
-    activeMs: activeBetween([timing.shownAt, ...picks.map((pick) => pick.at), timing.leftAt], timing.away),
+    activeMs: activeBetween([timing.shownAt, ...moments, timing.leftAt], timing.away),
     ...(picks.length ? { firstSelectionMs: activeBetween([timing.shownAt, picks[0].at], timing.away) } : {}),
     goal: context.goal,
     ...(card.again ? { extra: true } : {}),

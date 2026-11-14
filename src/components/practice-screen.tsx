@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image, type ImageProps } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, AppState, Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { AccessibilityInfo, AppState, Pressable, ScrollView, StyleSheet, Text, View, type HostInstance, type ScrollViewInstance } from 'react-native';
+import Animated, { FadeIn, FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/app-text';
@@ -12,11 +12,12 @@ import { ProgressBar } from '@/components/progress-bar';
 import { RevealPhoto } from '@/components/reveal-photo';
 import { SAME_SESSION_MOST, type RevealSetting } from '@/config/schedule';
 import type { CardTiming } from '@/lib/attempts';
+import { askForHelp, cardResult, chooseName, hintNow, notSureButton, startSteps } from '@/lib/card-steps';
 import { firstTryCorrect, type CardResult } from '@/lib/queue';
 import { noteAnswer, photoShown, startsHidden } from '@/lib/reveal';
 import { AFTER_THE_DAY, askedAgain, nextTapCounts, reaskSpot, reviewPass, todayYouSaw, type AskedToday } from '@/lib/session';
 import { speak, stopSpeaking } from '@/lib/speak';
-import { BLANK, answerOf, fillBlank, hintAt, hintLadder, listNames, type Card, type Round } from '@/lib/stories';
+import { BLANK, answerOf, fillBlank, listNames, type Card, type Round } from '@/lib/stories';
 import { Colors } from '@/theme/colors';
 import { GUTTER, ICON, RADIUS, Space, TAP } from '@/theme/layout';
 import { Fonts } from '@/theme/type';
@@ -24,7 +25,8 @@ import { Fonts } from '@/theme/type';
 // The core loop: a card asks for a name (usually a photo and a sentence with a blank; see
 // PhrasingKind in src/lib/stories.ts) -> tap a name -> gentle hint until the right one -> the
 // whole sentence is read back with the photo, and Next is there at once. No timers, no scores,
-// no red.
+// no red. "I'm not sure", under the names, starts the same hints without choosing a name first,
+// so not knowing is never a mistake (src/lib/card-steps.ts).
 type PracticeScreenProps = {
   /** The session's cards, in the order the schedule chose. */
   rounds: Round[];
@@ -155,18 +157,20 @@ type PracticeCardProps = {
 function PracticeCard({ card, photo, memoryPhoto, progress, isLast, onRemembered, onLeave, onNext, onHome }: PracticeCardProps) {
   const insets = useSafeAreaInsets();
   const scroll = useRef<ScrollViewInstance>(null);
-  const [remembered, setRemembered] = useState(false);
-  // Counts other names chosen: each one moves the hint one rung further (src/lib/stories.ts).
-  const [misses, setMisses] = useState(0);
-  // The name the "fewer names" hint set aside: the last other name chosen.
-  const [setAside, setSetAside] = useState<string>();
+  const reduced = useReducedMotion();
+  // Each other name chosen, and each "I'm not sure", moves the hint one step (src/lib/card-steps.ts).
+  const [steps, setSteps] = useState(startSteps);
+  const { misses, setAside, answered: remembered } = steps;
+  // The hint, so a screen reader moves to it after "I'm not sure".
+  const hintBox = useRef<HostInstance>(null);
+  const focusHint = useRef(false);
   // The "?" was tapped: a free hint, with no penalty.
   const [tapped, setTapped] = useState(false);
   // When the right name was chosen, so that same tap can't also land on Next.
   const answeredAt = useRef(0);
   // For the caregiver's insights only, and invisible here: when the card came up, each answer
   // chosen, the hints shown, and spells in the background, which never count as time on the card.
-  const timing = useRef<CardTiming>({ shownAt: 0, selections: [], away: [], leftAt: 0, hints: [] });
+  const timing = useRef<CardTiming>({ shownAt: 0, selections: [], away: [], leftAt: 0, hints: [], help: [] });
   useEffect(() => {
     const measured = timing.current;
     measured.shownAt = Date.now();
@@ -187,7 +191,8 @@ function PracticeCard({ card, photo, memoryPhoto, progress, isLast, onRemembered
   const sentence = remembered ? reveal : ask;
   const [before, after] = sentence.split(BLANK);
   const filled = remembered || kind === 'blank' || kind === 'reverse';
-  const hint = hintAt(card, misses);
+  const hint = hintNow(card, steps);
+  const notSure = notSureButton(card, steps);
   const choices = card.choices.filter((name) => name !== setAside);
   const target = answerOf(card);
   // A fact can be too long for the one line a name fits on, and the sentence above shows it anyway.
@@ -197,28 +202,42 @@ function PracticeCard({ card, photo, memoryPhoto, progress, isLast, onRemembered
   // With very large text on a small phone, the hint can leave too little room for the photo
   // and the sentence; keep the sentence in view.
   useEffect(() => {
-    if (misses > 0) scroll.current?.scrollToEnd({ animated: true });
-  }, [misses]);
+    if (misses > 0) scroll.current?.scrollToEnd({ animated: !reduced });
+  }, [misses, reduced]);
+
+  /** After "I'm not sure", a screen reader's focus moves to the new hint as soon as it is laid out. */
+  function hintLaidOut() {
+    if (!focusHint.current || !hintBox.current) return;
+    focusHint.current = false;
+    // React Native Web has no such event, and the web build is only for checking screens.
+    AccessibilityInfo.sendAccessibilityEvent?.(hintBox.current, 'focus');
+  }
 
   function choose(name: string) {
     if (remembered) return;
     timing.current.selections.push({ at: tapTime(), right: name === target });
-    if (name === target) {
+    const next = chooseName(card, steps, name);
+    timing.current.hints = next.hints;
+    setSteps(next);
+    if (next.answered) {
       answeredAt.current = tapTime();
-      setRemembered(true);
       // Saved now, so the card counts even if the app is closed before Next.
-      onRemembered({ tries: misses + 1, hintsUsed: misses }, tapped);
+      onRemembered(cardResult(next), tapped);
       speak(readBack);
     } else {
-      const next = hintAt(card, misses + 1);
-      // The rung this hint is on, as hintAt chose it.
-      const ladder = hintLadder(card);
-      const rung = ladder[Math.min(misses + 1, ladder.length) - 1];
-      if (rung) timing.current.hints.push(rung);
-      setMisses(misses + 1);
-      if (next.fewer && !setAside) setSetAside(name);
-      AccessibilityInfo.announceForAccessibility(`${next.lead} ${next.detail}`);
+      const shown = hintNow(card, next);
+      AccessibilityInfo.announceForAccessibility(`${shown.lead} ${shown.detail}`);
     }
+  }
+
+  /** "I'm not sure": the next hint at once, with no name chosen and nothing marked wrong. */
+  function notSureTapped() {
+    const next = askForHelp(card, steps);
+    if (next === steps) return;
+    timing.current.hints = next.hints;
+    timing.current.help = [...(timing.current.help ?? []), { at: tapTime(), step: next.help[next.help.length - 1] }];
+    focusHint.current = true;
+    setSteps(next);
   }
 
   /** Hands up what the card measured, once, as the person leaves it. */
@@ -226,7 +245,7 @@ function PracticeCard({ card, photo, memoryPhoto, progress, isLast, onRemembered
     const measured = timing.current;
     if (measured.leftAt) return;
     measured.leftAt = tapTime();
-    onLeave({ ...measured, selections: [...measured.selections], away: [...measured.away], hints: [...measured.hints] });
+    onLeave({ ...measured, selections: [...measured.selections], away: [...measured.away], hints: [...measured.hints], help: [...(measured.help ?? [])] });
   }
 
   // Moving on leaves the card, so a flip still turning simply stops with it.
@@ -298,8 +317,16 @@ function PracticeCard({ card, photo, memoryPhoto, progress, isLast, onRemembered
       ) : (
         <View style={[styles.column, styles.answers, { paddingBottom: insets.bottom + Space.l }]}>
           {misses > 0 ? (
-            // Keyed by misses so the hint replays its entrance on every tap.
-            <Animated.View key={misses} entering={FadeInDown.duration(250)} testID="hint" style={styles.hint}>
+            // Keyed by misses so the hint replays its entrance on every tap; a plain fade with Reduce Motion.
+            <Animated.View
+              key={misses}
+              ref={hintBox}
+              entering={(reduced ? FadeIn : FadeInDown).duration(250)}
+              testID="hint"
+              accessible
+              accessibilityLabel={`${hint.lead} ${hint.detail}`.trim()}
+              onLayout={hintLaidOut}
+              style={styles.hint}>
               <Ionicons name="bulb-outline" size={ICON} color={Colors.text} aria-hidden />
               <AppText style={styles.hintText}>
                 <Text style={styles.bold}>{hint.lead}</Text>
@@ -315,6 +342,10 @@ function PracticeCard({ card, photo, memoryPhoto, progress, isLast, onRemembered
             // Once the hint has said the answer, its button shows which one it is.
             <BigButton key={name} label={name} selected={hint.show && name === target} onPress={() => choose(name)} />
           ))}
+          {notSure ? (
+            // Quiet and last, under the names: never one of the answers. Gone once the answer is shown.
+            <BigButton testID="not-sure" quiet label={notSure.label} accessibilityLabel={notSure.spoken} onPress={notSureTapped} />
+          ) : null}
         </View>
       )}
     </Animated.View>

@@ -396,7 +396,9 @@ for (const column of ['tries', 'first_try_correct', 'hints_used']) {
 
 // Card records for insights: the person's login only writes its own family's, the caregiver only
 // reads and deletes them, and nobody else reaches them at all.
-const RECORD_COLUMNS = 'id, caregiver_id, person_user_id, person_id, card_id, phrasing_id, shape, fact_type, source, session_id, shown_at, selected_at, selected_right, choices, hints, success, active_ms, first_selection_ms, goal, extra, study_day, extra_practice';
+const RECORD_COLUMNS = 'id, caregiver_id, person_user_id, person_id, card_id, phrasing_id, shape, fact_type, source, session_id, shown_at, selected_at, selected_right, choices, hints, success, active_ms, first_selection_ms, goal, extra, study_day, extra_practice, help_at, help_steps';
+// What an app from before help requests sends (2026-11-13), which must still be taken.
+const OLDER_RECORD_COLUMNS = RECORD_COLUMNS.replace(', help_at, help_steps', '');
 const PB = '00000000-0000-4000-8000-0000000000bb'; // B's person
 await db.query(`insert into auth.users (id, raw_user_meta_data) values ($1, '{"evermore_person": true}')`, [PB]);
 await db.query(`insert into public.profiles (id, role, display_name, caregiver_id, username) values ($1, 'person', 'Joe', $2, 'grandpa.joe')`, [PB, B]);
@@ -407,7 +409,7 @@ const ago = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOStr
 const recordRow = (n, changes = {}) => ({
   id: recordId(n), caregiver_id: A, person_user_id: P, person_id: aWhose, card_id: card, phrasing_id: 'who', shape: 'who',
   fact_type: 'interest', source: 'template', session_id: S, shown_at: ago(1), selected_at: [ago(1), ago(1)], selected_right: [false, true],
-  choices: 3, hints: ['letter'], success: true, active_ms: 9000, first_selection_ms: 3000, goal: 36, extra: false, study_day: null, extra_practice: false, ...changes,
+  choices: 3, hints: ['letter'], success: true, active_ms: 9000, first_selection_ms: 3000, goal: 36, extra: false, study_day: null, extra_practice: false, help_at: [], help_steps: [], ...changes,
 });
 // As the app's upload goes: rows read from JSON, returning nothing to read back.
 const UPLOAD = `insert into public.attempt_records (${RECORD_COLUMNS}) select ${RECORD_COLUMNS} from json_populate_recordset(null::public.attempt_records, $1::json) returning 1`;
@@ -427,6 +429,18 @@ const written = await insertRecords(P, [recordRow(1), recordRow(2, { person_id: 
 check('the person writes card records for their own family, in a batch', !written.error && written.affected === 2, written.error ?? JSON.stringify(written));
 check('a card left before answering is a record too, with no choice and no first time', !(await insertRecords(P, [recordRow(3, { selected_at: [], selected_right: [], hints: [], success: false, first_selection_ms: null })])).error);
 check('a card from before facts may have no kind', !(await insertRecords(P, [recordRow(3, { fact_type: null })])).error);
+check('a card where the person asked for help keeps each tap and the step it reached', !(await insertRecords(P, [recordRow(3, { selected_at: [ago(1)], selected_right: [true], hints: ['fact', 'relationship'], help_at: [ago(1), ago(1)], help_steps: ['fact', 'relationship'] })])).error);
+check('every step a help tap can reach is taken', !(await insertRecords(P, [recordRow(3, { help_at: Array(6).fill(ago(1)), help_steps: ['fact', 'relationship', 'letter', 'fewer', 'wait', 'answer'] })])).error);
+check('a help step outside the fixed set is refused, so no words fit', !!(await insertRecords(P, [recordRow(3, { help_at: [ago(1)], help_steps: ['June'] })])).error);
+check('and a help time without its step', !!(await insertRecords(P, [recordRow(3, { help_at: [ago(1), ago(1)], help_steps: ['fact'] })])).error);
+{
+  const older = await as(P, `insert into public.attempt_records (${OLDER_RECORD_COLUMNS}) select ${OLDER_RECORD_COLUMNS} from json_populate_recordset(null::public.attempt_records, $1::json) returning 1`, [JSON.stringify([recordRow(3)])]);
+  check('an older app’s record, without the help columns, is still taken', !older.error, older.error);
+  await db.query(`insert into public.attempt_records (${OLDER_RECORD_COLUMNS}) select ${OLDER_RECORD_COLUMNS} from json_populate_recordset(null::public.attempt_records, $1::json)`, [JSON.stringify([recordRow(90)])]);
+  const kept = (await db.query(`select help_at, help_steps from public.attempt_records where id = $1`, [recordId(90)])).rows[0];
+  check('with no help requests', kept.help_at.length === 0 && kept.help_steps.length === 0, JSON.stringify(kept));
+  await db.query(`delete from public.attempt_records where id = $1`, [recordId(90)]);
+}
 check('an approved AI sentence is recorded by its id', !(await insertRecords(P, [recordRow(3, { phrasing_id: 'ai-3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b', source: 'ai' })])).error);
 await uploadRecords(P, [recordRow(1), recordRow(2, { person_id: aOther, phrasing_id: 'my-rel', shape: 'blank' })]);
 const resent = await insertRecords(P, [recordRow(1)]);

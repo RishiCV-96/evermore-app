@@ -232,6 +232,24 @@ The validation block is still copied by `scripts/sync-ai-check.mjs`. The functio
 
 Story approval shows "Shorter sentences are easier to read." under a sentence longer than 14 words. It is the caregiver's choice whether to edit. Nothing is rewritten, and nothing is blocked.
 
+### 10. "I'm not sure": the hints without choosing a name first (P2, P5)
+
+Added 2026-11-13. `src/lib/card-steps.ts` (the steps, pure), the words in `NOT_SURE` in `src/lib/stories.ts`, the control in `src/components/practice-screen.tsx`.
+
+| | Before | After |
+| --- | --- | --- |
+| A person who doesn't know | Had to choose a name to get the first hint, so not knowing looked like guessing | Taps **I’m not sure** under the names and the first hint comes at once, with nothing chosen |
+| What it says | `Take your time.` and the first rung | `That is okay. Here is a little help.` and the same first rung |
+| Each further tap | (none) | The next rung, as a different name would bring. The tap that will show the answer reads **Show me** |
+| At the answer | `It’s June.` and June's button filled | The same. The control is gone, and the person taps the right name to finish |
+
+- **The same ladder and the same words.** Each tap is one hint step, exactly as each other name chosen is: another fact, the relationship, the first letter, fewer names, then the answer. No new hint, and the calm line replaces only "Take your time.". With every rung off, the line, then the answer. Nothing new is said about a person.
+- **Fewer names, with nothing chosen.** The last other name chosen is set aside, or, when none was, the first other name offered. Never the answer, and never fewer than two names.
+- **On every card with the ladder:** blank, ask, who, photo-only, reverse (an AI card, where it offers facts) and reveal cards. It never shows once the answer is chosen or the hint has said it.
+- **Placement and style.** A quiet `BigButton` (label only, `primaryDark`, body size, 48pt tall) under the names, never among them or styled like one. No sound, no haptics (the hints have none), no shake, no red. Reduce Motion turns the hint's slide into a fade and stops the scroll's animation.
+- **VoiceOver.** "I’m not sure. Show me a hint." (and "Show me the answer." for the last tap). Focus moves to the new hint once it is laid out.
+- **What it records.** A help request, never a wrong answer: no selection is added, and the card's record keeps each tap and the step it reached (`help`, `help_at` and `help_steps` on the server). The card counts as "With help" in Insights and earns that group's points. It is rescheduled like any card that needed a hint (back a step, and asked again later in the session).
+
 ## Not changed, and why
 
 - **The fixed predicates** (workplace `has worked or studied at`, holiday `had a holiday we`). Changing them changes sentences caregivers already approved, word for word, which would need a re-approval flow.
@@ -248,3 +266,4 @@ Story approval shows "Shorter sentences are easier to read." under a sentence lo
 - **Re-exposure placement:** the wrap-up strip, its 6 people, the first-seen order, and whether a mid-session re-exposure would help.
 - **Sound-alike rule:** whether the same first letter and a spelling one or two letters apart is the right test.
 - **The 14-word guide** for the caregiver's note and the AI's sentences.
+- **"I'm not sure":** its wording ("I’m not sure", "Show me", and "That is okay. Here is a little help."); its placement under the names; whether the first tap should jump straight to the first hint (as built) or first ask "Would you like a hint?"; and how a help request should affect scheduling (as built, like any card that needed a hint: back a step and asked again in the session), and whether it should count as "With help" in Insights whatever choice found the answer (as built).

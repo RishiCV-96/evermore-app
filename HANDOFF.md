@@ -1,4 +1,61 @@
-# Handoff: real family data off git
+# Handoff: "I'm not sure" on the person's cards
+
+Updated 2026-11-13. Work in `~/evermore-clean` so `CLAUDE.md` loads. The history cleanup and the move to `~/evermore-clean` are finished; nothing below touches them.
+
+## Status
+
+**Built and committed on the branch `i-am-not-sure`** (not pushed, not merged), and checked:
+- `npm test`: all 14 suites, the release bundles included; `node scripts/check-no-real-data.mjs` and `scripts/check-release.mjs` clean
+- typecheck and lint, clean
+- the local-only web build in headless Chrome at 375x647, 390x763 and 430x839, at Medium, Large and Extra large, with Reduce Motion on and off, from a throwaway copy without the local deck or the real photos (deleted afterwards)
+
+**Not on a phone yet.** **The schema changed: rerun `supabase/schema.sql`** in the Supabase SQL Editor (below). The live project wasn't touched.
+
+### What changed
+
+- **The person's card.** A quiet **I’m not sure** under the names (label only, `primaryDark`, 48pt tall) on every card with the hint ladder: blank, ask, who, photo-only, reverse and reveal cards. Each tap brings the next step of the same ladder a different name would (another fact, the relationship, the letter, fewer names, then the answer), with "That is okay. Here is a little help." in place of "Take your time." on a first hint it brought. The tap that will show the answer reads **Show me**; the control goes once the answer is shown, and the person taps the right name to finish. VoiceOver: "I’m not sure. Show me a hint.", and focus moves to the new hint. Reduce Motion fades the hint in instead of sliding it, and the scroll doesn't animate. No sound, haptics, shake or red.
+- **The steps are pure.** `src/lib/card-steps.ts` (`chooseName`, `askForHelp`, `hintNow`, `notSureButton`, `cardResult`), used by `PracticeCard`; the words are `NOT_SURE` and the step set `HINT_STEPS` in `src/lib/stories.ts`.
+- **The record.** `help` on each card record (each tap's time and the step reached: a rung, `wait` or `answer`). A tap adds no selection, so nothing reads as a wrong answer. Each tap also counts as a moment of use for active time.
+- **Scheduling.** Like any card that needed a hint: tries are the names chosen and every step is a hint used, so the card moves back a step, comes back later in the session, and gives no reveal unlock.
+- **Insights.** A card with a help request counts as "With help" (`resolvedOn`), with that group's existing points (0.3) and nothing more. "Asked for help: N cards, counted in With help" under How answers were found, an "Asked for help" row on the day sheet, a line in the report, and an `askedForHelp` list on each card record in the data file.
+- **Server.** `attempt_records.help_at timestamptz[]` and `help_steps text[]`, both `not null default '{}'`, with a check on the step set and matching lengths, and the person's insert grant.
+- **Docs.** `CLAUDE.md` (a hard rule and the architecture), `DESIGN.md` (the decisions), `DESIGN-UI.md`, `docs/QUESTION-AUDIT.md` (change 10 and the clinician items), `docs/DATA-INVENTORY.md`.
+- **Tests.** `scripts/check-logic.mjs`: the control on every kind of card, never once the answer is shown, the first tap's hint, the walk to the answer, no wrong-answer state, "With help" and the same score as a third-try card, scheduling equal to a one-hint card, the record's round trip and an older row, the schema's columns, quiet and 48pt, Reduce Motion, VoiceOver label and focus, no haptics or red. `supabase/tests/rls.test.mjs`: help rows taken, unknown steps refused, an older app's insert still taken with empty lists. `scripts/check-export.mjs`: help requests in the data file and the report, equal to Insights.
+
+### What you must do
+
+1. **Rerun `supabase/schema.sql`** in the SQL Editor. It is safe to rerun: the columns are added only if missing, and the check is dropped and added again. **Before then**, a phone with this build can't upload card records (the server doesn't know the columns): they wait in the phone's queue, nothing is lost, and they go once the schema is rerun. Older app builds keep uploading as before, and the caregiver's Insights read older rows as before.
+2. **Look at the privacy policy wording.** I didn't change it. Its line on card records already says "the hints shown", which covers a hint the person asked for. If you want help requests named in it: change it in `src/lib/privacy-policy.ts`, then either `node scripts/build-policy.mjs --amend` (only if no caregiver has agreed to version 2026-11-13 yet) or give it a new `POLICY_VERSION`, which asks every caregiver to agree again.
+3. Try it on a phone (next list).
+
+### Decisions I made (also in `DESIGN.md`)
+
+- **"With help" whatever choice found the answer.** A card the person said they didn't know isn't scored "Right away". That is the existing points for the most hinted cards, with no new penalty. Your brief asked for both ("counts as With help" and "no more than any other hint use"); this satisfies both. The alternative, scoring by the choice, is one line in `resolvedOn`.
+- **The first tap jumps straight to the first hint** (no "Would you like a hint?" step). For the clinician.
+- **The calm line only on the first hint.** Later taps show the hint's own words, so each new cue stays visible.
+- **Fewer names with nothing chosen** sets aside the last other name chosen, or the first other name offered.
+- **"Asked for help" is shown only where it is non-zero**, as a plain count, and only on caregiver screens.
+- **Answer speed** (time to first choice) still means the first name chosen, so asking for help first makes that card's first choice later.
+- **The data file's format stays 2.** One added field per record (`askedForHelp`, an empty list when none).
+- **There is no pick-the-photo card** in the app; every card type that exists has the control.
+
+### Only a phone can verify
+
+- VoiceOver on iOS (TalkBack on Android): the label, and focus moving to the new hint after each tap. The web build has no accessibility events, so focus wasn't checked there.
+- Reduce Motion with Reanimated running natively.
+- The control's spot at Extra large on a small iPhone with real safe areas, and a reveal card with the "?" (the walk's sample cards never dealt one; the logic checks cover it).
+- Uploading a help record to the live project once the schema is rerun, and seeing "Asked for help" on the caregiver's phone.
+
+### Verified on 2026-11-13
+
+- `npm test`: 14 of 14 suites. A planted change (`resolvedOn` ignoring help) failed the logic check, as it should.
+- The browser walk, six runs: the control under the names with its VoiceOver label and a 48pt target; the first tap's calm line and hint; each tap to "Show me" and the answer; the control gone then and on the success banner; the right name still needed; the next card with the control again; the record holding the steps and only the right selection; no red, no judging words, scores or timers, every button 48 tall, nothing wider than the page, no page errors. It found one bug, fixed: React Native Web has no `sendAccessibilityEvent`, so the focus call is optional.
+
+### Needs clinician review (added)
+
+- The wording ("I’m not sure", "Show me", "That is okay. Here is a little help."), its placement under the names, whether the first tap should jump to the first hint or ask "Would you like a hint?", and how a help request should affect scheduling and Insights. Listed in `docs/QUESTION-AUDIT.md`.
+
+# The release before: real family data off git
 
 Updated 2026-11-13. Open the session in `~/evermore-expo` so `CLAUDE.md` loads.
 

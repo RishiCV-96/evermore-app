@@ -467,6 +467,34 @@ export function hintAt(round: Round, misses: number) {
   };
 }
 
+/**
+ * Where a hint step lands: a rung of the ladder, "wait" ("Take your time." when every rung is off),
+ * or "answer" (the hint says the answer). Card records keep it for each "I'm not sure" tap
+ * (src/lib/attempts.ts), and supabase/schema.sql lists the same set for help_steps.
+ */
+export const HINT_STEPS = [...HINT_LADDER, 'wait', 'answer'] as const;
+export type HintStep = (typeof HINT_STEPS)[number];
+
+/** The step the hint is on after `misses` steps (each other answer chosen, or each "I'm not sure"). */
+export function hintStep(round: Round, misses: number): HintStep {
+  if (hintAt(round, misses).show) return 'answer';
+  const ladder = hintLadder(round);
+  return ladder.length === 0 ? 'wait' : ladder[Math.min(misses, ladder.length) - 1];
+}
+
+/**
+ * The words of the quiet "I'm not sure" control under the names. It starts the same hint ladder a
+ * different name would, with nothing chosen. The last tap, the one that shows the answer, says so.
+ * The calm line replaces "Take your time." when a help tap brought the first hint.
+ */
+export const NOT_SURE = {
+  label: 'I’m not sure',
+  spoken: 'I’m not sure. Show me a hint.',
+  last: 'Show me',
+  lastSpoken: 'Show me the answer.',
+  calm: 'That is okay. Here is a little help.',
+} as const;
+
 /** What a person's last card looked like: how it asked, and the names in the order shown. */
 export type Seen = { phrasing?: string; choices?: string[] };
 

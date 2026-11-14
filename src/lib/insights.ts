@@ -2,7 +2,7 @@ import { EARLY_READ_CARDS, MIN_CARDS_SHOWN, MEMORY_SCORE, SCORE_BANDS, SESSION_S
 import { SECONDS_PER_CARD, type RevealSetting, type SessionLength } from '@/config/schedule';
 import { calendarKey } from '@/lib/activity';
 import { dayOf, lastStudyDays } from '@/lib/study-day';
-import { cappedMs, counted, resolvedOn, type CardAttempt, type Resolution } from '@/lib/attempts';
+import { askedForHelp, cappedMs, counted, resolvedOn, type CardAttempt, type Resolution } from '@/lib/attempts';
 
 // The caregiver's insights: the one layer of pure functions every insights view reads, so no
 // figure is worked out inside a component. Practice activity only: never a medical measure, never
@@ -72,6 +72,14 @@ export function resolutionsOf(attempts: CardAttempt[]): Resolutions {
     if (on) counts[on] += 1;
   }
   return { cards: counts[1] + counts[2] + counts[3], counts };
+}
+
+/**
+ * How many of the day's cards among these the person asked for help on ("I'm not sure"). Each is
+ * already one of the "With help" cards above; this is only their count, never a separate penalty.
+ */
+export function helpRequestsOf(attempts: CardAttempt[]) {
+  return attempts.filter((attempt) => counted(attempt) && askedForHelp(attempt)).length;
 }
 
 /** Those as shares of the cards, from MIN_CARDS_SHOWN cards up. None from fewer. */
@@ -146,6 +154,8 @@ export type DayInsight = {
   cards: number;
   resolutions: Resolutions;
   shares?: Shares;
+  /** Of those, the cards the person asked for help on. */
+  askedForHelp: number;
   score?: number;
   band?: BandName;
   chance?: number;
@@ -180,6 +190,7 @@ export function dayInsight(key: string, attempts: CardAttempt[]): DayInsight {
     cards: resolutions.cards,
     resolutions,
     shares: sharesOf(resolutions),
+    askedForHelp: helpRequestsOf(attempts),
     score,
     band: score === undefined ? undefined : bandOf(score),
     chance: chanceOf(attempts),
@@ -358,7 +369,7 @@ export type InsightsView = {
   month: ChartDay[];
   fortnight: ChartDay[];
   /** The last 14 days together. */
-  recent: { resolutions: Resolutions; shares?: Shares; chance?: number; medianFirstMs?: number; early: boolean };
+  recent: { resolutions: Resolutions; shares?: Shares; chance?: number; medianFirstMs?: number; early: boolean; askedForHelp: number };
   /** What random guessing would score, from the answers offered in the records shown. */
   chanceScore: number;
   trend?: Trend;
@@ -387,7 +398,7 @@ export const insightsFor = memoLast((attempts: CardAttempt[], family: FamilyLike
     latest: [...days.values()].reverse().find((day) => day.cards > 0),
     month: chart(30),
     fortnight,
-    recent: { resolutions, shares: sharesOf(resolutions), chance: chanceOf(recentAttempts), medianFirstMs: medianFirstChoice(recentAttempts), early: resolutions.cards < EARLY_READ_CARDS },
+    recent: { resolutions, shares: sharesOf(resolutions), chance: chanceOf(recentAttempts), medianFirstMs: medianFirstChoice(recentAttempts), early: resolutions.cards < EARLY_READ_CARDS, askedForHelp: helpRequestsOf(recentAttempts) },
     chanceScore: chanceScoreOf(shown),
     trend,
     people,
@@ -654,7 +665,8 @@ export type FoundGroup = { on: Resolution; label: string; count: number; share?:
 /**
  * The three ways an answer is found, in the words every view uses: right away (the first name
  * chosen), on a second try (one other name first, then usually a first hint), and with help (a third
- * try or later, after more hints). Whether the "?" of a reveal card was tapped is never recorded (the
+ * try or later, after more hints, or any card where the person asked for help with "I'm not sure").
+ * Whether the "?" of a reveal card was tapped is never recorded (the
  * hard rules), so it is not one of them.
  */
 export const FOUND_LABELS: Record<Resolution, string> = { 1: 'Right away', 2: 'On a second try', 3: 'With help' };
@@ -678,6 +690,13 @@ export function wholePercents(shares: number[]) {
   }
   return floors;
 }
+
+/** "Asked for help: 3 cards". A plain count, part of "With help", never framed as anything else. */
+export const ASKED_FOR_HELP = 'Asked for help';
+export const helpCountText = (count: number) => `${ASKED_FOR_HELP}: ${count} ${count === 1 ? 'card' : 'cards'}`;
+
+/** What "Asked for help" means, in the explainer. */
+export const ASKED_FOR_HELP_MEANING = 'Asked for help: the person tapped “I’m not sure” for a hint before choosing. These cards are counted in “With help”, and earn the same points as any card found with help.';
 
 /** One plain sentence above the bar, from the shares of the last two weeks. Never "wrong", never a judgment. */
 export function foundHeadline(shares: Shares | undefined) {

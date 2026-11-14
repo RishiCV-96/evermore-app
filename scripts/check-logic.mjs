@@ -155,6 +155,74 @@ for (const [round, misses] of [[first, 1], [first, 4], [first, 5], [oneFact, 3],
   assert.ok(!/wrong|incorrect|score|try again/i.test(said), `no judging words: ${said}`);
 }
 
+// "I'm not sure" (2026-11-13): a calm way into the same hint ladder, with no name chosen first. It is
+// asking for help, never a wrong answer, and the person still ends every card on the right name.
+{
+  const steps = await import('@/lib/card-steps');
+  const { firstTryCorrect } = await import('@/lib/queue');
+  const { NOT_SURE, HINT_STEPS, HINT_LADDER, hintStep } = await import('@/lib/stories');
+  const day = new Date(2026, 10, 13, 10);
+  // The first tap shows the first hint at once, opening with the calm line
+  let state = steps.startSteps();
+  assert.deepEqual(steps.notSureButton(first, state), { label: 'I’m not sure', spoken: 'I’m not sure. Show me a hint.' }, 'on a fresh card: "I’m not sure", and its VoiceOver label');
+  state = steps.askForHelp(first, state);
+  assert.deepEqual(steps.hintNow(first, state), { ...hintAt(first, 1), lead: 'That is okay. Here is a little help.' }, 'the first tap: the first rung (another fact), with the calm line for "Take your time."');
+  assert.deepEqual([state.wrong, state.help, state.hints], [0, ['fact'], ['fact']], 'nothing counted as wrong; the step reached is kept');
+  // Each further tap walks the ladder, the last one labelled "Show me", and the control goes once the answer is shown
+  const labels = [];
+  while (steps.notSureButton(first, state)) {
+    labels.push(steps.notSureButton(first, state).label);
+    state = steps.askForHelp(first, state);
+    assert.deepEqual({ ...steps.hintNow(first, state), lead: undefined }, { ...hintAt(first, state.misses), lead: undefined }, 'the existing hint content, step for step');
+  }
+  assert.deepEqual(labels, ['I’m not sure', 'I’m not sure', 'I’m not sure', 'Show me'], 'relationship, letter, fewer names, then "Show me" for the answer');
+  assert.deepEqual(state.help, ['fact', 'relationship', 'letter', 'fewer', 'answer'], 'the whole ladder, then the answer itself');
+  assert.ok(steps.hintNow(first, state).show && steps.hintNow(first, state).lead === 'It’s Sofia.', 'it ends on the answer, so nobody is pushed to guess');
+  assert.equal(steps.notSureButton(first, state), undefined, 'never shown once the answer is');
+  assert.equal(steps.askForHelp(first, state), state, 'and a stray tap does nothing');
+  assert.ok(state.setAside && state.setAside !== 'Sofia' && first.choices.includes(state.setAside), 'fewer names sets aside one of the others, never the answer');
+  assert.equal(state.answered, false, 'the person still taps the right name to finish');
+  const done = steps.chooseName(first, state, 'Sofia');
+  assert.ok(done.answered && steps.notSureButton(first, done) === undefined, 'the right name ends the card, and the control is gone');
+  assert.deepEqual(steps.cardResult(done), { tries: 1, hintsUsed: 5 }, 'one name chosen; every step a hint used');
+  // The same ladder whichever way a step comes: a wrong name, then help
+  const other = first.choices.find((name) => name !== 'Sofia');
+  let mixed = steps.chooseName(first, steps.startSteps(), other);
+  assert.equal(steps.hintNow(first, mixed).lead, 'Take your time.', 'a name chosen keeps its own words');
+  mixed = steps.askForHelp(first, mixed);
+  assert.deepEqual([mixed.misses, mixed.wrong, mixed.help, steps.hintNow(first, mixed).lead], [2, 1, ['relationship'], 'This is your mom.'], 'help takes the next step on');
+  // Scheduling: like any card that needed a hint
+  const helped = steps.cardResult(steps.chooseName(first, steps.askForHelp(first, steps.startSteps()), 'Sofia'));
+  assert.ok(!firstTryCorrect(helped), 'a card with help is not a first-try answer, so no reveal unlock either');
+  const onStep = { step: 3, dueAt: day.toISOString() };
+  assert.deepEqual(nextSchedule(onStep, helped, day), nextSchedule(onStep, { tries: 2, hintsUsed: 1 }, day), 'it moves back a step exactly like a card that needed one hint');
+  assert.deepEqual(nextSchedule(undefined, helped, day), nextSchedule(undefined, { tries: 2, hintsUsed: 1 }, day), 'a new card too');
+  // Every rung off: "Take your time." becomes the calm line, then "Show me"
+  let off = steps.askForHelp(allOff, steps.startSteps());
+  assert.deepEqual([steps.hintNow(allOff, off).lead, off.help, steps.notSureButton(allOff, off)?.label], ['That is okay. Here is a little help.', ['wait'], 'Show me']);
+  off = steps.askForHelp(allOff, off);
+  assert.ok(steps.hintNow(allOff, off).show && steps.notSureButton(allOff, off) === undefined, 'then the answer');
+  // On every kind of card with the ladder: blank, ask, who, photo-only, reverse, and reveal cards
+  const kinds = phrasingsFor({ relationship: 'mom', hasPhoto: true }, { type: 'interest', text: 'gardening', timeSensitive: false });
+  const kindRounds = [...new Set(kinds.map((way) => way.kind))].map((kind) => makeRounds([sofia('k', 'x', ALL_HINTS, kinds.filter((way) => way.kind === kind))], [...deck, ...twoFacts])[0]);
+  const reverse = { ...first, phrasing: { id: 'ai-x', kind: 'reverse', ask: 'Sofia enjoys {name}.', reveal: 'Sofia enjoys {name}.', fill: { answer: 'gardening', others: ['chess', 'golf'] } }, choices: ['chess', 'gardening', 'golf'] };
+  const all = [...kindRounds, reverse, { ...first, reveal: true }];
+  assert.deepEqual(all.map((round) => round.phrasing.kind).sort(), ['ask', 'blank', 'blank', 'photo', 'reverse', 'who'], 'every kind is walked');
+  for (const round of all) {
+    let walk = steps.startSteps();
+    assert.ok(steps.notSureButton(round, walk), `${round.phrasing.kind}: the control shows`);
+    for (let tap = 0; tap < 10 && steps.notSureButton(round, walk); tap++) walk = steps.askForHelp(round, walk);
+    assert.ok(steps.hintNow(round, walk).show && !steps.notSureButton(round, walk), `${round.phrasing.kind}: the ladder ends on the answer and the control goes`);
+    assert.ok(walk.help.every((step) => HINT_STEPS.includes(step)) && walk.help.at(-1) === 'answer' && walk.wrong === 0, `${round.phrasing.kind}: steps from the fixed set, nothing wrong`);
+    assert.ok(steps.chooseName(round, walk, round.phrasing.fill?.answer ?? round.answer).answered, `${round.phrasing.kind}: finished on the right answer`);
+    assert.ok(!walk.setAside || walk.setAside !== (round.phrasing.fill?.answer ?? round.answer), `${round.phrasing.kind}: the answer is never set aside`);
+  }
+  assert.deepEqual(HINT_STEPS, [...HINT_LADDER, 'wait', 'answer']);
+  assert.equal(hintStep(first, 5), 'answer');
+  // The words: calm, no judging, no score, and the person's screen shows them only through the control
+  for (const text of Object.values(NOT_SURE)) assert.ok(!/wrong|incorrect|score|fail|try again|hurry|quick/i.test(text), `calm words: ${text}`);
+}
+
 // Facts: every kind makes a sentence from the caregiver's words in a fixed shape
 const stories = await import('@/lib/stories');
 const facts = await import('@/lib/facts');
@@ -1195,6 +1263,23 @@ const flipCode5 = inRepo('src/components/reveal-photo.tsx');
 assert.ok(!/withCallback|onDone|onFlip|, \(finished/.test(flipCode5), 'the flip tells nobody when it ends, so nothing can wait for it');
 assert.ok(!/reveal|flip/i.test(/function goOn\(\) \{[\s\S]*?\n  \}/.exec(practiceCode)?.[0].replace(/\/\/.*/g, '') ?? 'reveal'), 'and moving on never asks about it');
 assert.ok(!('READ_BACK' in pacing) && !('dwellMs' in sessions5), 'the old minimum hold is gone');
+
+// "I'm not sure" on the person's card: quiet, under the names, with its VoiceOver label, Reduce Motion and focus
+{
+  const { TAP } = await import('@/theme/layout');
+  const screen = inRepo('src/components/practice-screen.tsx');
+  const control = /<BigButton testID="not-sure"[^\n]*\/>/.exec(screen)?.[0] ?? '';
+  assert.ok(/ quiet /.test(control) && /accessibilityLabel=\{notSure\.spoken\}/.test(control) && /label=\{notSure\.label\}/.test(control), 'a quiet BigButton with its VoiceOver label');
+  assert.ok(TAP >= 48 && /quiet: \{\n    minHeight: TAP,/.test(inRepo('src/components/big-button.tsx')), 'a quiet button is at least 48pt tall');
+  const answers = screen.slice(screen.indexOf('{choices.map((name) =>'), screen.indexOf('</View>', screen.indexOf('{choices.map((name) =>')));
+  assert.ok(answers.includes('testID="not-sure"') && answers.indexOf('testID="not-sure"') > answers.indexOf('choices.map'), 'below the names, in the answers area only');
+  assert.ok(/\{notSure \? \(/.test(screen) && screen.indexOf('testID="not-sure"') > screen.indexOf('testID="confirmation"'), 'shown only while notSureButton allows, and never with the success banner');
+  assert.ok(/const reduced = useReducedMotion\(\);/.test(screen) && /entering=\{\(reduced \? FadeIn : FadeInDown\)\.duration\(250\)\}/.test(screen) && /scrollToEnd\(\{ animated: !reduced \}\)/.test(screen), 'Reduce Motion: a plain fade and no animated scroll');
+  assert.ok(/sendAccessibilityEvent\?\.\(hintBox\.current, 'focus'\)/.test(screen) && /onLayout=\{hintLaidOut\}/.test(screen), 'VoiceOver moves to the new hint');
+  assert.ok(!/Haptics|playSound|Audio|shake|Colors\.(red|error)/i.test(screen), 'no haptics, no sound, no shake, no red');
+  const helpFn = /function notSureTapped\(\) \{[\s\S]*?\n  \}/.exec(screen)?.[0] ?? '';
+  assert.ok(helpFn && !/selections|onRemembered/.test(helpFn), 'a help tap records no answer and finishes nothing');
+}
 
 // Rotation still holds across a whole planned day: phrasing, names and the right name's place
 for (let run = 0; run < 40; run++) {
@@ -2255,6 +2340,21 @@ assert.ok(TYPE_SCALE.medium.body >= 20, 'body text at the default size stays lar
   assert.equal(lib.memoryScore(lib.resolutionsOf(cards(2, [5, 4]))), undefined, 'nine cards: not enough for a score');
   assert.equal(lib.memoryScore(lib.resolutionsOf([])), undefined, 'a day without practice has no score, not a zero');
 
+  // "I'm not sure": the card counts as With help, with that group's points and nothing more, and is counted plainly
+  const { resolvedOn } = await import('@/lib/attempts');
+  const asked = (more = {}) => card(2, 1, { help: [{ at: new Date(2026, 10, 2, 10).toISOString(), step: 'fact' }], hints: ['fact'], ...more });
+  assert.equal(resolvedOn(asked()), 3, 'help, then the right name first: With help');
+  assert.ok(asked().selections.every((one) => one.right), 'with no wrong answer recorded');
+  assert.equal(resolvedOn(card(2, 3)), 3, 'the same group as a third try');
+  const helpDay = [...cards(2, [6, 3]), asked()];
+  assert.deepEqual(lib.resolutionsOf(helpDay), found, 'six right away, three on a second try, one with help: the same figures as a third-try card');
+  assert.equal(lib.memoryScore(lib.resolutionsOf(helpDay)), lib.memoryScore(found), 'so the same score: the existing hint scoring, no new penalty');
+  assert.equal(lib.helpRequestsOf([...helpDay, asked({ extra: true }), asked({ success: false, selections: [] })]), 1, 'counted only on the day’s resolved cards');
+  assert.equal(lib.dayInsight('2026-11-02', helpDay).askedForHelp, 1);
+  assert.equal(lib.dayInsight('2026-11-02', ten).askedForHelp, 0, 'older records have none');
+  assert.deepEqual([lib.helpCountText(1), lib.helpCountText(3)], ['Asked for help: 1 card', 'Asked for help: 3 cards']);
+  assert.ok(!/\b(wrong|error|incorrect|fail\w*|mistake)\b/i.test(`${lib.helpCountText(2)} ${lib.ASKED_FOR_HELP_MEANING}`), 'never framed as a failure');
+
   // Bands, from each band's lower edge
   assert.deepEqual(config.SCORE_BANDS.map((band) => [band.name, band.from]), [['Getting started', 0], ['Building', 65], ['Steady', 80], ['Strong', 90]]);
   assert.deepEqual([0, 63, 64, 65, 79, 80, 89, 90, 100].map(lib.bandOf), ['Getting started', 'Getting started', 'Getting started', 'Building', 'Building', 'Steady', 'Steady', 'Strong', 'Strong'], 'chance with three answers (63) is Getting started');
@@ -2735,6 +2835,12 @@ assert.ok(TYPE_SCALE.medium.body >= 20, 'body text at the default size stays lar
   assert.deepEqual(listIn(/fact_type text check \(fact_type in \(([\s\S]*?)\)\)/), [...FACT_TYPES], 'a record takes every kind of fact a card can have, and no other');
   assert.deepEqual(listIn(/shape in \(([^)]*)\)/), ['blank', 'ask', 'who', 'photo', 'reverse'], 'every shape');
   assert.deepEqual(listIn(/hints <@ array\[([^\]]*)\]/), [...HINT_RUNGS], 'and every hint rung');
+  // "I'm not sure" (2026-11-13): rerun-safe columns, empty on older rows, and exactly the app's steps
+  const { HINT_STEPS } = await import('@/lib/stories');
+  assert.deepEqual([...schema.match(/help_steps <@ array\[([^\]]*)\]/)[1].matchAll(/'([a-z]+)'/g)].map((match) => match[1]), [...HINT_STEPS], 'every hint step a help request can reach, and no other');
+  assert.ok(/add column if not exists help_at timestamptz\[\] not null default '\{\}'/.test(schema) && /add column if not exists help_steps text\[\] not null default '\{\}'/.test(schema), 'added with defaults, so older rows and older apps keep working');
+  assert.ok(/drop constraint if exists attempt_records_help_check;\s*alter table public\.attempt_records add constraint attempt_records_help_check/.test(schema), 'and its check can be rerun');
+  assert.ok(/extra_practice, help_at, help_steps\) on public\.attempt_records to authenticated/.test(schema), 'the person’s login may write them');
   const fixedIds = new Set(FACT_TYPES.flatMap((type) => phrasingsFor({ relationship: 'friend', hasPhoto: true }, { type, text: 'x', timeSensitive: false }).map((way) => way.id)));
   const allowed = table.match(/phrasing_id ~ '\^\(([^)]*)\)\$'/)[1].split('|');
   assert.deepEqual([...fixedIds].sort(), allowed.filter((id) => !id.startsWith('ai-')).sort(), 'how a card was asked: exactly the fixed shapes, so no words fit');
@@ -2761,6 +2867,17 @@ assert.ok(TYPE_SCALE.medium.body >= 20, 'body text at the default size stays lar
   assert.deepEqual(fromRow({ ...row, shown_at: asPostgres(row.shown_at), selected_at: row.selected_at.map(asPostgres) }), record, 'a record survives the round trip exactly');
   const left = attemptOf({ ...asked, fact: undefined, again: true }, { shownAt: t0, selections: [], away: [], leftAt: t0 + 4_000, hints: [] }, { id: randomUUID(), sessionId: randomUUID(), goal: 36, source: 'ai' });
   assert.deepEqual(fromRow(toRow(left, login)), left, 'so does a card left unanswered, from before facts, asked again');
+  // Help requests travel as two arrays, and a row from before them (or from a schema not yet rerun) reads as before
+  const helped = attemptOf(asked, { shownAt: t0, selections: [{ at: t0 + 9_000, right: true }], away: [], leftAt: t0 + 12_000, hints: ['fact', 'relationship'], help: [{ at: t0 + 2_000, step: 'fact' }, { at: t0 + 5_000, step: 'relationship' }] }, { id: randomUUID(), sessionId: randomUUID(), goal: 36, source: 'template' });
+  assert.deepEqual(helped.help, [{ at: new Date(t0 + 2_000).toISOString(), step: 'fact' }, { at: new Date(t0 + 5_000).toISOString(), step: 'relationship' }], 'each tap and the step it reached');
+  assert.deepEqual(helped.selections.map((one) => one.right), [true], 'and no wrong answer: only the right name was chosen');
+  const helpedRow = toRow(helped, login);
+  assert.deepEqual([helpedRow.help_steps, helpedRow.help_at.length], [['fact', 'relationship'], 2]);
+  assert.deepEqual([row.help_at, row.help_steps], [[], []], 'a card without help sends empty lists');
+  assert.deepEqual(fromRow({ ...helpedRow, help_at: helpedRow.help_at.map(asPostgres) }), helped, 'help survives the round trip');
+  const { help_at: _a, help_steps: _s, ...olderRow } = row;
+  assert.deepEqual(fromRow(olderRow), record, 'an older row without the columns reads exactly as before');
+  assert.ok(uploadable(helped) && !uploadable({ ...helped, help: 'fact' }), 'help must be a list to go');
   // What never goes
   assert.ok(uploadable(record));
   assert.ok(
