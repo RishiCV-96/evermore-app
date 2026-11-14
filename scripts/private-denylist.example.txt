@@ -1,0 +1,20 @@
+# The format of scripts/private-denylist.local.txt (gitignored). Copy this file to that name and put
+# your real family's names in it, one per line. scripts/check-no-real-data.mjs and
+# scripts/check-release.mjs then fail if any of them appears in a tracked file or a release bundle.
+# Neither ever prints an entry: only its line number here.
+#
+# Never put a real name in THIS file: it is committed. The examples below are invented.
+#
+# Name            a whole word in any capitalization, so an id like "name-0" is caught too
+# =Word           only exactly this capitalization: for a name that is also an ordinary word
+#                 (code such as a lowercase variable or setting then doesn't trip it)
+# ~Word           also a word libraries use in their own text: checked in the repository's files
+#                 but not in release bundles (combine as ~=Word). Use it only if
+#                 scripts/check-release.mjs reports the entry and the name isn't from Evermore's code.
+# two words       a phrase, also any capitalization (a street, a workplace, a pet's full name)
+#
+# Examples (invented; delete them in your copy):
+# Zebulonia
+# =Brook
+# ~=Marigold
+# Quillfeather Lane

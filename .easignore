@@ -1,0 +1,43 @@
+# What an EAS upload must never include. EAS reads this file instead of .gitignore, so it repeats
+# .gitignore's rules and adds the user's real family. CLAUDE.md: never run `eas build` or
+# `eas update` (both upload the project); this is a second line of defence.
+# scripts/check-release.mjs checks that these lines are here.
+
+# The user's real family: their photos, their cards (the local deck) and the private denylist.
+# Development builds only, never committed (.gitignore), never uploaded.
+assets/photos/*
+!assets/photos/README.md
+src/data/deck.local.ts
+scripts/private-denylist.local.txt
+*.local.ts
+*.local.txt
+*.local.md
+
+# Secrets and local settings
+.env
+.env*.local
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.mobileprovision
+
+# Dependencies, builds and caches
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.kotlin/
+*.orig.*
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+*.tsbuildinfo
+
+# Tests and fixtures: not part of the app
+supabase/tests/
+scripts/fakes/

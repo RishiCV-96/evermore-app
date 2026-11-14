@@ -1,0 +1,417 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { FunctionsHttpError, type Session } from '@supabase/supabase-js';
+import { useSyncExternalStore } from 'react';
+
+import { MANAGE_FAMILY_FUNCTION } from '@/config/functions';
+import { LOCKED_OUT, MIN_PASSWORD, OFFLINE, SOMETHING, authProblem, unreachable, type AuthContext, type AuthFailure, type AuthReason } from '@/lib/auth-form';
+import { NEED_POLICY, signUpData, type Agreement } from '@/lib/consent';
+import { forgetDeviceCredential, readDeviceCredential } from '@/lib/session-storage';
+import { forgetKeptSession, keptSessionUser, supabase } from '@/lib/supabase';
+
+// Who is signed in, and every account action. Screens read useAccount() and re-render when
+// someone signs in or out. The profile is cached on the phone so the person's home screen
+// still opens without a connection.
+
+export type Role = 'caregiver' | 'person';
+
+export type Profile = {
+  id: string;
+  role: Role;
+  displayName: string;
+  /** For a person: their caregiver. */
+  caregiverId: string | null;
+  /** For a person: their User ID. */
+  username: string | null;
+  createdAt: string;
+};
+
+export type Account =
+  | { status: 'loading' }
+  | { status: 'signed-out' }
+  | { status: 'signed-in'; profile: Profile; email: string | null };
+
+// A person signs in with a User ID. Their login email is made from it on a reserved domain
+// that can never receive mail. Keep in step with supabase/functions/manage-family.
+const PERSON_EMAIL_DOMAIN = 'person.evermore.invalid';
+export const USERNAME_PATTERN = /^[a-z0-9._-]{3,30}$/;
+export { MIN_PASSWORD } from '@/lib/auth-form';
+
+let account: Account = { status: 'loading' };
+let started = false;
+const listeners = new Set<() => void>();
+
+function set(next: Account) {
+  account = next;
+  listeners.forEach((listener) => listener());
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  if (!started) {
+    started = true;
+    void openFromPhone();
+    supabase.auth.onAuthStateChange((event, session) => {
+      // Supabase asks that no other auth calls run inside this callback.
+      setTimeout(() => onSession(session), 0);
+    });
+  }
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function useAccount() {
+  return useSyncExternalStore(subscribe, () => account, () => account);
+}
+
+/** The same store outside React: who is signed in now, and a listener for changes. */
+export const accountNow = () => account;
+export const watchAccount = subscribe;
+
+/** The signed-in profile, for code that only runs while signed in. */
+export function currentProfile() {
+  if (account.status !== 'signed-in') throw new Error('Nobody is signed in.');
+  return account.profile;
+}
+
+const profileKey = (id: string) => `evermore.profile.${id}`;
+
+/** The profile and email saved last time, so the app opens without a connection. */
+async function savedProfile(id: string): Promise<{ profile: Profile; email: string | null } | null> {
+  const saved = await AsyncStorage.getItem(profileKey(id)).catch(() => null);
+  if (!saved) return null;
+  try {
+    const { email = null, ...profile } = JSON.parse(saved) as Profile & { email?: string | null };
+    return profile.id === id ? { profile, email } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A phone that signed in opens straight to its home, from the session and profile it kept, without
+ * waiting for supabase-js. With an expired token and no connection supabase-js keeps retrying the
+ * refresh for about 25 seconds before it says anything, and the splash screen would wait that long.
+ * What supabase-js decides afterwards still counts: a session the server refused signs out.
+ */
+async function openFromPhone() {
+  const kept = await keptSessionUser();
+  const saved = kept ? await savedProfile(kept) : null;
+  if (saved && account.status === 'loading') set({ status: 'signed-in', ...saved });
+}
+
+async function onSession(session: Session | null) {
+  if (!session) {
+    // supabase-js says there is no session when it couldn't refresh an expired one for want of a
+    // connection, though it keeps it to try again. This phone is still signed in then: it opens on
+    // the profile saved last time, and the session refreshes once the connection is back. A session
+    // it removed (signed out here, or refused by the server) is gone, and so is the sign-in.
+    const kept = await keptSessionUser();
+    const saved = kept ? await savedProfile(kept) : null;
+    if (saved) {
+      if (account.status !== 'signed-in' || account.profile.id !== saved.profile.id) set({ status: 'signed-in', ...saved });
+      return;
+    }
+    // Secure storage couldn't be read to tell (locked): the welcome for now, but nothing is cleared,
+    // so the next launch finds the session and the copies as they were.
+    if (kept === undefined) {
+      set({ status: 'signed-out' });
+      return;
+    }
+    // A paired phone signs itself in again with the credential it keeps, so the person is never asked.
+    if (await restorePairedPhone()) return;
+    await signedOut();
+    return;
+  }
+  if (account.status === 'signed-in' && account.profile.id === session.user.id) return;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, role, display_name, caregiver_id, username, created_at')
+    .eq('id', session.user.id)
+    .maybeSingle();
+
+  const email = session.user.email ?? null;
+  if (data) {
+    const profile: Profile = {
+      id: data.id,
+      role: data.role,
+      displayName: data.display_name,
+      caregiverId: data.caregiver_id,
+      username: data.username,
+      createdAt: data.created_at,
+    };
+    AsyncStorage.setItem(profileKey(profile.id), JSON.stringify({ ...profile, email })).catch(() => {});
+    set({ status: 'signed-in', profile, email });
+    return;
+  }
+  if (error) {
+    // Probably offline: use the profile saved last time. With none saved, the welcome for now, and the
+    // session stays for when the connection is back.
+    const saved = await savedProfile(session.user.id);
+    set(saved ? { status: 'signed-in', profile: saved.profile, email } : { status: 'signed-out' });
+    return;
+  }
+  // A login with no profile (deleted, or not made through the app) can't do anything.
+  await supabase.auth.signOut({ scope: 'local' });
+  await signedOut();
+}
+
+// ---------------------------------------------------------------------------------------
+// Signing out. Whatever this phone kept from the server for that login goes with it: the stores
+// register what to clear (src/data/forget.ts), and the saved profile goes here.
+// ---------------------------------------------------------------------------------------
+
+type Cleanup = (profile: Profile) => Promise<unknown> | unknown;
+const beforeSignOut: Cleanup[] = [];
+const afterSignOut: Cleanup[] = [];
+
+/** `before` runs while the session still works (sending what is waiting); `after` once it is gone. */
+export function onSignOut({ before, after }: { before?: Cleanup; after?: Cleanup }) {
+  if (before) beforeSignOut.push(before);
+  if (after) afterSignOut.push(after);
+}
+
+/** The most a sign-out waits for anything still being sent before it goes ahead. */
+export const SIGN_OUT_WAIT_MS = 4000;
+
+/**
+ * Signed out, however it happened: nothing kept from the server stays. That is the login signed in
+ * just now and any other this phone kept a profile for (say, one whose session the server refused
+ * before this run of the app saw it), so a signed-out phone holds no one's server data.
+ */
+async function signedOut() {
+  const profiles = new Map<string, Profile>();
+  if (account.status === 'signed-in') profiles.set(account.profile.id, account.profile);
+  if (account.status !== 'signed-out') set({ status: 'signed-out' });
+  const keys = (await AsyncStorage.getAllKeys().catch(() => [] as string[])).filter((key) => key.startsWith(profileKey('')));
+  for (const key of keys) {
+    const saved = await savedProfile(key.slice(profileKey('').length));
+    if (saved) profiles.set(saved.profile.id, saved.profile);
+  }
+  if (keys.length) await AsyncStorage.multiRemove(keys).catch(() => undefined);
+  for (const profile of profiles.values()) await Promise.allSettled(afterSignOut.map(async (cleanup) => cleanup(profile)));
+}
+
+/**
+ * Signs this phone out: its session, and every copy of server data kept for that login. With no
+ * connection the server can't be told, so the phone forgets the session by itself (it then simply
+ * expires on the server, unused).
+ */
+export async function signOut() {
+  // A paired phone's credential goes first, so the phone doesn't sign itself back in.
+  await forgetDeviceCredential();
+  const profile = account.status === 'signed-in' ? account.profile : null;
+  if (profile) {
+    const waited = Promise.allSettled(beforeSignOut.map(async (cleanup) => cleanup(profile)));
+    await Promise.race([waited, new Promise((resolve) => setTimeout(resolve, SIGN_OUT_WAIT_MS))]);
+  }
+  const { error } = await supabase.auth.signOut({ scope: 'local' }).catch((thrown) => ({ error: thrown }));
+  if (error) await forgetKeptSession();
+  await signedOut();
+}
+
+// ---------------------------------------------------------------------------------------
+// Signing in, with a short pause after repeated misses. Supabase has its own limits too, and
+// its "too many" answers get the same calm words (src/lib/auth-form.ts).
+// ---------------------------------------------------------------------------------------
+
+const LOCKOUT_AFTER = 5;
+const LOCKOUT_MS = 60_000;
+let misses = 0;
+let lockedUntil = 0;
+
+export function isLockedOut() {
+  return Date.now() < lockedUntil;
+}
+
+export function personEmail(username: string) {
+  return `${username.trim().toLowerCase()}@${PERSON_EMAIL_DOMAIN}`;
+}
+
+/** What an account action came to. A reason says why it didn't work, for screens that act on it. */
+export type Result = { ok: true } | { ok: false; message: string; reason: AuthReason };
+
+const failed = (failure: AuthFailure, context: AuthContext): Result => ({ ok: false, ...authProblem(failure, context) });
+
+export async function signIn(role: Role, userId: string, password: string): Promise<Result> {
+  if (isLockedOut()) return { ok: false, message: LOCKED_OUT, reason: 'busy' };
+  const email = role === 'person' ? personEmail(userId) : userId.trim();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (!error) {
+    misses = 0;
+    // Signed in some other way now: a pairing this phone may still hold from before is no longer its own.
+    await forgetDeviceCredential();
+    return { ok: true };
+  }
+  const result = failed(error, role === 'person' ? 'person' : 'sign-in');
+  if (!result.ok && result.reason === 'credentials' && ++misses >= LOCKOUT_AFTER) {
+    misses = 0;
+    lockedUntil = Date.now() + LOCKOUT_MS;
+    return { ok: false, message: LOCKED_OUT, reason: 'busy' };
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------------------
+// Caregiver accounts: sign-up with consent, the confirmation email, passwords.
+// ---------------------------------------------------------------------------------------
+
+/**
+ * Signs up a caregiver, with both agreements the database requires (src/lib/consent.ts): the privacy
+ * policy and the responsibility statement, at the policy's version, and the optional research choice. With "Confirm email" off in
+ * Supabase the account is signed in at once; with it on, Supabase sends a confirmation email and
+ * checkEmail is true. Which one comes from Supabase's answer, never from a setting here. An address
+ * that already has an account gets the same "check your email" with Confirm email on (Supabase
+ * sends nothing and says nothing), and neutral words with it off.
+ */
+export async function signUpCaregiver(email: string, password: string, agreement: Agreement): Promise<Result & { checkEmail?: boolean }> {
+  // Both agreements, or nothing is sent: no account, and no email or password leaves the phone.
+  const agreed = signUpData(agreement);
+  if (!agreed) return { ok: false, reason: 'other', message: NEED_POLICY };
+  const { data, error } = await supabase.auth.signUp({
+    email: email.trim(),
+    password,
+    options: { data: agreed },
+  });
+  if (error) return failed(error, 'sign-up');
+  return { ok: true, checkEmail: !data.session };
+}
+
+/** Sends the confirmation email again. Supabase allows one a minute to an address. */
+export async function resendConfirmation(email: string): Promise<Result> {
+  const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim() });
+  return error ? failed(error, 'email') : { ok: true };
+}
+
+/** Confirms a new caregiver's email with the code from the email, which signs them in. */
+export async function confirmEmail(email: string, code: string): Promise<Result> {
+  const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'email' });
+  return error ? failed(error, 'code') : { ok: true };
+}
+
+export async function sendPasswordReset(email: string): Promise<Result> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+  // The same answer whether or not the address has an account, so nobody can probe for accounts.
+  if (error && (unreachable(error) || error.status === 429)) return failed(error, 'email');
+  return { ok: true };
+}
+
+/** Signs in with the code from the reset email, then sets the new password. */
+export async function resetPasswordWithCode(email: string, code: string, password: string): Promise<Result> {
+  const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'recovery' });
+  if (error) return failed(error, 'code');
+  return setNewPassword(password);
+}
+
+async function setNewPassword(password: string): Promise<Result> {
+  const { error } = await supabase.auth.updateUser({ password });
+  return error ? failed(error, 'new-password') : { ok: true };
+}
+
+/**
+ * Settings, Change password: the current password first, so a phone left unlocked can't change it,
+ * then the new one. Checking it signs in again, which also counts as "recently signed in" where
+ * Supabase's "Secure password change" asks for that.
+ */
+export async function changePassword(current: string, next: string): Promise<Result> {
+  const email = account.status === 'signed-in' ? account.email : null;
+  if (!email) return { ok: false, reason: 'other', message: SOMETHING };
+  const { error } = await supabase.auth.signInWithPassword({ email, password: current });
+  if (error) return failed(error, 'current-password');
+  return setNewPassword(next);
+}
+
+// ---------------------------------------------------------------------------------------
+// The person's login and deleting the family: done by the manage-family Edge Function,
+// which holds the server key. The app only sends the caregiver's own session.
+// ---------------------------------------------------------------------------------------
+
+const FUNCTION_ERRORS: Record<string, string> = {
+  'username-taken': 'That User ID is taken. Please choose another.',
+  'bad-username': 'Use 3 to 30 lowercase letters, numbers, dots, dashes or underscores.',
+  'short-password': `The password needs at least ${MIN_PASSWORD} characters.`,
+  'already-has-person': 'There is already a login for the person. Use Reset instead.',
+  'no-person': 'There is no login for the person yet.',
+};
+
+async function manageFamily(body: Record<string, string>): Promise<Result & { data?: Record<string, unknown> }> {
+  const { data, error } = await supabase.functions.invoke(MANAGE_FAMILY_FUNCTION, { body });
+  if (!error) return { ok: true, data };
+  if (error instanceof FunctionsHttpError) {
+    const reply = await error.context.json().catch(() => ({}));
+    return { ok: false, reason: 'other', message: FUNCTION_ERRORS[reply.error] ?? 'Something didn’t work on the server. Please try again later.' };
+  }
+  return { ok: false, reason: 'offline', message: OFFLINE };
+}
+
+export function createPersonLogin(username: string, password: string, displayName: string) {
+  return manageFamily({ action: 'create-person', username: username.trim().toLowerCase(), password, displayName });
+}
+
+export function resetPersonLogin(username: string, password: string) {
+  return manageFamily({ action: 'reset-person', username: username.trim().toLowerCase(), password });
+}
+
+/** Deletes every photo, row and login in the family, then signs out here. */
+export async function deleteFamily(): Promise<Result> {
+  const result = await manageFamily({ action: 'delete-family' });
+  if (result.ok) await signOut();
+  return result;
+}
+
+// ---------------------------------------------------------------------------------------
+// A phone paired with the caregiver's email and a PIN (Create my account, src/data/pairing.ts): it
+// signs in with the login and credential the pair-phone function made for it, kept in secure storage,
+// and checks now and then whether the caregiver removed it.
+// ---------------------------------------------------------------------------------------
+
+/** Signs in with this phone's credential: right after pairing, and to get a lost session back. */
+export async function signInPairedPhone(): Promise<Result> {
+  const saved = await readDeviceCredential();
+  if (!saved) return { ok: false, reason: 'other', message: SOMETHING };
+  const { error } = await supabase.auth.signInWithPassword({ email: saved.login, password: saved.credential });
+  return error ? failed(error, 'person') : { ok: true };
+}
+
+let restoring: Promise<boolean> | null = null;
+
+/**
+ * The session is gone but this phone was paired: sign in again with its credential. True when that
+ * worked, or when it couldn't be tried just now (no connection, secure storage locked, too many tries),
+ * in which case the welcome shows for now and nothing is cleared, so the next launch tries again.
+ * False when there is no pairing, or the server refused it (the caregiver removed the phone): then
+ * the credential goes and the phone signs out as any phone does.
+ */
+function restorePairedPhone() {
+  restoring ??= (async () => {
+    const saved = await readDeviceCredential();
+    if (saved === null) return false;
+    if (saved === undefined) {
+      set({ status: 'signed-out' });
+      return true;
+    }
+    const result = await signInPairedPhone();
+    if (result.ok) return true;
+    if (result.reason === 'offline' || result.reason === 'busy') {
+      set({ status: 'signed-out' });
+      return true;
+    }
+    await forgetDeviceCredential();
+    return false;
+  })().finally(() => {
+    restoring = null;
+  });
+  return restoring;
+}
+
+/**
+ * A paired phone, when it opens, comes back to the front or comes back online: tells the server it was
+ * seen, and signs out (back to the welcome) if the caregiver removed it. Nothing for any other login,
+ * and nothing at all offline: its session then ends by itself within the hour, refused by the server.
+ */
+export async function checkThisPhone() {
+  if (account.status !== 'signed-in' || account.profile.role !== 'person') return;
+  const { data, error } = await supabase.rpc('device_seen');
+  if (!error && data === 'removed') await signOut();
+}
