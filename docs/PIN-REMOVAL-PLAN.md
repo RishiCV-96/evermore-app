@@ -1,0 +1,37 @@
+# Removing PIN pairing
+
+Written 2026-11-16, from the code, before anything was removed. PIN pairing (built 2026-11-11) let the person create a login on their own phone with the caregiver's email and a 6-digit PIN. It goes. The older family login, **Their login** (a User ID and password the caregiver makes, one per family), stays as the one way the person's phone signs in.
+
+## What exists, and what depends on it
+
+| Piece | Where | Depends on it | Verdict |
+| --- | --- | --- | --- |
+| **"Pair the person's phone"** row and sheet: Create a PIN, the PIN in large type, its 15-minute countdown, New PIN, "What they need", watching for the new phone | `src/components/pair-phone.tsx` (`PairPhoneSetting`, `PinPanel`), shown by `src/components/settings-page.tsx` under **Linked phones** | Settings only | **Remove** |
+| **The PIN in memory** (`usePairing`, `createPin`, `forgetPin`) | `src/data/pairing.ts` | `pair-phone.tsx`; `forgetPin` is a sign-out cleanup in `src/data/forget.ts` | **Remove**, and the cleanup with it |
+| **The PIN's words** (`PIN_LENGTH`, `pinForDisplay`, `expiresIn`, `phonesCount`, `lastSeenWords`, `PAIR_NOT_MATCHED`, `phoneName`, ...) | `src/lib/pairing.ts` | `pair-phone.tsx`, `person-pairing.tsx`, `src/data/pairing.ts`, `scripts/check-auth.mjs` | **Remove** |
+| **"Send the PIN by email"** (disabled, "Not available yet") | `SendByEmail` in `pair-phone.tsx`; listed in `CLAUDE.md` "Not built yet" | Nothing | **Remove**, and its line in "Not built yet" |
+| **Linked phones** (each phone's name, paired, last seen) and **Remove phone** | `LinkedPhones` in `pair-phone.tsx`; `linkedPhones`, `removePhone` in `src/data/pairing.ts`; the `devices` table read through RLS | Only paired phones. **Their login is not in it**: it has its own row in Settings, which resets the password and so signs that phone out. Nothing of Their login uses Linked phones or Remove phone | **Remove** both. The Settings section **Linked phones** becomes **The person's phone**, holding Their login |
+| **The person's "Create my account" steps**: the choice (Create my account or Sign in), the caregiver's email, the PIN, "You are all set" | `src/components/sign-in/person-pairing.tsx` (`PersonChoice`, `PairEmail`, `PairPin`, `AllSet`), steps `person`, `pair-email`, `pair-pin`, `all-set` in `src/app/sign-in.tsx` | `PersonChoice` also carries the consent rule's sentence "Your caregiver set this up for you." and the **Privacy policy** link (`SET_UP_FOR_YOU`, `PolicyLink`), checked by `scripts/check-privacy.mjs` | **Remove** the steps. "I am practicing" goes straight to **Hello** (User ID and password), which takes over the sentence and the policy link, so the person's first step still says it |
+| **The phone's own login and credential** (`evermore.device.v1` in secure storage), `signInPairedPhone`, `restorePairedPhone` (signs itself in again if the session is lost) | `src/lib/session-storage.ts` and `.web.ts`; `src/data/account.ts` | `onSession` (restore), `signOut` and `signIn` (forget it first) | **Remove** the restore and sign-in. **Keep one line** that deletes `evermore.device.v1` at sign-out, so a phone paired with an earlier build keeps no credential once signed out |
+| **Device check-ins** (`checkThisPhone`, the `device_seen` RPC): last seen, and signing out a removed phone | `src/data/account.ts`; called by `refreshPractice` and on reconnection in `src/data/practice-store.ts` | Linked phones' "last seen" and Remove phone | **Remove** |
+| **Reminder cancellation tied to Remove phone** | No reminder code is specific to pairing: a removed phone signed out through `checkThisPhone`, and every sign-out runs `forgetReminders` (`src/data/forget.ts`) | Sign-out | **Remove** only the Remove-phone path (with `checkThisPhone`). Reminders, and cancelling them at every sign-out, stay for the family login's phone |
+| **`PAIR_PHONE_FUNCTION`** (`hyper-function`) | `src/config/functions.ts` | `src/data/pairing.ts` | **Remove** |
+| **The `pair-phone` Edge Function** (PINs, HMAC with `PAIRING_PEPPER`, the limits, redeem, revoke) | `supabase/functions/pair-phone/index.ts`, deployed at `hyper-function` | The app's pairing calls only | **Remove the source.** Delete the deployed function and the `PAIRING_PEPPER` secret by hand (below) |
+| **Linked phones in Export my data** (`linkedPhones` section: names and dates) | `src/lib/export.ts`, `src/data/export-store.ts` (reads `devices`) | The data file | **Remove** the section. It was already optional (absent with sign-in off and from this phone's copy), so the data file's format stays 2 |
+| **Tables and functions**: `pairings`, `devices`, `pairing_events`, `pairing_settings`, `pairing_create`, `pairing_lookup`, `pairing_fail`, `pairing_consume`, `pairing_link`, `pairing_revoke`, `device_seen`; `my_caregiver()` refuses a removed phone's login; `profiles_one_named_login_per_caregiver` | `supabase/schema.sql` | `my_caregiver()` (every person rule) reads `devices`; phones paired before keep working through it | **Keep, unchanged.** Nothing dropped, no live data touched. A comment marks them unused. The optional SQL to drop them is below |
+| **`manage-family`** | `supabase/functions/manage-family/index.ts` | Delete account removes every person login of the family, paired phones' included | **Keep, unchanged** (only its comments mention paired phones), so it needs no redeploy |
+| **Tests and fakes** | `supabase/tests/pairing.test.mjs`, `supabase/tests/live-pairing.test.mjs`, sections 6 and 7 of `scripts/check-auth.mjs`, the `pair-phone` contract and `device_seen` in `scripts/fakes/supabase-server.mjs`, `devices`/`pairings` in `scripts/fakes/supabase.mjs`, linked phones in `scripts/check-export.mjs`, the pairing logos in `scripts/check-logic.mjs`, the person's step in `scripts/check-privacy.mjs`, `scripts/check-all.mjs` | | **Remove** the function's, the fake's and the app's. **Keep** `supabase/tests/rls.test.mjs`'s checks on the tables and functions still in the schema (they stay service-role only), retitled as left in place. **Add** a check that fails if PIN, pairing, device-credential or passcode code or wording comes back to the app |
+| **Docs** | `CLAUDE.md`, `DESIGN.md`, `DESIGN-UI.md`, `HANDOFF.md`, `README.md`, `docs/DATA-INVENTORY.md`, `docs/SETTINGS-AUDIT.md`, `docs/testflight-checklist.md`, `docs/app-store-privacy-answers.md`, the policy (`src/lib/privacy-policy.ts` and its generated drafts), `supabase/tests/leftovers.sql` | | **Update.** The policy's words change, so `POLICY_VERSION` moves to 2026-11-16 and caregivers agree again |
+
+## Phones already paired
+
+A phone paired with an earlier build keeps its current session and keeps practicing: its login is an ordinary person login of the family, and every person rule still applies to it. What changes for it:
+- If its session is ever lost, it no longer signs itself back in; it shows the welcome, and the person signs in with Their login.
+- The caregiver can no longer remove it from the app. `my_caregiver()` still refuses a phone marked removed, so the optional SQL below ends every paired phone's access at once.
+- Signing it out deletes the credential it kept.
+
+## By hand, outside the code
+
+1. **Delete the Edge Function** `hyper-function` (the deployed `pair-phone`) in the Supabase dashboard, Edge Functions.
+2. **Delete the secret** `PAIRING_PEPPER` in Edge Functions, Secrets.
+3. **Optional, later:** the SQL in `HANDOFF.md` to end paired phones' access, and then to drop the pairing tables and functions.

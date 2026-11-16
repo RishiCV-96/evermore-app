@@ -21,9 +21,9 @@ import { BLANK, sentenceFor, type Hints } from '@/lib/stories';
 // It holds: every person (drafts and archived people too) with every profile answer, every story
 // with its approval, AI sentences with the facts they came from, the settings, every practice
 // session, every card record kept (study day, extra practice, how each answer was found and the
-// hints shown), the schedule, and the linked phones' names and dates.
+// hints shown), and the schedule.
 // Never: photos (a separate, optional export), logins, user ids of logins, emails, passwords,
-// tokens, PINs or their hashes, made-up test data, or the demo.
+// tokens or other secrets, made-up test data, or the demo.
 
 /** The file's format. 1 was the first export (the last 30 days of practice only). */
 export const EXPORT_FORMAT = 2;
@@ -65,8 +65,6 @@ export type ExportSession = {
 
 export type ExportSchedule = { cardId: string; step: number; dueAt: string; updatedAt?: string };
 
-export type ExportPhone = { name: string; pairedAt: string; lastSeenAt: string | null; removedAt?: string | null };
-
 /** Where the data came from, and whether every section was read in full. */
 export type ExportOrigin =
   /** Read from the account on the server, every section in full. */
@@ -88,10 +86,9 @@ export type ExportSource = {
   records: CardAttempt[];
   schedule: ExportSchedule[];
   /** With sign-in on only. */
-  phones?: ExportPhone[];
 };
 
-export type ExportSection = 'people' | 'aiSentences' | 'settings' | 'sessions' | 'cardRecords' | 'schedule' | 'linkedPhones';
+export type ExportSection = 'people' | 'aiSentences' | 'settings' | 'sessions' | 'cardRecords' | 'schedule';
 
 /** What each section holds, in plain words, at the top of the file. */
 export const SECTION_WORDS: Record<ExportSection, string> = {
@@ -102,7 +99,6 @@ export const SECTION_WORDS: Record<ExportSection, string> = {
   sessions: 'Every practice session: the study day it counts toward, when it started and ended, how many of the day’s cards were finished, and the day’s target.',
   cardRecords: `Each card practiced, kept for ${ATTEMPTS_KEPT_DAYS} days: the study day, whether it was extra practice, who was in the photo, the fact and how it was asked, each answer chosen and when, the hints shown, each time the person asked for help with “I’m not sure” and the hint it reached (asking for help is not an answer), and time on screen. Practice activity, not a medical measure.`,
   schedule: 'When each fact comes back in practice, and its step.',
-  linkedPhones: 'Phones paired with the person’s login: each phone’s name, when it was paired, last seen, and removed. No logins, PINs or secrets.',
 };
 
 const ORIGIN_WORDS: Record<ExportOrigin['from'], string> = {
@@ -147,7 +143,7 @@ export function familyExport(source: ExportSource, now: Date, appVersion: string
   const people = [...source.people].sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? ''));
   const personIds = new Set(people.map((person) => person.id));
   const cardIds = new Set(cards.map((card) => card.id));
-  const sections: ExportSection[] = ['settings', 'people', ...(source.ai ? (['aiSentences'] as const) : []), 'sessions', 'cardRecords', 'schedule', ...(source.phones ? (['linkedPhones'] as const) : [])];
+  const sections: ExportSection[] = ['settings', 'people', ...(source.ai ? (['aiSentences'] as const) : []), 'sessions', 'cardRecords', 'schedule'];
   const missing = source.origin.from === 'phone-copy' ? source.origin.missing : [];
   return {
     about: {
@@ -160,7 +156,7 @@ export function familyExport(source: ExportSource, now: Date, appVersion: string
       ...(missing.length ? { notIncluded: missing.map((section) => SECTION_WORDS[section]) } : {}),
       privacy: PRIVACY_WORDS,
       restoring: RESTORE_WORDS,
-      notIncludedEver: 'Photos (a separate, optional export), logins, emails, passwords, PINs, secrets, and made-up test data.',
+      notIncludedEver: 'Photos (a separate, optional export), logins, emails, passwords, secrets, and made-up test data.',
       studyDays: 'Days are study days: each runs from 5:30 in the morning to 5:29 the next morning, on the phone that practiced, and is named by the date it began.',
       sections: Object.fromEntries(sections.map((section) => [section, SECTION_WORDS[section]])),
       counts: {
@@ -267,16 +263,6 @@ export function familyExport(source: ExportSource, now: Date, appVersion: string
       .filter((entry) => cardIds.has(entry.cardId))
       .sort((a, b) => a.cardId.localeCompare(b.cardId))
       .map((entry) => ({ cardId: entry.cardId, step: entry.step, dueAt: entry.dueAt, ...(entry.updatedAt ? { updatedAt: entry.updatedAt } : {}) })),
-    ...(source.phones
-      ? {
-          linkedPhones: source.phones.map((phone) => ({
-            name: phone.name,
-            pairedAt: phone.pairedAt,
-            lastSeenAt: phone.lastSeenAt,
-            ...(phone.removedAt ? { removedAt: phone.removedAt } : {}),
-          })),
-        }
-      : {}),
   };
 }
 
@@ -394,7 +380,7 @@ export function photoZip(entries: PhotoEntry[], files: Record<string, Uint8Array
 // Reading for an export: progress, cancel, and calm failure
 // ---------------------------------------------------------------------------------------
 
-export type ExportStep = 'family' | 'sessions' | 'records' | 'schedule' | 'phones' | 'photos';
+export type ExportStep = 'family' | 'sessions' | 'records' | 'schedule' | 'photos';
 export type ExportProgress = { step: ExportStep; done: number; total?: number };
 /** Set `cancelled` to stop at the next page; the read then ends with nothing. */
 export type Cancel = { cancelled: boolean };

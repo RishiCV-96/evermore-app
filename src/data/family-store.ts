@@ -190,8 +190,8 @@ async function load() {
       .select('id, person_id, memory_text, status, fact_type, time_sensitive, as_of, memory_year, confirmed_at, source, phrasings_off, hint_ok, photo_path')
       .order('created_at'),
     supabase.from('daily_goal').select('session_length, reveal_cards').maybeSingle(),
-    // The family's person logins: the one with a User ID is "Their login"; phones paired with a PIN
-    // have their own logins, with no User ID, and are listed under Pair the person's phone.
+    // The family's person logins: the one with a User ID is "Their login". A login without one was made
+    // by an earlier release for a phone of the person's, and is left alone.
     supabase.from('profiles').select('id, username, display_name').eq('role', 'person'),
   ]);
   const error = people.error ?? cards.error ?? goal.error ?? person.error;

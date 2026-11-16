@@ -28,7 +28,7 @@ import { supabase } from '@/lib/supabase';
 // Export my data with sign-in on: the caregiver's own family, read from the server with the
 // caregiver's own session, so Row Level Security decides what can be read (supabase/schema.sql), and
 // every query also names the family, as a second guard. Only a caregiver's login reads anything: the
-// person's login (any paired phone) is refused before a single request. Every table is read a page at
+// person's login is refused before a single request. Every table is read a page at
 // a time, so a long history works, with progress and a way to cancel. Any page that fails fails the
 // whole read: the app never writes a partial file without saying so. Offline, the caregiver may choose
 // this phone's copy instead (phoneCopySource), which the file and the report label as such.
@@ -98,8 +98,7 @@ export function readServerExport(onProgress: (progress: ExportProgress) => void,
     const sessions = await allRows<Record<string, any>>('sessions', '*', ['started_at', 'id'], family, cancel, step('sessions'), (query) => query.eq('is_sample', false));
     const records = await allRows<ServerRow>('attempt_records', '*', ['uploaded_at', 'id'], family, cancel, step('records'));
     const schedule = await allRows<Record<string, any>>('card_schedule', 'card_id, person_user_id, step, due_at, updated_at', ['card_id', 'person_user_id'], family, cancel, step('schedule'));
-    const phones = await allRows<Record<string, any>>('devices', 'name, paired_at, last_seen_at, revoked_at', ['paired_at', 'id'], family, cancel, step('phones'));
-    return serverSource({ people, cards, settings: settings.data, sessions, records, schedule, phones });
+    return serverSource({ people, cards, settings: settings.data, sessions, records, schedule });
   });
 }
 
@@ -110,7 +109,6 @@ type Rows = {
   sessions: Record<string, any>[];
   records: ServerRow[];
   schedule: Record<string, any>[];
-  phones: Record<string, any>[];
 };
 
 /** The server's rows as the export reads them. */
@@ -172,7 +170,6 @@ export function serverSource(rows: Rows): ExportSource {
     sessions,
     records: rows.records.flatMap(readRecord),
     schedule: [...latest.values()],
-    phones: rows.phones.map((row) => ({ name: row.name, pairedAt: row.paired_at, lastSeenAt: row.last_seen_at ?? null, removedAt: row.revoked_at ?? null })),
   };
 }
 
@@ -196,7 +193,7 @@ export async function phoneCopySource(): Promise<ExportRead<ExportSource>> {
   if (!family) return { ok: false, problem: 'caregivers-only' };
   const loaded = latestFamily();
   const copy = await phoneCopy(family);
-  const missing: ExportSection[] = ['sessions', 'schedule', 'linkedPhones'];
+  const missing: ExportSection[] = ['sessions', 'schedule'];
   const known = loaded ?? copy.trends?.family;
   if (!loaded) missing.unshift('people');
   return {
@@ -216,7 +213,6 @@ export async function phoneCopySource(): Promise<ExportRead<ExportSource>> {
       sessions: copy.trends?.activity.sessions ?? [],
       records: copy.records,
       schedule: [],
-      phones: undefined,
     },
   };
 }
@@ -231,7 +227,7 @@ export function readServerPhotos(onProgress: (progress: ExportProgress) => void,
   if (!family) return Promise.resolve({ ok: false, problem: 'caregivers-only' });
   return settleRead(async () => {
     const rows = await readPeopleAndCards(family, cancel, (done) => onProgress({ step: 'family', done }));
-    const source = serverSource({ ...rows, settings: null, sessions: [], records: [], schedule: [], phones: [] });
+    const source = serverSource({ ...rows, settings: null, sessions: [], records: [], schedule: [] });
     // Only photos in this family's own folder.
     const entries = photoEntries(source.people, source.cards, family);
     const urls = new Map<string, string>();

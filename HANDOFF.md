@@ -12,6 +12,69 @@ Updated 2026-11-16, on the branch `hints-pin-password` (not pushed, not merged),
 - **Only a phone can verify:** VoiceOver and TalkBack moving to the new hint after a wrong tap and reading the dimmed name as "dimmed"; a real double tap or tremor on glass.
 - **For the clinician:** with three names, two wrong taps leave only the right name live before the hint says it (`docs/QUESTION-AUDIT.md`).
 
+## Part B: PIN pairing removed
+
+**Built, committed and checked** (`npm test` with the pairing suites gone and a new guard, typecheck, lint; the sign-in-on web build walked against the stand-in at 375x647 Large and 430x839 Extra large: Settings with Their login and no pairing words, "I am practicing" straight to Hello with the sentence and the policy sheet, Their login opening the home, targets 48 and 44, no red, no page errors). `docs/PIN-REMOVAL-PLAN.md` lists every piece, what depended on it, and the verdict.
+
+- **Gone from the app:** Settings' Pair the person's phone (the PIN, its countdown, New PIN, "Send the PIN by email"), Linked phones and Remove phone; the person's Create my account steps (email, PIN, "You are all set"); the paired phone's own sign-in and self-restore; device check-ins (`device_seen`); the PIN cleanup at sign-out; Export my data's linked-phones section; `PAIR_PHONE_FUNCTION`; `expo-device` (only pairing used it). Removed with them: `supabase/functions/pair-phone`, `supabase/tests/pairing.test.mjs`, `supabase/tests/live-pairing.test.mjs`, the pairing checks in `scripts/check-auth.mjs`, and the pair-phone contract in the fakes.
+- **Kept:** Their login (one per family, through `manage-family`), now under **Settings → The person's phone**. "I am practicing" opens Hello directly; Hello carries "Your caregiver set this up for you." and the Privacy policy link. Reminders, and cancelling them at every sign-out, are unchanged. Linked phones and Remove phone weren't used by Their login, so nothing of them was kept.
+- **One leftover on phones:** a phone paired with an earlier build kept a credential under `evermore.device.v1`; any sign-out now deletes it, and nothing reads it.
+- **Database: nothing dropped.** `supabase/schema.sql` changed by one comment only (no rerun needed for Part B). The pairing tables and functions stay, and `supabase/tests/rls.test.mjs` still checks their rules.
+- **A guard:** `scripts/check-auth.mjs` fails if PIN, pairing, device check-in or passcode code or wording comes back to `src/`, `app.json`, `package.json` or the fakes, or if a removed file or suite reappears.
+- **The policy changed** (no PINs; a line for phones linked by an earlier build; how to sign the person's phone out), so **`POLICY_VERSION` is now 2026-11-16**: every caregiver is asked to agree again on their next fresh load. The drafts were rebuilt (`node scripts/build-policy.mjs`).
+- **Docs:** `CLAUDE.md` (the pairing hard rule is now "No PIN pairing"), `DESIGN.md`, `DESIGN-UI.md`, `README.md`, `docs/DATA-INVENTORY.md`, `docs/SETTINGS-AUDIT.md`, `docs/testflight-checklist.md`, `docs/app-store-privacy-answers.md`, `supabase/tests/leftovers.sql`.
+
+### What you must do (Part B)
+
+1. **Delete the Edge Function** `hyper-function` (the deployed `pair-phone`): Supabase dashboard → Edge Functions → `hyper-function` → Delete.
+2. **Delete the secret** `PAIRING_PEPPER`: Edge Functions → Secrets.
+3. `manage-family` is unchanged (only its comments mention paired phones), so it needs **no redeploy**.
+
+### Phones already paired
+
+They keep their current session and keep practicing. If the session is lost they show the welcome, and the person signs in with Their login. The caregiver can no longer remove them in the app, so if any exist, run optional 1.
+
+### Optional SQL (run by hand in the SQL Editor, in this order; both checked against the schema in PGlite)
+
+**Optional 1: end every paired phone's access** (their practice history stays):
+
+```sql
+update public.devices set revoked_at = now() where revoked_at is null;
+update auth.users set banned_until = 'infinity'
+where email like '%@phone.evermore.invalid' and (banned_until is null or banned_until < now());
+```
+
+**Optional 2: drop what pairing left**, only after optional 1. It first changes `my_caregiver()` so phone logins stay refused without the `devices` table:
+
+```sql
+begin;
+create or replace function public.my_caregiver()
+returns uuid language sql stable security definer set search_path = '' as $$
+  select p.caregiver_id from public.profiles p
+  where p.id = auth.uid() and p.role = 'person'
+    and not exists (select 1 from auth.users u where u.id = p.id and u.email like '%@phone.evermore.invalid')
+$$;
+drop function if exists public.device_seen();
+drop function if exists public.pairing_create(uuid, uuid, text);
+drop function if exists public.pairing_lookup(text, text, text);
+drop function if exists public.pairing_fail(uuid);
+drop function if exists public.pairing_consume(uuid);
+drop function if exists public.pairing_link(uuid, uuid, text);
+drop function if exists public.pairing_revoke(uuid, uuid);
+drop table if exists public.pairing_events;
+drop table if exists public.pairing_settings;
+drop table if exists public.pairings;
+drop table if exists public.devices;
+commit;
+```
+
+**After optional 2, don't rerun `supabase/schema.sql` as it stands:** it would create the four tables again (empty) and the old `my_caregiver()`. Ask for the schema file to be changed to match first.
+
+### Only a phone can verify (Part B)
+
+- A phone paired with an earlier build: still practicing after the update, the welcome once its session is lost, and Their login working on it.
+- Hello on a real phone with the keyboard up: the sentence, the fields, the policy link and Continue.
+
 # The release before: "I'm not sure" on the person's cards
 
 Updated 2026-11-13. Work in `~/evermore-clean` so `CLAUDE.md` loads. The history cleanup and the move to `~/evermore-clean` are finished; nothing below touches them.

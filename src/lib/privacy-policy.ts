@@ -54,14 +54,11 @@ export const POLICY: PolicySection[] = [
       },
       { text: 'The settings you choose for practice and for each person, and the practice sentences made from your words.' },
       {
-        text: 'The person’s logins: the User ID and password you may create for them (the password stored scrambled), and a separate login for each phone you pair with a PIN. For each paired phone we keep its name (the name the phone gives itself, which may include a first name), when it was paired, when it was last seen and when you removed it.',
+        text: 'The person’s login: the User ID and password you may create for them (the password stored scrambled). If a phone was linked to your account with an earlier version of the app, we also keep that phone’s own login, its name (the name the phone gives itself, which may include a first name) and when it was linked and last seen.',
       },
       {
         text: 'How practice goes. For each session: when it started and ended, and how many cards were done. For each card practiced: when, how many tries it took and whether a hint was used, so the app knows when to ask it again. For your Insights, a record of each card shown: how it was asked, each answer chosen and when, the hints shown and the time on screen. These records hold no names, photos or words.',
         review: 'Practice records describe one person’s memory practice. Whether they are health information under laws that may apply, and what that requires.',
-      },
-      {
-        text: 'For pairing a phone: a scrambled form of the PIN until it is used or expires, never the PIN itself. To limit guessing, scrambled forms of the email typed and of the internet address it came from are kept for about a day, never the email or address itself.',
       },
     ],
   },
@@ -178,7 +175,7 @@ export const POLICY: PolicySection[] = [
     points: [
       { text: 'To get a copy: Settings, then Privacy and data, then Export my data.' },
       { text: 'To remove one person: archive them on the People tab, then open Archived people, choose them and Delete permanently. Their photos, stories and practice records are deleted.' },
-      { text: 'To stop a paired phone: Settings, then Pair the person’s phone, then Remove phone. It loses access at once.' },
+      { text: 'To sign the person’s phone out: give Their login a new password in Settings. The phone is asked to sign in again.' },
       {
         text: 'To delete everything: Settings, then Delete account. It deletes your account, every person, photo, story and practice record, your agreement records, and every login of the person practicing, from our servers straight away. It can’t be undone.',
         review: 'Whether agreement records should be kept for a time after an account is deleted, as evidence of consent.',
@@ -204,8 +201,7 @@ export const POLICY: PolicySection[] = [
         text: 'The notes that decide when a card comes back (tries and hints): until that fact, that person or your account is deleted.',
         review: 'Sessions and these scheduling notes have no time limit today. Decide whether they should.',
       },
-      { text: 'Removed phones: their names and dates stay in your list until you delete your account.' },
-      { text: 'Pairing PINs: until used or expired, then removed within 30 days. The scrambled email and internet address used to limit guessing: about a day.' },
+      { text: 'A phone linked with an earlier version of the app: its name and dates, until you delete your account.' },
     ],
   },
   {
@@ -217,7 +213,7 @@ export const POLICY: PolicySection[] = [
         review: 'Confirm encryption at rest for this Supabase project and plan.',
       },
       { text: 'The database lets each login reach only its own family’s information. Photos are in private storage.' },
-      { text: 'Sign-ins are kept in the phone’s secure storage. Passwords and PINs are stored only in scrambled form.' },
+      { text: 'Sign-ins are kept in the phone’s secure storage. Passwords are stored only in scrambled form.' },
       {
         text: 'No system is perfectly secure, and we can’t promise perfect safety. If something happens that affects your information, we will tell you as the law requires.',
         review: 'Breach notification duties that may apply, and to whom.',
@@ -269,7 +265,7 @@ export const WHAT_WE_STORE: { heading: string; points: string[] }[] = [
       'The people you add: names, relationships, photos, answers and stories.',
       'Practice sessions, and notes on each card that decide when it comes back.',
       'Card records for Insights, kept 120 days.',
-      'The person’s logins, and each paired phone’s name and dates.',
+      'The person’s login (its User ID, with the password scrambled).',
     ],
   },
   {

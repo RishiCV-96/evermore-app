@@ -1,7 +1,7 @@
 // Evermore's palette, from the logo (assets/images/logo-wordmark.png). Every color in the app
 // comes from here. No red anywhere, and no tan, beige or cream. The logo's sky, yellow and
 // sage are too light for text, so they only ever fill a shape behind dark text.
-// scripts/check-logic.mjs checks every pairing in TEXT_PAIRS is at least 4.5:1.
+// scripts/check-logic.mjs checks every text and background combination in TEXT_PAIRS is at least 4.5:1.
 export const Colors = {
   /** Logo blue (the letters and the claw): filled buttons, progress, chart bars. */
   primary: '#3E6FB0',

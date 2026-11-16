@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
 import { MANAGE_FAMILY_FUNCTION } from '@/config/functions';
 import { LOCKED_OUT, MIN_PASSWORD, OFFLINE, SOMETHING, authProblem, unreachable, type AuthContext, type AuthFailure, type AuthReason } from '@/lib/auth-form';
 import { NEED_POLICY, signUpData, type Agreement } from '@/lib/consent';
-import { forgetDeviceCredential, readDeviceCredential } from '@/lib/session-storage';
+import { forgetOlderCredential } from '@/lib/session-storage';
 import { forgetKeptSession, keptSessionUser, supabase } from '@/lib/supabase';
 
 // Who is signed in, and every account action. Screens read useAccount() and re-render when
@@ -118,8 +118,6 @@ async function onSession(session: Session | null) {
       set({ status: 'signed-out' });
       return;
     }
-    // A paired phone signs itself in again with the credential it keeps, so the person is never asked.
-    if (await restorePairedPhone()) return;
     await signedOut();
     return;
   }
@@ -184,6 +182,8 @@ async function signedOut() {
   const profiles = new Map<string, Profile>();
   if (account.status === 'signed-in') profiles.set(account.profile.id, account.profile);
   if (account.status !== 'signed-out') set({ status: 'signed-out' });
+  // However it signed out, a credential an earlier release kept on this phone goes too.
+  await forgetOlderCredential();
   const keys = (await AsyncStorage.getAllKeys().catch(() => [] as string[])).filter((key) => key.startsWith(profileKey('')));
   for (const key of keys) {
     const saved = await savedProfile(key.slice(profileKey('').length));
@@ -199,8 +199,6 @@ async function signedOut() {
  * expires on the server, unused).
  */
 export async function signOut() {
-  // A paired phone's credential goes first, so the phone doesn't sign itself back in.
-  await forgetDeviceCredential();
   const profile = account.status === 'signed-in' ? account.profile : null;
   if (profile) {
     const waited = Promise.allSettled(beforeSignOut.map(async (cleanup) => cleanup(profile)));
@@ -240,8 +238,6 @@ export async function signIn(role: Role, userId: string, password: string): Prom
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (!error) {
     misses = 0;
-    // Signed in some other way now: a pairing this phone may still hold from before is no longer its own.
-    await forgetDeviceCredential();
     return { ok: true };
   }
   const result = failed(error, role === 'person' ? 'person' : 'sign-in');
@@ -358,60 +354,4 @@ export async function deleteFamily(): Promise<Result> {
   const result = await manageFamily({ action: 'delete-family' });
   if (result.ok) await signOut();
   return result;
-}
-
-// ---------------------------------------------------------------------------------------
-// A phone paired with the caregiver's email and a PIN (Create my account, src/data/pairing.ts): it
-// signs in with the login and credential the pair-phone function made for it, kept in secure storage,
-// and checks now and then whether the caregiver removed it.
-// ---------------------------------------------------------------------------------------
-
-/** Signs in with this phone's credential: right after pairing, and to get a lost session back. */
-export async function signInPairedPhone(): Promise<Result> {
-  const saved = await readDeviceCredential();
-  if (!saved) return { ok: false, reason: 'other', message: SOMETHING };
-  const { error } = await supabase.auth.signInWithPassword({ email: saved.login, password: saved.credential });
-  return error ? failed(error, 'person') : { ok: true };
-}
-
-let restoring: Promise<boolean> | null = null;
-
-/**
- * The session is gone but this phone was paired: sign in again with its credential. True when that
- * worked, or when it couldn't be tried just now (no connection, secure storage locked, too many tries),
- * in which case the welcome shows for now and nothing is cleared, so the next launch tries again.
- * False when there is no pairing, or the server refused it (the caregiver removed the phone): then
- * the credential goes and the phone signs out as any phone does.
- */
-function restorePairedPhone() {
-  restoring ??= (async () => {
-    const saved = await readDeviceCredential();
-    if (saved === null) return false;
-    if (saved === undefined) {
-      set({ status: 'signed-out' });
-      return true;
-    }
-    const result = await signInPairedPhone();
-    if (result.ok) return true;
-    if (result.reason === 'offline' || result.reason === 'busy') {
-      set({ status: 'signed-out' });
-      return true;
-    }
-    await forgetDeviceCredential();
-    return false;
-  })().finally(() => {
-    restoring = null;
-  });
-  return restoring;
-}
-
-/**
- * A paired phone, when it opens, comes back to the front or comes back online: tells the server it was
- * seen, and signs out (back to the welcome) if the caregiver removed it. Nothing for any other login,
- * and nothing at all offline: its session then ends by itself within the hour, refused by the server.
- */
-export async function checkThisPhone() {
-  if (account.status !== 'signed-in' || account.profile.role !== 'person') return;
-  const { data, error } = await supabase.rpc('device_seen');
-  if (!error && data === 'removed') await signOut();
 }

@@ -14,26 +14,13 @@
 //   supabase/schema.sql: a caregiver reaches their own family, the person only approved cards of
 //   people in the deck, and their own practice rows; card records are insert-only for the person.
 //   supabase/tests/rls.test.mjs checks the real rules.
-// - Storage (signed photo links, upload, list, remove), the manage-family function, and the pair-phone
-//   function's contract (supabase/functions/pair-phone): a PIN for 15 minutes, used once, spent after 5
-//   wrong tries, 5 tries per email in 15 minutes, the one calm failure for every reason, a login per
-//   paired phone, the caregiver reading their phones (devices), device_seen, and Remove phone, after
-//   which the phone's login reads and writes nothing, can't refresh or sign in (banned). The real
-//   function and its SQL are checked in supabase/tests/pairing.test.mjs.
+// - Storage (signed photo links, upload, list, remove) and the manage-family function.
 // Passwords are kept only as salted hashes, as Supabase does.
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 
-import { PAIR_PHONE_FUNCTION } from '../../src/config/functions.ts';
-
 const PERSON_DOMAIN = 'person.evermore.invalid';
-const PHONE_DOMAIN = 'phone.evermore.invalid';
-// Answered at the slug the app calls (src/config/functions.ts).
-const PAIR_FUNCTION = PAIR_PHONE_FUNCTION;
-const PIN_MINUTES = 15;
-const TRIES_PER_EMAIL = 5;
-const WRONG_PER_PIN = 5;
 const USERNAME = /^[a-z0-9._-]{3,30}$/;
 const SAMPLE_PEOPLE = [
   ['June', 'aunt', 'grows tomatoes and shares them every summer', 'june'],
@@ -105,11 +92,7 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
   const sessions = new Map(); // refresh token -> { userId, sessionId, revoked }
   const emails = []; // { to, kind: 'signup' | 'recovery', code, link, at }
   const objects = new Map(); // storage path -> bytes
-  const tables = { profiles: [], people: [], cards: [], daily_goal: [], sessions: [], attempts: [], card_schedule: [], attempt_records: [], devices: [], consents: [] };
-  /** PINs waiting or used: { id, caregiver_id, pin, expires_at, used_at, failures }. Only the function reaches them. */
-  const pairings = [];
-  /** Tries at pairing, for the limit per email: { email, at }. */
-  const pairTries = [];
+  const tables = { profiles: [], people: [], cards: [], daily_goal: [], sessions: [], attempts: [], card_schedule: [], attempt_records: [], consents: [] };
   /** Every request, in order: method, path and, for auth, the endpoint. Bodies are never kept. */
   const log = [];
   let signInTries = 0;
@@ -243,7 +226,7 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
       }
     }
     tables.profiles = tables.profiles.filter((row) => row.id !== id);
-    for (const table of ['sessions', 'attempts', 'card_schedule', 'devices']) tables[table] = tables[table].filter((row) => row.person_user_id !== id);
+    for (const table of ['sessions', 'attempts', 'card_schedule']) tables[table] = tables[table].filter((row) => row.person_user_id !== id);
   }
 
   async function auth(request, path, body) {
@@ -362,13 +345,8 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
   // ---------------------------------------------------------------------------------------
 
   const profileOf = (userId) => tables.profiles.find((one) => one.id === userId);
-  /** A paired phone the caregiver removed: every person rule refuses it, as my_caregiver() does. */
-  const removedPhone = (userId) => tables.devices.some((one) => one.person_user_id === userId && one.revoked_at);
-  /** The profile the rules see: a removed phone's has no family. */
-  const ruledProfile = (userId) => {
-    const profile = profileOf(userId);
-    return profile?.role === 'person' && removedPhone(userId) ? { ...profile, caregiver_id: null } : profile;
-  };
+  /** The profile the rules see. */
+  const ruledProfile = profileOf;
   const personVisible = (person, family) =>
     person.caregiver_id === family && person.in_deck && person.include_in_practice && !person.archived_at;
 
@@ -406,7 +384,7 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
   function canWrite(table, row, who) {
     if (!who) return false;
     if (who.role === 'caregiver' && table === 'consents') return row.caregiver_id === who.id && ['policy', 'responsibility', 'research'].includes(row.kind) && (row.kind === 'research' || row.choice === true) && /^(legacy|\d{4}-\d\d-\d\d)$/.test(String(row.policy_version ?? '')) && row.agreed_at === undefined;
-    if (who.role === 'caregiver') return !['profiles', 'attempt_records', 'devices'].includes(table) && row.caregiver_id === who.id;
+    if (who.role === 'caregiver') return !['profiles', 'attempt_records'].includes(table) && row.caregiver_id === who.id;
     if (['sessions', 'attempts', 'card_schedule', 'attempt_records'].includes(table)) return Boolean(who.caregiver_id) && row.person_user_id === who.id && row.caregiver_id === who.caregiver_id;
     return false;
   }
@@ -569,7 +547,7 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
     const user = userOfToken(request.headers.get('authorization')?.replace(/^Bearer\s+/i, ''));
     if (!user) return json(401, { error: 'signed-out' });
     if (profileOf(user.id)?.role !== 'caregiver') return json(403, { error: 'caregivers-only' });
-    // The family's User ID login; paired phones are person logins too, with no User ID.
+    // The family's User ID login ("Their login").
     const person = tables.profiles.find((one) => one.caregiver_id === user.id && one.role === 'person' && one.username);
     const username = body.username?.trim().toLowerCase();
     const password = body.password ?? '';
@@ -605,86 +583,11 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
         for (const one of [...objects.keys()]) if (one.startsWith(`${user.id}/`)) objects.delete(one);
         for (const login of tables.profiles.filter((one) => one.caregiver_id === user.id && one.role === 'person')) deleteUser(login.id);
         deleteUser(user.id);
-        for (let i = pairings.length - 1; i >= 0; i--) if (pairings[i].caregiver_id === user.id) pairings.splice(i, 1);
         return json(200, { deleted: true });
       }
       default:
         return json(400, { error: 'unknown-action' });
     }
-  }
-
-  // ---------------------------------------------------------------------------------------
-  // The pair-phone function's contract, and device_seen
-  // ---------------------------------------------------------------------------------------
-
-  const NOT_PAIRED = () => json(400, { error: 'not-paired' });
-  const randomCredential = () => `${randomBytes(32).toString('base64url')}-Aa1`;
-
-  function pairPhone(request, body) {
-    if (body.action === 'redeem') return redeemPin(body);
-    const user = userOfToken(request.headers.get('authorization')?.replace(/^Bearer\s+/i, ''));
-    if (!user) return json(401, { error: 'signed-out' });
-    if (body.action === 'create-pin') {
-      if (profileOf(user.id)?.role !== 'caregiver') return json(403, { error: 'caregivers-only' });
-      for (let i = pairings.length - 1; i >= 0; i--) if (pairings[i].caregiver_id === user.id && !pairings[i].used_at) pairings.splice(i, 1);
-      const pin = String(randomBytes(4).readUInt32BE(0) % 1_000_000).padStart(6, '0');
-      const expiresAt = new Date(now() + PIN_MINUTES * 60_000).toISOString();
-      pairings.push({ id: randomUUID(), caregiver_id: user.id, pin, expires_at: expiresAt, used_at: null, failures: 0 });
-      return json(200, { pin, expiresAt });
-    }
-    if (body.action === 'revoke-device') {
-      const device = tables.devices.find((one) => one.id === body.deviceId && one.caregiver_id === user.id && profileOf(user.id)?.role === 'caregiver');
-      if (!device) return json(404, { error: 'no-device' });
-      device.revoked_at ??= nowIso();
-      const login = users.find((one) => one.id === device.person_user_id);
-      if (login) {
-        login.banned = true;
-        login.salt = randomBytes(8).toString('hex');
-        login.hash = hash(login.salt, randomCredential());
-      }
-      return json(200, { removed: true });
-    }
-    return json(400, { error: 'unknown-action' });
-  }
-
-  function redeemPin(body) {
-    const email = typeof body.email === 'string' ? body.email.normalize('NFKC').trim().toLowerCase() : '';
-    const pin = typeof body.pin === 'string' ? body.pin : '';
-    const since = now() - 15 * 60_000;
-    if (pairTries.filter((one) => one.email === email && one.at > since).length >= TRIES_PER_EMAIL) return NOT_PAIRED();
-    pairTries.push({ email, at: now() });
-    const caregiver = users.find((one) => one.email === email && profileOf(one.id)?.role === 'caregiver');
-    const waiting = caregiver && [...pairings].reverse().find((one) => one.caregiver_id === caregiver.id && !one.used_at && new Date(one.expires_at).getTime() > now() && one.failures < WRONG_PER_PIN);
-    if (!waiting || !/^\d{6}$/.test(pin) || waiting.pin !== pin) {
-      if (waiting) waiting.failures += 1;
-      return NOT_PAIRED();
-    }
-    waiting.used_at = nowIso();
-    const family = waiting.caregiver_id;
-    const login = `${randomUUID()}@${PHONE_DOMAIN}`;
-    const credential = randomCredential();
-    const created = createUser({ email: login, password: credential, metadata: { evermore_person: true }, confirmed: true, appMetadata: { role: 'person' } });
-    const named = tables.profiles.filter((one) => one.caregiver_id === family && one.role === 'person' && one.display_name).sort((a, b) => Number(Boolean(b.username)) - Number(Boolean(a.username)))[0];
-    tables.profiles.push({ id: created.id, role: 'person', caregiver_id: family, username: null, display_name: named?.display_name ?? '', consented_at: null, created_at: nowIso() });
-    const name = typeof body.deviceName === 'string' ? body.deviceName.replace(/[\p{Cc}\p{Cf}]+/gu, '').replace(/\s+/g, ' ').trim().slice(0, 40) : '';
-    tables.devices.push({ id: randomUUID(), caregiver_id: family, person_user_id: created.id, name: name || `Phone ${tables.devices.filter((one) => one.caregiver_id === family).length + 1}`, paired_at: nowIso(), last_seen_at: nowIso(), revoked_at: null });
-    // The schedule each card reached on the family's other phones carries over.
-    const latest = new Map();
-    for (const row of tables.card_schedule.filter((one) => one.caregiver_id === family)) {
-      if (!latest.has(row.card_id) || String(row.updated_at) > String(latest.get(row.card_id).updated_at)) latest.set(row.card_id, row);
-    }
-    for (const row of latest.values()) tables.card_schedule.push({ ...row, person_user_id: created.id });
-    return json(200, { login, credential });
-  }
-
-  function deviceSeen(request) {
-    const user = userOfToken(request.headers.get('authorization')?.replace(/^Bearer\s+/i, ''));
-    if (!user) return json(401, { code: 'PGRST301', message: 'JWT expired' });
-    const device = tables.devices.find((one) => one.person_user_id === user.id);
-    if (!device) return json(200, 'none');
-    if (device.revoked_at) return json(200, 'removed');
-    device.last_seen_at = nowIso();
-    return json(200, 'active');
   }
 
   // ---------------------------------------------------------------------------------------
@@ -703,11 +606,9 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
       body = {};
     }
     if (pathname.startsWith('/auth/v1')) return auth(request, pathname.slice('/auth/v1'.length), body);
-    if (pathname === '/rest/v1/rpc/device_seen' && request.method === 'POST') return deviceSeen(request);
     if (pathname.startsWith('/rest/v1/')) return rest(request, pathname.slice('/rest/v1/'.length), body);
     if (pathname.startsWith('/storage/v1')) return storage(request, pathname.slice('/storage/v1'.length), body);
     if (pathname === `/functions/v1/${functionSlug}` && request.method === 'POST') return manageFamily(request, body);
-    if (pathname === `/functions/v1/${PAIR_FUNCTION}` && request.method === 'POST') return pairPhone(request, body);
     if (pathname.startsWith('/__standin/')) return control(pathname.slice('/__standin/'.length), body);
     return json(404, { message: 'Not found' });
   }
@@ -780,8 +681,6 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
     users,
     emails,
     tables,
-    pairings,
-    pairTries,
     objects,
     sessions,
     log,

@@ -124,39 +124,11 @@ export async function storedSessionUser(key: string): Promise<string | null | un
   }
 }
 
-// ---------------------------------------------------------------------------------------
-// A paired phone's credential (Create my account): the login and long random credential the pair-phone
-// function made for this phone, kept in secure storage like the session, never in AsyncStorage, never
-// shown and never logged. It lets the phone sign in again by itself if its session is ever lost, so the
-// person is never asked for anything. It goes when the phone signs out, and stops working when the
-// caregiver removes the phone.
-// ---------------------------------------------------------------------------------------
+// A login and credential an earlier release kept here for a phone set up with the caregiver's email,
+// a way in that no longer exists (docs/PIN-REMOVAL-PLAN.md, the one allowed mention). Nothing reads it now: it is only deleted
+// when the phone signs out, so such a phone keeps no credential once signed out.
+const OLDER_CREDENTIAL_KEY = 'evermore.device.v1';
 
-const DEVICE_KEY = 'evermore.device.v1';
-
-export type DeviceCredential = { login: string; credential: string };
-
-/** The credential, null when there is none, or undefined when secure storage couldn't be read just now. */
-export async function readDeviceCredential(): Promise<DeviceCredential | null | undefined> {
-  let saved: string | null;
-  try {
-    saved = await SecureStore.getItemAsync(DEVICE_KEY, OPTIONS);
-  } catch {
-    return undefined;
-  }
-  if (!saved) return null;
-  try {
-    const value = JSON.parse(saved);
-    return typeof value?.login === 'string' && typeof value?.credential === 'string' ? { login: value.login, credential: value.credential } : null;
-  } catch {
-    return null;
-  }
-}
-
-export async function saveDeviceCredential(value: DeviceCredential) {
-  await SecureStore.setItemAsync(DEVICE_KEY, JSON.stringify({ login: value.login, credential: value.credential }), OPTIONS);
-}
-
-export async function forgetDeviceCredential() {
-  await SecureStore.deleteItemAsync(DEVICE_KEY, OPTIONS).catch(() => console.warn('The phone’s pairing couldn’t be removed from secure storage'));
+export async function forgetOlderCredential() {
+  await SecureStore.deleteItemAsync(OLDER_CREDENTIAL_KEY, OPTIONS).catch(() => console.warn('An older credential couldn’t be removed from secure storage'));
 }

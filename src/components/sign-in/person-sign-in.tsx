@@ -7,8 +7,10 @@ import { BigButton } from '@/components/big-button';
 import { CaregiverScreen, Field, Notice } from '@/components/caregiver-ui';
 import { Logo } from '@/components/logo';
 import { PasswordField } from '@/components/password-field';
+import { PolicyLink, PolicySheet } from '@/components/privacy-policy';
 import { signIn } from '@/data/account';
 import { personProblems } from '@/lib/auth-form';
+import { SET_UP_FOR_YOU } from '@/lib/consent';
 import { Colors } from '@/theme/colors';
 import { ICON, RADIUS, Space, TAP } from '@/theme/layout';
 
@@ -16,6 +18,8 @@ import { ICON, RADIUS, Space, TAP } from '@/theme/layout';
 // under Settings, Their login, and one big Continue. The person's own large type (the Text size
 // setting), 48pt targets, one action, nothing timed. Signing in once keeps this phone signed in, so
 // they aren't asked again unless the caregiver signs the phone out. Nothing about any account shows.
+// The person is never shown legal text: this first step says, in one large sentence, that their
+// caregiver set this up, with a link to the privacy policy at the ordinary reading size.
 
 export function PersonSignIn({ onBack }: { onBack: () => void }) {
   const [userId, setUserId] = useState('');
@@ -23,6 +27,7 @@ export function PersonSignIn({ onBack }: { onBack: () => void }) {
   const [tried, setTried] = useState(false);
   const [message, setMessage] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [policy, setPolicy] = useState(false);
   const problems = personProblems({ userId, password });
 
   async function submit() {
@@ -57,6 +62,9 @@ export function PersonSignIn({ onBack }: { onBack: () => void }) {
         </View>
       }
       footer={<BigButton testID="person-continue" label={busy ? 'One moment…' : 'Continue'} primary large disabled={busy} onPress={submit} />}>
+      <AppText testID="set-up-for-you" bold>
+        {SET_UP_FOR_YOU}
+      </AppText>
       <Field
         testID="person-user-id"
         label="User ID"
@@ -82,6 +90,8 @@ export function PersonSignIn({ onBack }: { onBack: () => void }) {
         onSubmitEditing={submit}
       />
       {message ? <Notice>{message}</Notice> : null}
+      <PolicyLink testID="person-policy" onPress={() => setPolicy(true)} />
+      <PolicySheet visible={policy} onClose={() => setPolicy(false)} />
     </CaregiverScreen>
   );
 }

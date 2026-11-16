@@ -189,7 +189,7 @@ export type FieldProps = TextInputProps & {
   action?: ReactNode;
   /** A calm note under the box, such as what the field still needs. Never red. */
   note?: string;
-  /** Added to the box's own look, such as larger digits for a PIN. */
+  /** Added to the box's own look, such as larger digits. */
   inputStyle?: TextStyle;
 };
 

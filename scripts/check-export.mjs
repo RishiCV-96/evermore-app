@@ -137,10 +137,11 @@ server.tables.cards = [
   { ...card(randomUUID(), 'the stranger’s secret'), caregiver_id: OTHER },
 ];
 server.tables.daily_goal = [{ caregiver_id: CAREGIVER, session_length: 'long', reveal_cards: 'often' }, { caregiver_id: OTHER, session_length: 'short', reveal_cards: 'off' }];
-// What the export must never carry: the person's login, its user name and email, a PIN's hash, a device credential
-const PIN_HASH = 'a'.repeat(64);
+// What the export must never carry: the person's login, its user name and email, and anything left on the
+// server by the PIN pairing an earlier release had (its hashes, phones and their credentials), never read now
+const LEFT_HASH = 'a'.repeat(64);
 server.tables.profiles = [{ id: PERSON, caregiver_id: CAREGIVER, role: 'person', username: 'grandma.rose', display_name: 'Rose', email: 'rose@person.evermore.invalid' }];
-server.tables.pairings = [{ id: randomUUID(), caregiver_id: CAREGIVER, pin_hash: PIN_HASH }];
+server.tables.pairings = [{ id: randomUUID(), caregiver_id: CAREGIVER, pin_hash: LEFT_HASH }];
 server.tables.devices = [
   { id: randomUUID(), caregiver_id: CAREGIVER, person_user_id: PERSON, name: 'Rose’s iPhone', paired_at: '2026-11-11T15:00:00.000Z', last_seen_at: '2026-11-13T12:00:00.000Z', revoked_at: null, credential: 'device-secret-xyz' },
   { id: randomUUID(), caregiver_id: CAREGIVER, person_user_id: randomUUID(), name: 'Old tablet', paired_at: '2026-06-01T15:00:00.000Z', last_seen_at: '2026-07-01T12:00:00.000Z', revoked_at: '2026-07-02T09:00:00.000Z' },
@@ -237,11 +238,12 @@ await check('the full history is read from the server, a page at a time, with pr
   assert.equal(source.records.length, records.length, 'every card record');
   assert.ok(rangesOf('sessions').includes('range 1000-1999') && rangesOf('attempt_records').includes('range 2000-2999'), 'more rows than one page: read in pages');
   assert.ok(server.log.filter((entry) => entry.table && entry.action === 'select').every((entry) => entry.calls?.includes('eq caregiver_id')), 'every read names the family, beside Row Level Security');
-  assert.deepEqual([...new Set(progress.map((step) => step.step))], ['family', 'sessions', 'records', 'schedule', 'phones'], 'progress through each part');
+  assert.deepEqual([...new Set(progress.map((step) => step.step))], ['family', 'sessions', 'records', 'schedule'], 'progress through each part');
   assert.ok(progress.some((step) => step.step === 'records' && step.done === 2000), 'with the rows read so far');
+  assert.ok(!server.log.some((entry) => ['devices', 'pairings'].includes(entry.table)), 'the phones an earlier release linked are never read');
 });
 
-await check('the file holds everything: people with every answer, archived people, stories, sessions, card records, schedule, phones', async () => {
+await check('the file holds everything: people with every answer, archived people, stories, sessions, card records, schedule', async () => {
   copy = familyExport(source, now, '1.2.3');
   text = exportText(copy);
   assert.deepEqual(JSON.parse(text), JSON.parse(JSON.stringify(copy)), 'the text is the copy, exactly');
@@ -249,7 +251,7 @@ await check('the file holds everything: people with every answer, archived peopl
   assert.equal(copy.about.appVersion, '1.2.3');
   assert.equal(copy.about.exportedAt, now.toISOString());
   assert.equal(copy.about.complete, true);
-  assert.deepEqual(Object.keys(copy.about.sections), ['settings', 'people', 'sessions', 'cardRecords', 'schedule', 'linkedPhones'], 'a plain description of each section at the top');
+  assert.deepEqual(Object.keys(copy.about.sections), ['settings', 'people', 'sessions', 'cardRecords', 'schedule'], 'a plain description of each section at the top');
   assert.ok(Object.values(copy.about.sections).every((words) => words.length > 40));
   assert.deepEqual(copy.settings, { sessionLength: 'long', revealCards: 'often' });
   assert.deepEqual(copy.people.map((one) => [one.name, one.status]), [['June', 'in practice'], ['Leo', 'archived'], ['Mae', 'in practice']], 'everyone in the family, the archived person marked so');
@@ -275,14 +277,11 @@ await check('the file holds everything: people with every answer, archived peopl
   assert.ok(copy.cardRecords.every((record) => Array.isArray(record.askedForHelp)), 'every record says, an empty list when none');
   assert.ok(copy.cardRecords.filter((record) => record.personId === LEO).length > 0, 'the archived person’s practice too');
   assert.deepEqual(copy.schedule, [{ cardId: cardIds[JUNE][0], step: 3, dueAt: '2026-11-20T10:30:00.000Z', updatedAt: '2026-11-10T10:00:00.000Z' }], 'the family’s schedule: the one changed last');
-  assert.deepEqual(copy.linkedPhones, [
-    { name: 'Old tablet', pairedAt: '2026-06-01T15:00:00.000Z', lastSeenAt: '2026-07-01T12:00:00.000Z', removedAt: '2026-07-02T09:00:00.000Z' },
-    { name: 'Rose’s iPhone', pairedAt: '2026-11-11T15:00:00.000Z', lastSeenAt: '2026-11-13T12:00:00.000Z' },
-  ], 'linked phones: names and dates only');
+  assert.ok(!('linkedPhones' in copy), 'no phones section: the app no longer links phones');
 });
 
 await check('nothing secret, no login, no other family, and no photo in the data file', async () => {
-  for (const secret of [PIN_HASH, 'grandma.rose', 'rose@person.evermore.invalid', 'device-secret-xyz', PERSON, CAREGIVER, OTHER, 'Stranger', 'the stranger’s secret', 'signed.invalid', '.jpg']) {
+  for (const secret of [LEFT_HASH, 'grandma.rose', 'rose@person.evermore.invalid', 'device-secret-xyz', 'Rose’s iPhone', 'Old tablet', PERSON, CAREGIVER, OTHER, 'Stranger', 'the stranger’s secret', 'signed.invalid', '.jpg']) {
     assert.ok(!text.includes(secret), `the file never holds ${secret}`);
   }
   const keys = new Set();
@@ -313,7 +312,6 @@ await check('test data, the demo and a test fact’s records never go in the fil
           { id: 'ai-2', personId: JUNE, shape: 'ask', text: 'Who loves golf?', facts: [{ id: cardIds[JUNE][0], type: 'interest', text: 'loves golf' }], status: 'rejected', edited: true },
         ],
       },
-      phones: undefined,
     },
     now,
     '1.2.3',
@@ -350,7 +348,7 @@ await check('Cancel stops at the next page, with nothing kept', async () => {
 // The person's login, offline, and this phone's copy
 // ---------------------------------------------------------------------------------------
 
-await check('the person’s login (any paired phone) can’t export: refused before a single request', async () => {
+await check('the person’s login can’t export: refused before a single request', async () => {
   who.role = 'person';
   const from = server.log.length;
   assert.deepEqual(await store.readServerExport(() => {}, { cancelled: false }), { ok: false, problem: 'caregivers-only' });
@@ -381,13 +379,13 @@ await check('offline: no file from the server, then this phone’s copy, which s
   server.offline = false;
   assert.ok(fallback.ok);
   const offline = fallback.value;
-  assert.deepEqual(offline.origin, { from: 'phone-copy', missing: ['people', 'sessions', 'schedule', 'linkedPhones'] });
+  assert.deepEqual(offline.origin, { from: 'phone-copy', missing: ['people', 'sessions', 'schedule'] });
   assert.equal(offline.records.length, 300);
   const file = familyExport(offline, now, '1.2.3');
   assert.equal(file.about.complete, false, 'the file says it is not complete');
   assert.match(file.about.madeFrom, /this phone’s copy/);
   assert.match(file.about.madeFrom, /may be missing newer data/);
-  assert.deepEqual(file.about.notIncluded, ['people', 'sessions', 'schedule', 'linkedPhones'].map((section) => SECTION_WORDS[section]), 'and what it may lack');
+  assert.deepEqual(file.about.notIncluded, ['people', 'sessions', 'schedule'].map((section) => SECTION_WORDS[section]), 'and what it may lack');
   assert.equal(file.people[1].status, 'archived', 'archived people stay marked');
   const html = reportHtml(reportOf(offline, today));
   assert.ok(html.includes(REPORT_NOTES.phoneCopy.replace(/’/g, '&#39;').replace(/'/g, '&#39;')) || html.includes(REPORT_NOTES.phoneCopy), 'and so does the report');

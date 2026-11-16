@@ -9,7 +9,7 @@ Evermore is a practice tool, not a medical device. `DESIGN.md` has the design re
 - **The app** runs in Expo Go (Expo SDK 58). It has 8 screens: sign-in (a welcome, the person's sign-in and the caregiver's forms, as steps), the person's home, practice, wrap-up, the caregiver dashboard, add a person, story approval, and Insights.
 - **Sign-in is on by default** (see [Sign-in on or off](#sign-in-on-or-off)). For development without a server, `npm run start:local` opens straight on the person's home, practices the example deck, and keeps everything on the phone.
 - **Supabase** holds the accounts, people, stories, practice activity and photos. Row Level Security keeps each family's data to itself. Photos are in a private bucket.
-- **Three Edge Functions.** `manage-family`, deployed at the URL slug `dynamic-api`, does the three things the app must not do with its public key: create the person's login, reset it, and delete a whole family. `pair-phone`, at the URL slug `hyper-function`, pairs the person's phone with the caregiver's email and a PIN, and removes a paired phone (see [Pairing the person's phone](#4b-deploy-pair-phone)). `generate-questions`, at the URL slug `clever-service`, writes AI questions, and is off until you turn it on (see [AI questions](#ai-questions)).
+- **Two Edge Functions.** `manage-family`, deployed at the URL slug `dynamic-api`, does the three things the app must not do with its public key: create the person's login, reset it, and delete a whole family. `generate-questions`, at the URL slug `clever-service`, writes AI questions, and is off until you turn it on (see [AI questions](#ai-questions)).
 - **The look** follows `DESIGN-UI.md`: colors from the logo (`src/theme/colors.ts`), one type scale, and a **Text size** setting with four levels.
 
 ## Sign-in on or off
@@ -77,17 +77,9 @@ The function needs a secret key. You set it in Supabase yourself; it never goes 
      ```
 4. **Check the URL slug.** The app calls the function at the slug in `src/config/functions.ts`. This project's function was made in the dashboard editor, which named its URL **`dynamic-api`** (the dashboard shows the name manage-family, but the URL is `/functions/v1/dynamic-api`), so that is what the constant holds. A CLI deploy from this repo uses the slug `manage-family`; if you deploy that way, or under any other slug, change the constant to match.
 
-### 4b. Deploy pair-phone
+### 4b. If you deployed pair-phone before
 
-The person can make their own account on their phone with your email and a 6-digit PIN you create in the app. The `pair-phone` function does it, with two secrets: the secret key from step 4 (`EVERMORE_SECRET_KEY`), and a pepper that keys the PIN's hash.
-
-1. **The pepper.** In Terminal: `openssl rand -base64 48 | tr -d '\n' | pbcopy` (it goes straight to the clipboard and is never shown). In Supabase: **Edge Functions → Secrets → Add new secret**, name `PAIRING_PEPPER`, paste the value, **Save**. Then clear the clipboard: `pbcopy < /dev/null`. Never put it in the app, `.env`, git or a chat. Without it, the function refuses everything.
-2. **Deploy:** **Edge Functions → Deploy a new function → Via editor**. Name it **`pair-phone`** before deploying, paste `supabase/functions/pair-phone/index.ts`, and turn **off** "Verify JWT": the person's phone has nobody signed in when it pairs, so the function checks everything itself. Deploy.
-3. **Check the slug:** the function's URL must match `PAIR_PHONE_FUNCTION` in `src/config/functions.ts`. This project's is `/functions/v1/hyper-function` (the dashboard editor named it); if it is ever redeployed under another slug, change the constant to match.
-4. **The kill switch and limits** are in `public.pairing_settings` (on by default). To stop all pairing at once: `update public.pairing_settings set enabled = false;` in the SQL Editor.
-5. **Check it:** `node supabase/tests/live-pairing.test.mjs` (Confirm email off). It makes and deletes its own test accounts.
-
-`manage-family` changed in the same release (a family may now have several person logins), so redeploy it too: open it under **Edge Functions**, replace its code with `supabase/functions/manage-family/index.ts`, keep "Verify JWT" off, and deploy.
+PIN pairing was removed on 2026-11-16 (`docs/PIN-REMOVAL-PLAN.md`): the person's phone signs in with Their login only. If an earlier release had you deploy it, delete the function **`hyper-function`** under **Edge Functions**, and the secret **`PAIRING_PEPPER`** under **Edge Functions → Secrets**. The pairing tables stay in the schema until you drop them by hand (`HANDOFF.md` has the optional SQL).
 
 ### 5. Check it against the real project
 
@@ -170,7 +162,7 @@ If the phone can't reach the computer, `npx expo start --tunnel` works too, but 
 6. Tap **Start** and practice until the wrap-up. The progress bar on the home screen moves up.
 7. Turn on airplane mode, practice a few cards, then turn it off. The cards reach the server, which you can check on the caregiver dashboard.
 8. Sign in as the caregiver again (or use a second phone): **Trends → Insights** shows the person's practice, with "Last updated" at the top and the Memory score once a day has 10 cards. Pull down to fetch again.
-9. **Settings** is Account, Linked phones, Practice, Privacy and data (with **Export my data**: a data file of everything, a report as a PDF, and photos as a zip if you tick Include photos), About, and **Delete account** last and apart. There are no developer controls in the app.
+9. **Settings** is Account, The person's phone (Their login), Practice, Privacy and data (with **Export my data**: a data file of everything, a report as a PDF, and photos as a zip if you tick Include photos), About, and **Delete account** last and apart. There are no developer controls in the app.
 10. **People** shows each person as a picture card; tap one for their profile, stories (and the ways each is asked), details, hints, or to archive them. **Add a person** works as with sign-in off, saving to Supabase and the private photo bucket.
 11. **Settings → Delete account** removes every photo, row, card record and every login, once you type “delete”. **Export my data** is offered first.
 
@@ -201,12 +193,10 @@ node scripts/sync-ai-check.mjs              # copies src/lib/ai-check.ts into th
 node supabase/tests/function.test.mjs       # the generate-questions function, with a mocked model
 node scripts/check-sync.mjs                 # card records with sign-in on: the person's upload queue and the caregiver's Insights, against stand-ins
 node scripts/check-export.mjs               # Export my data: the full history in pages, nothing secret, offline, the person's login refused, the report against Insights
-node scripts/check-auth.mjs                 # sign-in: the forms, Confirm email either way, the session in secure storage, sign-out, the person's sign-in, pairing a phone with a PIN, against an in-memory Supabase
-node supabase/tests/rls.test.mjs            # the schema's Row Level Security and its upgrade, in PGlite, pairing and removed phones included
-node supabase/tests/pairing.test.mjs        # the pair-phone function with the real schema in PGlite: PINs, limits, lockout, identical answers, Remove phone
+node scripts/check-auth.mjs                 # sign-in: the forms, Confirm email either way, the session in secure storage, sign-out, the person's sign-in with Their login, Forgot password with a code, against an in-memory Supabase
+node supabase/tests/rls.test.mjs            # the schema's Row Level Security and its upgrade, in PGlite, the unused pairing tables included
 node supabase/tests/records.test.mjs        # card records through the schema: the same Insights from the server as from the phone
 node supabase/tests/live.test.mjs           # the real project: needs .env and Confirm email off
-node supabase/tests/live-pairing.test.mjs   # pairing on the real project, once pair-phone is deployed
 npx expo export --platform ios --platform android --output-dir /tmp/evermore-check
 ```
 

@@ -406,7 +406,9 @@ Screen 1, as steps. No new colors, components beyond the password field, or scre
 
 **Web is not the phone:** the keyboard riding under Continue, iOS's password autofill and "Save password" prompts, secure storage itself, and coming back from the browser after the confirmation link need a look in Expo Go.
 
-## Pairing the person's phone (2026-11-11)
+## Pairing the person's phone (2026-11-11, removed 2026-11-16)
+
+**Removed on 2026-11-16** with PIN pairing (`docs/PIN-REMOVAL-PLAN.md`): none of the pieces below is in the app now. "I am practicing" opens Hello, which carries "Your caregiver set this up for you." (bold, the person's body size) above the fields and the **Privacy policy** link (compact reading size, 48pt target) under them. Kept as the record.
 
 A sheet for the caregiver and steps of screen 1 for the person, from the existing pieces and tokens. No new colors or screens. The caregiver's sheet is on the compact scale with 44pt targets; the person's steps use their own large type (the Text size setting), 48pt targets and one action each. Nothing is red: every note is the neutral `FieldNote` or `Notice`.
 
@@ -433,9 +435,9 @@ One component, `<Logo />` (`src/components/logo.tsx`), is the only way a screen 
 
 | Size | Width (under 700pt tall) | Where | Test ID |
 | --- | --- | --- | --- |
-| hero | 260 (200) | the welcome; "You are all set" (it replaced the mark there) | `logo-welcome`, `logo-all-set` |
+| hero | 260 (200) | the welcome | `logo-welcome` |
 | home | 220 (160) | the person's home, above the greeting and Start | `logo-home` |
-| form | 168 (128) | caregiver Sign in and Create an account (`CaregiverScreen`'s `logo` prop, between Back and the title); the person's I am practicing, Hello, email and PIN steps (after Back) | `logo-sign-in`, `logo-create-account`, `logo-person-choice`, `logo-person-sign-in`, `logo-pair-email`, `logo-pair-pin` |
+| form | 168 (128) | caregiver Sign in and Create an account (`CaregiverScreen`'s `logo` prop, between Back and the title); the person's Hello (after Back) | `logo-sign-in`, `logo-create-account`, `logo-person-sign-in` |
 
 - **Never over a field.** It sits in the layout, never floating, and on a step with a field it folds away while the keyboard is up (`useKeyboardOpen` in `src/components/use-keyboard-open.ts`, which `CaregiverScreen` also uses for its pinned bar), so the fields and the button riding the keyboard keep the room.
 - **Small phones.** Under 700pt tall every size takes its smaller width, and it is never wider than the screen less the gutters. The welcome, "You are all set" and the person's home have a middle that scrolls only if very large text needs it, so the primary button is never pushed off the screen.
@@ -461,7 +463,7 @@ From existing pieces, compact scale, 44pt targets, no new colors.
 
 | Piece | Where | How it looks |
 | --- | --- | --- |
-| Sections | Settings | A bold `primaryDark` caption heading (Account, Linked phones, Practice, Privacy and data, About) over hairline rows, 4pt between heading and rows, the page's 16pt between sections. |
+| Sections | Settings | A bold `primaryDark` caption heading (Account, The person’s phone, Practice, Privacy and data, About) over hairline rows, 4pt between heading and rows, the page's 16pt between sections. |
 | Delete account | Settings, last | Apart: 16pt more space and a hairline above, the row, and one muted caption under it ("Deletes your family’s data for good. Archive a person instead to set them aside."). Never red. |
 | Typed confirmation | Delete account, Delete permanently | What goes and where in body text; for Delete account a quiet **Export my data first**; then a field labelled `Type “delete” to confirm` and the filled button, disabled at 50% opacity until the word is typed; then a soft **Keep …** button. |
 | Export my data | Settings, a sheet | Rebuilt on 2026-11-13: see "Export my data (2026-11-13)" below. |

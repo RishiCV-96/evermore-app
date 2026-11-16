@@ -182,14 +182,15 @@ await check('asking again: over every caregiver screen, no Close, nothing lost, 
 });
 
 await check('the person’s phone: one large sentence, the policy at the ordinary size, no legal wall', () => {
-  const person = inRepo('src/components/sign-in/person-pairing.tsx');
+  // Their first step is Hello (the User ID and password), since PIN pairing went on 2026-11-16.
+  const person = inRepo('src/components/sign-in/person-sign-in.tsx');
   assert.equal(consent.SET_UP_FOR_YOU, 'Your caregiver set this up for you.');
   assert.ok(/<AppText testID="set-up-for-you" bold>\s*\{SET_UP_FOR_YOU\}/.test(person), 'the sentence at the person’s own body size (no smaller size), bold');
   assert.ok(/<PolicyLink testID="person-policy"/.test(person) && /<PolicySheet visible=\{policy\}/.test(person), 'a link to the policy, opening in a sheet');
   const link = inRepo('src/components/privacy-policy.tsx');
   assert.ok(/export function PolicyLink[\s\S]*<CompactType value=\{true\}>[\s\S]*Privacy policy/.test(link) && /link: \{\s*minHeight: TAP,\s*minWidth: TAP/.test(link), 'at the ordinary reading size, with a 48pt target');
   assert.ok(!/Colors\.(pink|accent)|red/i.test(code('src/components/privacy-policy.tsx')), 'no red, in the neutral palette');
-  for (const path of ['src/components/sign-in/person-pairing.tsx', 'src/components/sign-in/person-sign-in.tsx', 'src/app/index.tsx', 'src/app/practice.tsx', 'src/components/practice-screen.tsx']) {
+  for (const path of ['src/components/sign-in/person-sign-in.tsx', 'src/app/index.tsx', 'src/app/practice.tsx', 'src/components/practice-screen.tsx']) {
     const text = inRepo(path);
     assert.ok(!/from '@\/components\/consent'|consent-store|AGREE_|RESEARCH_|SIGN_UP_SUMMARY/.test(text), `${path}: no agreements, boxes or research choice`);
   }

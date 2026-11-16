@@ -15,7 +15,7 @@ export const SHORT_SCREEN = 700;
 
 /** Each place's width in points, and the width on a small phone. */
 export const LOGO_SIZES = {
-  /** The welcome and "You are all set". */
+  /** The welcome. */
   hero: { width: 260, short: 200 },
   /** The person's home, above Start. */
   home: { width: 220, short: 160 },

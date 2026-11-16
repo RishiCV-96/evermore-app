@@ -8,7 +8,6 @@ import { Notice, Row, TypeToConfirm } from '@/components/caregiver-ui';
 import { AiSetting, ChangePasswordSetting, PersonLoginSetting, RevealCardsSetting, SessionLengthSetting, SignedInAs } from '@/components/caregiver-settings';
 import { Note } from '@/components/dashboard';
 import { ExportPanel, ExportSetting } from '@/components/export-data';
-import { PairPhoneSetting } from '@/components/pair-phone';
 import { AiConsentSetting, ResearchSetting } from '@/components/consent';
 import { PolicySheet, StoresSheet } from '@/components/privacy-policy';
 import { Sheet } from '@/components/sheet';
@@ -19,7 +18,7 @@ import { confirm } from '@/lib/confirm';
 import { Colors } from '@/theme/colors';
 import { Space } from '@/theme/layout';
 
-// The dashboard's Settings tab: Account, Linked phones, Practice, Privacy and data, About, and last,
+// The dashboard's Settings tab: Account, The person's phone (Their login), Practice, Privacy and data, About, and last,
 // apart from everything else, Delete account. Nothing here is a developer tool: no control loads
 // sample data, resets, clears or wipes anything (docs/SETTINGS-AUDIT.md, CLAUDE.md). Anything that
 // deletes data names what goes and where, and needs "delete" typed first.
@@ -44,9 +43,16 @@ export function SettingsPage({ family, failed }: SettingsPageProps) {
         </Section>
       )}
       {LOCAL_ONLY ? null : (
-        <Section title="Linked phones">
-          <PairPhoneSetting />
-          {family ? <PersonLoginSetting person={family.person} /> : null}
+        <Section title="The person’s phone">
+          {family ? (
+            <PersonLoginSetting person={family.person} />
+          ) : (
+            <View testID="person-login-waiting" style={styles.waiting}>
+              <AppText size="caption" muted>
+                {failed ? 'Their login appears once your family has loaded.' : 'Getting their login…'}
+              </AppText>
+            </View>
+          )}
         </Section>
       )}
       <Section title="Practice">

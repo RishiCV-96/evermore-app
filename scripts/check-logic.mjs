@@ -3310,13 +3310,12 @@ assert.ok(TYPE_SCALE.medium.body >= 20, 'body text at the default size stays lar
     'src/components/sign-in/caregiver-sign-in.tsx': ['logo-sign-in'],
     'src/components/sign-in/caregiver-sign-up.tsx': ['logo-create-account'],
     'src/components/sign-in/person-sign-in.tsx': ['logo-person-sign-in'],
-    'src/components/sign-in/person-pairing.tsx': ['logo-person-choice', 'logo-pair-email', 'logo-pair-pin', 'logo-all-set'],
   };
   for (const [path, testIDs] of Object.entries(placed)) {
     for (const testID of testIDs) assert.ok(inRepo(path).includes(`"${testID}"`), `${path} shows the logo as ${testID}`);
   }
   // Steps with a field fold the logo while the keyboard is up, so it never takes their room.
-  for (const testID of ['logo-person-sign-in', 'logo-pair-email', 'logo-pair-pin']) {
+  for (const testID of ['logo-person-sign-in']) {
     const path = Object.keys(placed).find((one) => placed[one].includes(testID));
     assert.ok(new RegExp(`testID="${testID}" foldWithKeyboard`).test(inRepo(path)), `${testID} folds with the keyboard`);
   }
@@ -3551,8 +3550,8 @@ assert.ok(TYPE_SCALE.medium.body >= 20, 'body text at the default size stays lar
   assert.ok(/export const CONFIRM_WORD = 'delete'/.test(ui) && /disabled=\{!ready \|\| busy\}/.test(ui), 'the typed confirmation: the button works only once "delete" is typed');
   const settings = inRepo('src/components/settings-page.tsx');
   assert.ok(/<TypeToConfirm testID="delete-confirm"/.test(settings) && /from the server and from every phone/.test(settings), 'Delete account names what goes and where, and needs "delete" typed');
-  const order = ['title="Account"', 'title="Linked phones"', 'title="Practice"', 'title="Privacy and data"', 'title="About"', '<DeleteAccountSetting'].map((mark) => settings.indexOf(mark));
-  assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1])), 'Settings in order: Account, Linked phones, Practice, Privacy and data, About, then Delete account apart');
+  const order = ['title="Account"', 'title="The person’s phone"', 'title="Practice"', 'title="Privacy and data"', 'title="About"', '<DeleteAccountSetting'].map((mark) => settings.indexOf(mark));
+  assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1])), 'Settings in order: Account, The person’s phone (Their login), Practice, Privacy and data, About, then Delete account apart');
   assert.ok(/Your people, stories and practice stay saved in your account/.test(settings), 'Sign out says the family stays saved');
   const archived = inRepo('src/components/archived-people.tsx');
   assert.ok(/<TypeToConfirm/.test(archived) && !/await confirm\(/.test(archived), 'Delete permanently needs "delete" typed, not just OK');

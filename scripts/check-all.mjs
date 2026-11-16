@@ -18,7 +18,6 @@ const suites = [
   'scripts/check-privacy.mjs',
   'supabase/tests/rls.test.mjs',
   'supabase/tests/records.test.mjs',
-  'supabase/tests/pairing.test.mjs',
   'supabase/tests/function.test.mjs',
   ...(process.argv.includes('--quick') ? [] : ['scripts/check-release.mjs']),
 ];

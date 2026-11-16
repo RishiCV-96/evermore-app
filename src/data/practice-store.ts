@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
 import { AppState } from 'react-native';
 
 import { DEFAULT_REVEAL_CARDS, DEFAULT_SESSION_LENGTH, type RevealSetting, type SessionLength } from '@/config/schedule';
-import { checkThisPhone, currentProfile } from '@/data/account';
+import { currentProfile } from '@/data/account';
 import { backfillRecords, recordCardAttempt, syncRecords } from '@/data/attempt-sync';
 import { hintsOf } from '@/data/family-store';
 import { cardsOn, sessionDay } from '@/lib/activity';
@@ -138,8 +138,6 @@ async function open(id: string) {
 export async function refreshPractice() {
   const id = userId;
   if (!id) return;
-  // A paired phone the caregiver removed returns to the welcome as soon as it is online.
-  void checkThisPhone();
   await sync();
   // Each card's record for the caregiver's insights goes too, in the background.
   const person = recordsLogin();
@@ -161,7 +159,7 @@ export async function refreshPractice() {
       .order('created_at'),
     supabase.from('daily_goal').select('session_length, reveal_cards').maybeSingle(),
     supabase.from('card_schedule').select('card_id, step, due_at, updated_at').eq('person_user_id', id),
-    // The family's sessions, so a day finished on one paired phone shows as finished on the other
+    // The family’s sessions, so a day finished on one of the person’s phones shows as finished on another
     // (Row Level Security lets a person's login read them, never write them). Every column, so this
     // works whether or not the server has study_day yet.
     supabase.from('sessions').select('*').gte('started_at', since.toISOString()),
@@ -540,7 +538,6 @@ function retryLater(code: string | undefined) {
 // front (a new day may have started).
 NetInfo.addEventListener((state) => {
   if (state.isConnected && practice?.outbox.length) sync();
-  if (state.isConnected && practice) void checkThisPhone();
 });
 AppState.addEventListener('change', (state) => {
   if (state === 'active' && practice) refreshPractice();

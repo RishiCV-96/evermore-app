@@ -1,7 +1,8 @@
 -- Finds anything Evermore's tests may have left behind. Run in the SQL Editor. It changes
 -- nothing unless you uncomment the delete at the end. Test caregivers use the reserved
--- domain caregiver.evermore.invalid, person logins person.evermore.invalid, and paired phones'
--- logins phone.evermore.invalid (each family's go with it when the family is deleted in the app).
+-- domain caregiver.evermore.invalid, person logins person.evermore.invalid, and the logins an earlier
+-- build made for paired phones phone.evermore.invalid (PIN pairing, removed 2026-11-16; each family's go
+-- with it when the family is deleted in the app).
 
 -- Test logins.
 select email, created_at

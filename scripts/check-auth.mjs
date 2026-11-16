@@ -27,7 +27,6 @@ const FAKES = {
   '@/components/person-photo': pathToFileURL(`${src}lib/photo-fields.ts`).href,
   '@react-native-community/netinfo': fake('netinfo.mjs'),
   'expo-crypto': fake('native.mjs'),
-  'expo-device': fake('device.mjs'),
   'expo-notifications': fake('notifications.mjs'),
   '@/lib/save-file': fake('save-file.mjs'),
   'react-native': fake('react-native.mjs'),
@@ -39,7 +38,7 @@ registerHooks({
   resolve(specifier, context, next) {
     if (FAKES[specifier]) return next(FAKES[specifier], context);
     // The stores a check reads outside React get useSyncExternalStore without a component.
-    if (specifier === 'react' && /\/src\/data\/(family-store|pairing|consent-store)\.ts/.test(context.parentURL ?? '')) return next(fake('react-store.mjs'), context);
+    if (specifier === 'react' && /\/src\/data\/(family-store|consent-store)\.ts/.test(context.parentURL ?? '')) return next(fake('react-store.mjs'), context);
     if (specifier.startsWith('@/')) {
       const file = [`${src}${specifier.slice(2)}.ts`, `${src}${specifier.slice(2)}.tsx`].find((one) => existsSync(one));
       if (file) return next(withLife(file, context.parentURL), context);
@@ -266,8 +265,8 @@ await check('Confirm email off: a new account is signed in at once, with consent
   assert.equal(app.now().email, 'pat@caregiver.test');
   const user = standin.users.find((one) => one.email === 'pat@caregiver.test');
   assert.ok(Date.parse(user.user_metadata.consented_at) > Date.now() - 60_000, 'with the consent the database requires');
-  assert.deepEqual([user.user_metadata.policy_version, user.user_metadata.agreed_policy, user.user_metadata.agreed_responsibility, user.user_metadata.research], ['2026-11-13', true, true, false], 'both agreements, at the policy’s version, research off');
-  assert.deepEqual(standin.tables.consents.filter((one) => one.caregiver_id === user.id).map((one) => [one.kind, one.policy_version, one.choice]), [['policy', '2026-11-13', true], ['responsibility', '2026-11-13', true], ['research', '2026-11-13', false]], 'recorded as three versioned records');
+  assert.deepEqual([user.user_metadata.policy_version, user.user_metadata.agreed_policy, user.user_metadata.agreed_responsibility, user.user_metadata.research], ['2026-11-16', true, true, false], 'both agreements, at the policy’s version, research off');
+  assert.deepEqual(standin.tables.consents.filter((one) => one.caregiver_id === user.id).map((one) => [one.kind, one.policy_version, one.choice]), [['policy', '2026-11-16', true], ['responsibility', '2026-11-16', true], ['research', '2026-11-16', false]], 'recorded as three versioned records');
   assert.equal(standin.tables.people.filter((one) => one.caregiver_id === user.id).length, 5, 'and the 5 sample people');
   assert.equal(standin.emails.length, 0, 'no email was sent');
 });
@@ -747,7 +746,7 @@ await check('agreements: versioned per caregiver, asked again for a new version,
   assert.equal(standin.tables.people.length, people, 'with nothing lost while it waits');
   assert.deepEqual(await store.agreeToPolicy(), { ok: true });
   assert.equal(store.useConsent().status, 'current', 'agreeing lets the caregiver continue');
-  assert.deepEqual(standin.tables.consents.filter((one) => one.caregiver_id === pat).map((one) => [one.kind, one.policy_version]), [['responsibility', 'legacy'], ['policy', '2026-11-13'], ['responsibility', '2026-11-13']], 'the old record kept, the new ones added');
+  assert.deepEqual(standin.tables.consents.filter((one) => one.caregiver_id === pat).map((one) => [one.kind, one.policy_version]), [['responsibility', 'legacy'], ['policy', '2026-11-16'], ['responsibility', '2026-11-16']], 'the old record kept, the new ones added');
   assert.ok(standin.tables.consents.every((one) => one.agreed_at), 'each at the server’s time');
   // Records can't be changed or removed, even by their caregiver.
   const supabase = (await module('lib/supabase.ts')).supabase;
@@ -828,7 +827,7 @@ await check('signed in once, the person is never asked again: relaunched, after 
 });
 
 await check('the person’s screens never show the caregiver’s email or any account detail', () => {
-  for (const path of ['src/components/sign-in/person-sign-in.tsx', 'src/components/sign-in/person-pairing.tsx', 'src/app/index.tsx', 'src/app/practice.tsx', 'src/components/practice-screen.tsx', 'src/components/practice-more.tsx', 'src/components/caregiver-button.tsx']) {
+  for (const path of ['src/components/sign-in/person-sign-in.tsx', 'src/app/index.tsx', 'src/app/practice.tsx', 'src/components/practice-screen.tsx', 'src/components/practice-more.tsx', 'src/components/caregiver-button.tsx']) {
     const text = inRepo(path);
     assert.ok(!/\.email\b|useAccount|currentProfile|(?<!")username|personEmail/.test(text), `${path} reaches no account detail (the autofill hint "username" aside)`);
   }
@@ -927,446 +926,6 @@ await check('Settings: the signed-in email, Change password, Sign out and Delete
   assert.ok(/label="Current password"/.test(settings) && /strength=\{\{ email \}\}/.test(settings), 'the current password, then the new one with its strength hint');
 });
 
-// ---------------------------------------------------------------------------------------
-// 6. Pairing the person's phone, the caregiver's side: a PIN, Linked phones, Remove phone
-// ---------------------------------------------------------------------------------------
-
-const pairing = await import(withLife(`${src}lib/pairing.ts`));
-
-await check('the PIN’s words: in two halves, digit by digit for a screen reader, and counting down', () => {
-  assert.equal(pairing.pinForDisplay('482913'), '482 913');
-  assert.equal(pairing.pinForScreenReader('482913'), '4 8 2 9 1 3');
-  const at = Date.parse('2026-11-11T15:00:00Z');
-  assert.equal(pairing.expiresIn(at + 15 * 60000, at), 'Expires in 15:00');
-  assert.equal(pairing.expiresIn(at + 61000, at), 'Expires in 1:01');
-  assert.equal(pairing.expiresIn(at + 500, at), 'Expires in 0:01');
-  assert.equal(pairing.expiresIn(at, at), null, 'then it has expired');
-  assert.equal(pairing.expiresInWords(at + 15 * 60000, at), 'Expires in 15 minutes', 'whole minutes for a screen reader, not every second');
-  assert.equal(pairing.expiresInWords(at + 30000, at), 'Expires in less than a minute');
-  assert.deepEqual([0, 1, 2].map(pairing.phonesCount), ['None yet', '1 phone', '2 phones']);
-  const now = new Date(2026, 10, 11, 16, 0);
-  assert.equal(pairing.pairedWords(new Date(2026, 10, 11, 9).toISOString(), now), 'Paired today');
-  assert.equal(pairing.pairedWords(new Date(2026, 10, 10, 9).toISOString(), now), 'Paired yesterday');
-  assert.equal(pairing.pairedWords(new Date(2026, 10, 4, 9).toISOString(), now), 'Paired on November 4');
-  assert.equal(pairing.pairedWords(new Date(2025, 10, 4, 9).toISOString(), now), 'Paired on November 4, 2025');
-  assert.equal(pairing.lastSeenWords(new Date(2026, 10, 11, 15, 42).toISOString(), now), 'Last seen today at 3:42 PM');
-  assert.equal(pairing.lastSeenWords(null, now), 'Not seen since it was paired');
-});
-
-/** A phone fresh from the box, called `name`. Earlier phones keep what they hold, for the last check. */
-function freshPhone(name) {
-  if (inHand) phones[inHand] = { disk: new Map(disk), vault: new Map(vault) };
-  inHand = null;
-  delete phones[name];
-  usePhone(name);
-}
-
-/** A caregiver signed in on their own phone, with this launch's pairing store. */
-async function caregiverForPairing(email = 'pat@caregiver.test') {
-  freshPhone('pairing caregiver');
-  newProject({ autoconfirm: true });
-  const app = await launch();
-  await app.account.signUpCaregiver(email, PASSWORD, AGREED);
-  await until(() => app.now().status === 'signed-in', 'the caregiver signed up');
-  return { app, pair: await module('data/pairing.ts') };
-}
-
-/** A phone paired straight through the server, as the person's phone does (section 7 drives the app itself). */
-async function pairDirect(pin, deviceName = 'Rose’s iPhone', email = 'pat@caregiver.test') {
-  const { PAIR_PHONE_FUNCTION } = await import(withLife(`${src}config/functions.ts`));
-  const response = await standin.fetch(`http://standin.test/functions/v1/${PAIR_PHONE_FUNCTION}`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action: 'redeem', email, pin, deviceName }),
-  });
-  return { status: response.status, body: await response.json() };
-}
-
-await check('Create a PIN: six digits for 15 minutes, held only in memory; a new one stops the first working', async () => {
-  const { pair } = await caregiverForPairing();
-  assert.equal(pair.usePairing().pin, null, 'none until asked for');
-  assert.deepEqual(await pair.createPin([]), { ok: true });
-  const first = pair.usePairing().pin;
-  assert.match(first.pin, /^\d{6}$/);
-  assert.ok(Math.abs(first.expiresAt - Date.now() - 15 * 60000) < 5000, 'for 15 minutes');
-  await pair.createPin([]);
-  const second = pair.usePairing().pin;
-  assert.equal((await pairDirect(first.pin)).body.error, 'not-paired', 'the first no longer works');
-  assert.equal((await pairDirect(second.pin)).status, 200, 'the new one does');
-  await settle();
-  const kept = [...disk.values(), ...[...vault.values()].map((one) => one.value)].join('\n');
-  assert.ok(!kept.includes(first.pin) && !kept.includes(second.pin), 'no PIN is saved on the phone');
-  assert.ok(!said.some((line) => line.includes(first.pin) || line.includes(second.pin)), 'or logged');
-});
-
-await check('when a PIN can’t be made (no connection), calm words and nothing shown', async () => {
-  const { pair } = await caregiverForPairing();
-  standin.settings.offline = true;
-  assert.deepEqual(await pair.createPin([]), { ok: false, message: form.OFFLINE });
-  standin.settings.offline = false;
-  assert.equal(pair.usePairing().pin, null, 'nothing shown');
-});
-
-await check('Linked phones: each paired phone with its name, when it was paired and last seen; nobody else’s', async () => {
-  const { app, pair } = await caregiverForPairing();
-  assert.deepEqual(await pair.linkedPhones(), { phones: [] });
-  await pair.createPin([]);
-  await pairDirect(pair.usePairing().pin.pin);
-  await pair.linkedPhones();
-  assert.deepEqual(pair.usePairing(), { pin: null, linked: 'Rose’s iPhone' }, 'once its phone pairs, the PIN is used: it goes, and the phone is named');
-  await pair.createPin(['already-linked-phone']);
-  await pairDirect(pair.usePairing().pin.pin, '   ');
-  const { phones: listed } = await pair.linkedPhones();
-  assert.deepEqual(listed.map((one) => one.name), ['Rose’s iPhone', 'Phone 2'], 'the phone’s own name, or "Phone 2"');
-  assert.ok(listed.every((one) => one.pairedAt && one.lastSeenAt), 'when it was paired and last seen');
-  await app.account.signOut();
-  await app.account.signUpCaregiver('sam@caregiver.test', PASSWORD, AGREED);
-  await until(() => app.now().status === 'signed-in' && app.now().profile.id !== listed[0].id, 'another caregiver signed up');
-  await settle();
-  assert.deepEqual(await pair.linkedPhones(), { phones: [] }, 'another family sees none of them');
-  standin.settings.offline = true;
-  assert.deepEqual(await pair.linkedPhones(), { message: form.OFFLINE }, 'offline, calmly');
-  standin.settings.offline = false;
-});
-
-await check('Remove phone: gone from the list, its access ended, and its login can no longer refresh or sign in', async () => {
-  const { pair } = await caregiverForPairing();
-  await pair.createPin([]);
-  const paired = (await pairDirect(pair.usePairing().pin.pin)).body;
-  const {
-    phones: [phone],
-  } = await pair.linkedPhones();
-  assert.deepEqual(await pair.removePhone(phone.id), { ok: true });
-  assert.deepEqual(await pair.linkedPhones(), { phones: [] }, 'no longer listed');
-  assert.ok(standin.tables.devices[0].revoked_at, 'marked removed on the server, its practice kept');
-  assert.equal(standin.users.find((one) => one.email === paired.login).banned, true, 'banned, so its session can’t refresh');
-  const signIn = await standin.fetch('http://standin.test/auth/v1/token?grant_type=password', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: paired.login, password: paired.credential }) });
-  assert.equal(signIn.status, 400, 'and its credential no longer signs in');
-  assert.deepEqual(await pair.removePhone(phone.id), { ok: true }, 'removing it again is harmless');
-  assert.equal((await pair.removePhone('00000000-0000-4000-8000-000000000000')).ok, false, 'a phone that isn’t theirs');
-});
-
-await check('Their login still works beside paired phones, and Settings still finds it', async () => {
-  const { app, pair } = await caregiverForPairing();
-  await pair.createPin([]);
-  await pairDirect(pair.usePairing().pin.pin);
-  assert.equal((await app.account.createPersonLogin('rose.m', ROSE_PASSWORD, 'Rose')).ok, true, 'a User ID login beside a paired phone');
-  assert.equal((await app.account.createPersonLogin('ann', ROSE_PASSWORD, '')).ok, false, 'still one User ID login per family');
-  assert.equal((await app.account.resetPersonLogin('rose.m', 'violets by the gate')).ok, true, 'and it can be reset');
-  assert.equal(standin.tables.profiles.filter((one) => one.role === 'person').length, 2, 'two person logins in the family');
-  const store = await module('data/family-store.ts');
-  store.useFamily();
-  await until(() => store.useFamily() !== null, 'the family loads with several person logins');
-  assert.deepEqual([store.useFamily().person.username, store.useFamily().person.displayName], ['rose.m', 'Rose'], 'Their login is the one with a User ID');
-});
-
-await check('signing out forgets a PIN still on show; Delete account takes every paired phone’s login', async () => {
-  const { app, pair } = await caregiverForPairing();
-  await pair.createPin([]);
-  const paired = (await pairDirect(pair.usePairing().pin.pin)).body;
-  await pair.createPin([]);
-  await app.account.signOut();
-  assert.equal(pair.usePairing().pin, null, 'the PIN goes with the caregiver');
-  await app.account.signIn('caregiver', 'pat@caregiver.test', PASSWORD);
-  await until(() => app.now().status === 'signed-in', 'signed in again');
-  assert.equal((await app.account.deleteFamily()).ok, true);
-  assert.ok(!standin.users.some((one) => one.email === paired.login), 'the paired phone’s login is deleted with the family');
-  assert.equal(standin.tables.devices.length + standin.pairings.length, 0, 'and its phones and PINs');
-});
-
-await check('the sheet: the PIN large with its countdown, New PIN, what they need, email not yet, and Remove phone that asks first', () => {
-  const sheet = inRepo('src/components/pair-phone.tsx');
-  assert.ok(/size="display"/.test(sheet) && /pinForDisplay\(pin!\.pin\)/.test(sheet), 'the PIN in large type');
-  assert.ok(/expiresIn\(pin\.expiresAt, now\)/.test(sheet) && /setInterval\(listener, 1000\)/.test(sheet), 'a visible countdown, each second');
-  assert.ok(sheet.includes("label={busy ? 'Creating…' : 'Create a PIN'}") && sheet.includes("label={busy ? 'Creating…' : 'New PIN'}"), 'Create a PIN, then New PIN');
-  assert.ok(sheet.includes('Your email and this PIN.'), 'a plain reminder of what the person will need');
-  assert.ok(/Send the PIN by email/.test(sheet) && /accessibilityState=\{\{ disabled: true \}\}/.test(sheet) && /Not available yet/.test(sheet), 'a clearly marked, disabled place for email');
-  assert.ok(sheet.includes('await confirm(`Remove ${phone.name}?`'), 'Remove phone asks first, naming the phone');
-  assert.ok(!/AsyncStorage|SecureStore|console\./.test(sheet + inRepo('src/data/pairing.ts')), 'the PIN is neither saved nor logged');
-  assert.ok(!/Colors\.(pink|accent)\b/.test(sheet), 'the neutral caregiver palette');
-  const page = inRepo('src/components/settings-page.tsx');
-  assert.ok(page.includes('<PairPhoneSetting />') && !page.includes('family ? <PairPhoneSetting'), 'in Settings with sign-in on, whether or not the family loaded');
-});
-
-// ---------------------------------------------------------------------------------------
-// 7. Pairing the person's phone, the person's side: Create my account with the caregiver's email and
-// the PIN, then never asked again; removed by the caregiver, back to the welcome
-// ---------------------------------------------------------------------------------------
-
-const DEVICE = 'evermore.device.v1';
-const credentialInVault = () => (vault.get(DEVICE) ? JSON.parse(vault.get(DEVICE).value) : null);
-
-/** The caregiver makes a PIN on their phone; then a new phone, in the person's hands, is opened. */
-async function pinAndNewPhone() {
-  const { pair } = await caregiverForPairing();
-  standin.readyDeck('pat@caregiver.test', 3);
-  await pair.createPin([]);
-  const pin = pair.usePairing().pin.pin;
-  freshPhone('paired phone');
-  const app = await launch();
-  return { pin, app, pair: await module('data/pairing.ts') };
-}
-
-/** The session this phone keeps, left expired, as after an hour away: the next launch must refresh it. */
-async function expireKeptSession() {
-  const session = JSON.parse(sessionInVault());
-  session.expires_at = Math.floor(Date.now() / 1000) - 60;
-  const { chunksOf } = await module('lib/session-storage.ts');
-  const chunks = chunksOf(JSON.stringify(session));
-  for (const key of [...vault.keys()]) if (key.startsWith(SESSION)) vault.delete(key);
-  chunks.forEach((chunk, index) => vault.set(`${SESSION}.${index}`, { value: chunk, options: {} }));
-  vault.set(`${SESSION}.n`, { value: String(chunks.length), options: {} });
-}
-const passwordGrants = () => standin.log.filter((entry) => entry.path === '/auth/v1/token' && entry.grant === 'password').length;
-const refreshGrants = () => standin.log.filter((entry) => entry.path === '/auth/v1/token' && entry.grant === 'refresh_token').length;
-
-/** Back to the caregiver's phone, opened again. */
-/** The person's home turned on their daily reminder on this phone: three are waiting, and one is in the list. */
-async function remindersWaiting() {
-  notifications.permission = 'granted';
-  notifications.scheduled.clear();
-  notifications.presented.clear();
-  disk.set('evermore.reminders.v1', JSON.stringify({ on: true, time: 540, asked: true }));
-  const reminders = await module('data/reminders.ts');
-  await reminders.syncReminders(false, true);
-  assert.equal([...notifications.scheduled.keys()].filter((id) => id.startsWith('evermore.reminder.')).length, 3, 'reminders are waiting');
-  notifications.presented.add('evermore.reminder.2026-01-01');
-}
-
-/** Nothing of the reminders is left on this phone: none waiting, none in the list, and the setting off. */
-function noReminders() {
-  assert.equal(notifications.scheduled.size, 0, 'no reminder waits on a signed-out phone');
-  assert.equal(notifications.presented.size, 0, 'and none stays in the list');
-  const saved = JSON.parse(disk.get('evermore.reminders.v1') ?? 'null');
-  assert.deepEqual(saved, { on: false, time: 540, asked: true }, 'off, with only the question remembered as asked');
-}
-
-async function caregiverPhone() {
-  usePhone('pairing caregiver');
-  const app = await launch();
-  return { app, pair: await module('data/pairing.ts') };
-}
-
-await check('the person’s two steps: only that something sensible is typed, in gentle words', () => {
-  assert.equal(pairing.pairEmailProblem(' '), 'Please type your caregiver’s email.');
-  assert.equal(pairing.pairEmailProblem('pat'), 'Please check the email. It looks like name@example.com.');
-  assert.equal(pairing.pairEmailProblem(' Pat@Caregiver.test '), undefined);
-  assert.equal(pairing.pinDigits('48 29-13 7'), '482913', 'only digits, at most six, however it was typed or pasted');
-  assert.equal(pairing.pinProblem(''), 'Please type the PIN.');
-  assert.equal(pairing.pinProblem('4829'), 'The PIN has 6 numbers.');
-  assert.equal(pairing.pinProblem('482913'), undefined);
-  assert.equal(pairing.PAIR_NOT_MATCHED, 'That did not work. Please check with your caregiver.', 'the brief’s words');
-  for (const words of [pairing.PAIR_NOT_MATCHED, pairing.pairEmailProblem(''), pairing.pinProblem('1')]) {
-    assert.ok(!/wrong|error|invalid|fail|expired|exist|no account/i.test(words), `calm: ${words}`);
-  }
-});
-
-await check('Create my account: the caregiver’s email and the PIN pair this phone, and its home opens, signed in', async () => {
-  const { pin, app, pair } = await pinAndNewPhone();
-  assert.equal(app.now().status, 'signed-out', 'a new phone opens on the welcome');
-  assert.deepEqual(await pair.pairPhone('  PAT@caregiver.test ', pin), { ok: true }, 'the email typed any way');
-  const kept = credentialInVault();
-  assert.match(kept.login, /@phone\.evermore\.invalid$/);
-  assert.ok(kept.credential.length >= 40, 'a long random credential');
-  assert.equal(vault.get(DEVICE).options.keychainAccessible, 'AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY', 'in secure storage, on this phone only');
-  assert.ok(![...disk.values()].some((value) => value.includes(kept.credential)), 'never in AsyncStorage');
-  assert.deepEqual(await app.account.signInPairedPhone(), { ok: true }, '"You are all set", then it signs in');
-  await until(() => app.now().status === 'signed-in', 'signed in');
-  assert.equal(app.now().profile.role, 'person', 'their home');
-  assert.equal(app.now().profile.username, null, 'with no User ID to remember');
-  const device = standin.tables.devices.find((one) => one.person_user_id === app.now().profile.id);
-  assert.equal(device.name, 'Rose’s iPhone', 'listed for the caregiver by the phone’s own name, tidied');
-  const { supabase } = await module('lib/supabase.ts');
-  assert.equal((await supabase.from('cards').select('id')).data.length, 9, 'it reads the deck the caregiver approved');
-  assert.deepEqual((await supabase.from('devices').select('id')).data, [], 'and no phones');
-  await settle();
-  assert.ok(sessionInVault(), 'the session kept in secure storage, as any sign-in');
-});
-
-await check('every failure reads the same: unknown email, wrong PIN, used, expired, too many tries; only no connection differs', async () => {
-  const { pin, pair } = await pinAndNewPhone();
-  const miss = { ok: false, message: pairing.PAIR_NOT_MATCHED };
-  const wrong = String((Number(pin) + 1) % 1e6).padStart(6, '0');
-  assert.deepEqual(await pair.pairPhone('nobody@caregiver.test', pin), miss, 'an email with no account');
-  assert.deepEqual(await pair.pairPhone('pat@caregiver.test', wrong), miss, 'a wrong PIN');
-  standin.settings.offline = true;
-  assert.deepEqual(await pair.pairPhone('pat@caregiver.test', pin), { ok: false, message: form.OFFLINE }, 'no connection: check it and try again');
-  standin.settings.offline = false;
-  assert.deepEqual(await pair.pairPhone('pat@caregiver.test', pin), { ok: true });
-  assert.deepEqual(await pair.pairPhone('pat@caregiver.test', pin), miss, 'a PIN already used');
-  standin.pairings.push({ id: 'old', caregiver_id: standin.users.find((one) => one.email === 'pat@caregiver.test').id, pin: '135790', expires_at: new Date(Date.now() - 1000).toISOString(), used_at: null, failures: 0 });
-  assert.deepEqual(await pair.pairPhone('pat@caregiver.test', '135790'), miss, 'an expired PIN');
-  standin.pairTries.length = 0;
-  const { pair: caregiver } = await caregiverPhone();
-  await caregiver.createPin([]);
-  const fresh = caregiver.usePairing().pin.pin;
-  usePhone('paired phone');
-  await launch();
-  const phone = await module('data/pairing.ts');
-  for (let i = 0; i < 5; i++) await phone.pairPhone('pat@caregiver.test', '000000');
-  assert.deepEqual(await phone.pairPhone('pat@caregiver.test', fresh), miss, 'too many tries: even the right PIN, for a while');
-  assert.ok(!said.some((line) => /not-paired|pat@caregiver/.test(line)), 'nothing logged');
-});
-
-await check('nothing about the caregiver stays on the person’s phone, and nothing sensitive is cached', async () => {
-  const { pin, app, pair } = await pinAndNewPhone();
-  await pair.pairPhone('pat@caregiver.test', pin);
-  await app.account.signInPairedPhone();
-  await until(() => app.now().status === 'signed-in', 'signed in');
-  await settle();
-  const kept = [...disk.entries(), ...vault.entries()].map(([key, value]) => `${key}=${typeof value === 'string' ? value : value.value}`).join('\n');
-  assert.ok(!kept.includes('pat@caregiver.test') && !kept.includes('caregiver.test'), 'the caregiver’s email is kept nowhere');
-  assert.ok(!kept.includes(pin), 'nor the PIN');
-  assert.ok(!said.some((line) => line.includes(pin) || line.includes(credentialInVault().credential)), 'nor logged, with the credential');
-  assert.notEqual(app.now().email, 'pat@caregiver.test', 'the account knows only this phone’s own login');
-  const steps = inRepo('src/components/sign-in/person-pairing.tsx') + inRepo('src/app/sign-in.tsx');
-  assert.ok(!/AsyncStorage|SecureStore|localStorage|console\./.test(steps), 'the steps save and log nothing');
-  assert.ok(/setPin\(''\)/.test(steps) && /if \(next !== 'pair-email' && next !== 'pair-pin'\) setPairEmail\(''\)/.test(steps), 'the PIN clears once used, and the email once the steps are left or done');
-  assert.ok(/autoComplete="off"/.test(steps) && /textContentType="none"/.test(steps) && /importantForAutofill="no"/.test(steps), 'and the phone’s autofill doesn’t keep them');
-});
-
-await check('paired once, never asked again: relaunched, after an hour away, and offline', async () => {
-  const { pin, app, pair } = await pinAndNewPhone();
-  await pair.pairPhone('pat@caregiver.test', pin);
-  await app.account.signInPairedPhone();
-  await until(() => app.now().status === 'signed-in', 'signed in');
-  await settle();
-  let again = await launch();
-  assert.equal(again.now().status, 'signed-in', 'opened straight to their home');
-  assert.ok(!again.states.some((state) => state.status === 'signed-out'), 'never by way of the welcome');
-  await expireKeptSession();
-  standin.settings.offline = true;
-  again = await launch();
-  assert.equal(again.now().status, 'signed-in', 'an hour away and offline: still their home');
-  await settle(80);
-  assert.ok(!again.states.some((state) => state.status === 'signed-out'), 'no welcome at any point');
-  assert.ok(credentialInVault(), 'the pairing kept');
-  standin.settings.offline = false;
-  standin.log.length = 0;
-  again = await launch();
-  await until(() => refreshGrants() > 0, 'online again, the session refreshes');
-  await settle(80);
-  assert.equal(again.now().status, 'signed-in', 'and it carries on');
-  assert.equal(passwordGrants(), 0, 'without the credential: the session was enough');
-});
-
-await check('a lost session comes back by itself, with the phone’s credential: no welcome, nothing asked', async () => {
-  const { pin, app, pair } = await pinAndNewPhone();
-  await pair.pairPhone('pat@caregiver.test', pin);
-  await app.account.signInPairedPhone();
-  await until(() => app.now().status === 'signed-in', 'signed in');
-  const id = app.now().profile.id;
-  await settle();
-  standin.revokeSessions(id);
-  await expireKeptSession();
-  standin.log.length = 0;
-  const again = await launch();
-  await until(() => refreshGrants() > 0, 'it tries to refresh, and the server refuses');
-  await until(() => passwordGrants() > 0, 'then it signs in with its credential');
-  await settle(120);
-  assert.equal(again.now().status, 'signed-in', 'signed in again by itself');
-  assert.equal(again.now().profile.id, id, 'as the same phone');
-  assert.ok(!again.states.some((state) => state.status === 'signed-out'), 'the welcome never showed');
-});
-
-await check('Remove phone: the person’s phone returns to the welcome as soon as it is online, and forgets the pairing', async () => {
-  const { pin, app, pair } = await pinAndNewPhone();
-  await pair.pairPhone('pat@caregiver.test', pin);
-  await app.account.signInPairedPhone();
-  await until(() => app.now().status === 'signed-in', 'signed in');
-  await settle();
-  await remindersWaiting();
-  const { pair: caregiver } = await caregiverPhone();
-  const { phones: listed } = await caregiver.linkedPhones();
-  assert.ok(listed[0].lastSeenAt, 'the caregiver sees when it was last seen');
-  assert.deepEqual(await caregiver.removePhone(listed[0].id), { ok: true });
-  usePhone('paired phone');
-  const phone = await launch();
-  // The earlier copy of the app on this same phone is still running, and may already have heard and
-  // forgotten everything (also right). Otherwise it opens as before, until it hears.
-  const opened = phone.states.find((state) => state.status !== 'loading')?.status;
-  assert.ok(opened === 'signed-in' || (credentialInVault() === null && sessionInVault() === null), `until it hears, it opens as before (${opened})`);
-  await phone.account.checkThisPhone();
-  await until(() => phone.now().status === 'signed-out', 'the welcome');
-  assert.equal(credentialInVault(), null, 'the pairing is forgotten');
-  assert.equal(sessionInVault(), null, 'and the session');
-  await settle();
-  noReminders();
-  const again = await launch();
-  await settle(80);
-  assert.equal(again.now().status, 'signed-out', 'relaunched, still the welcome');
-  const store = inRepo('src/data/practice-store.ts');
-  assert.ok(/export async function refreshPractice\(\) \{[\s\S]{0,200}void checkThisPhone\(\);/.test(store), 'it checks whenever practice refreshes: opening, the home, coming back to the front');
-  assert.ok(/state\.isConnected && practice\) void checkThisPhone\(\)/.test(store), 'and when the connection comes back');
-});
-
-await check('removed while offline: within the hour its session is refused, and it shows the welcome', async () => {
-  const { pin, app, pair } = await pinAndNewPhone();
-  await pair.pairPhone('pat@caregiver.test', pin);
-  await app.account.signInPairedPhone();
-  await until(() => app.now().status === 'signed-in', 'signed in');
-  await settle();
-  const { pair: caregiver } = await caregiverPhone();
-  const { phones: listed } = await caregiver.linkedPhones();
-  await caregiver.removePhone(listed[0].id);
-  usePhone('paired phone');
-  await expireKeptSession();
-  standin.log.length = 0;
-  const phone = await launch();
-  await until(() => phone.now().status === 'signed-out', 'the welcome, once its session is refused', 1500);
-  assert.ok(refreshGrants() > 0 && passwordGrants() > 0, 'the refresh refused (banned), then its credential refused too');
-  assert.equal(credentialInVault(), null, 'so the pairing is forgotten');
-});
-
-await check('handed back: holding Caregiver signs a paired phone out and it doesn’t sign itself back in', async () => {
-  const { pin, app, pair } = await pinAndNewPhone();
-  await pair.pairPhone('pat@caregiver.test', pin);
-  await app.account.signInPairedPhone();
-  await until(() => app.now().status === 'signed-in', 'signed in');
-  await settle();
-  await remindersWaiting();
-  await app.account.signOut();
-  assert.equal(app.now().status, 'signed-out');
-  assert.equal(credentialInVault(), null, 'the pairing goes with it');
-  noReminders();
-  const again = await launch();
-  await settle(80);
-  assert.equal(again.now().status, 'signed-out', 'the welcome, for the caregiver; a new PIN pairs it again');
-});
-
-await check('the User ID sign-in still works beside paired phones', async () => {
-  const { pin, pair } = await pinAndNewPhone();
-  await pair.pairPhone('pat@caregiver.test', pin);
-  const { app: caregiver } = await caregiverPhone();
-  assert.equal((await caregiver.account.createPersonLogin('rose.m', ROSE_PASSWORD, 'Rose')).ok, true);
-  freshPhone('user id phone');
-  const app = await launch();
-  assert.deepEqual(await app.account.signIn('person', 'rose.m', ROSE_PASSWORD), { ok: true });
-  await until(() => app.now().status === 'signed-in', 'signed in');
-  assert.equal(app.now().profile.username, 'rose.m');
-  await settle();
-  assert.equal(credentialInVault(), null, 'no pairing on that phone');
-});
-
-await check('the person’s steps: large type, 48pt, one action each, a plain Back, no account detail', () => {
-  const steps = inRepo('src/components/sign-in/person-pairing.tsx');
-  const screen = inRepo('src/app/sign-in.tsx');
-  assert.ok(!/CompactType/.test(steps), 'the person’s own large type and Text size');
-  assert.ok(steps.includes('label="Create my account" primary large') && steps.includes('label="Sign in" large'), '"I am practicing" leads to two large, simple options');
-  assert.ok(/size="title">\s*Your caregiver’s email/.test(steps) && /keyboardType="email-address"/.test(steps), 'step 1: the email, with the email keyboard');
-  assert.ok(/size="title">\s*The PIN from your caregiver/.test(steps) && /keyboardType="number-pad"/.test(steps), 'step 2: the PIN, with the number pad');
-  for (const name of ['PairEmail', 'PairPin']) {
-    const part = steps.slice(steps.indexOf(`export function ${name}`), steps.indexOf('export function', steps.indexOf(`export function ${name}`) + 10));
-    assert.equal(part.match(/<BigButton/g).length, 1, `${name}: one Continue`);
-    assert.ok(/<Back /.test(part), `${name}: a plain Back`);
-  }
-  assert.ok(/minHeight: TAP/.test(steps), 'Back is 48pt');
-  assert.ok(/You are all set/.test(steps) && /'all-set': null/.test(screen), '"You are all set", then straight on: no way back to the forms');
-  assert.ok(screen.includes("'pair-pin': 'pair-email'") && screen.includes("'pair-email': 'person'") && screen.includes("'person-sign-in': 'person'"), 'each step goes back one');
-  assert.ok(!/\.email\b|useAccount|currentProfile|username|personEmail/.test(steps), 'no account detail shown');
-  assert.ok(!/Colors\.(pink|accent)\b/.test(steps), 'the neutral palette, nothing red');
-});
-
 await check('no password is ever logged, kept on the phone, or shown afterwards', () => {
   const passwords = [PASSWORD, OTHER_PASSWORD, ROSE_PASSWORD, 'violets by the gate', 'a brand new garden path'];
   const kept = [...[...disk.values()], ...[...vault.values()].map((one) => one.value), ...Object.values(phones).flatMap((phone) => [...phone.disk.values(), ...[...phone.vault.values()].map((one) => one.value)])];
@@ -1384,6 +943,49 @@ await check('no password is ever logged, kept on the phone, or shown afterwards'
     assert.ok(!/(AsyncStorage|SecureStore|localStorage)\.\w+\([^)]*password/i.test(code), `${path} stores no password`);
     assert.ok(!/\$\{password\}|\{password\}<|\$\{current\}/.test(code), `${path} never puts a password into words on screen`);
   }
+});
+
+// PIN pairing was removed on 2026-11-16 (docs/PIN-REMOVAL-PLAN.md). The person's phone signs in with
+// Their login only. This fails if any of it comes back: code, routes, strings, the function or its tests.
+await check('PIN pairing is gone: no PIN, pairing, device check-in or passcode code or wording, and Their login is the way in', async () => {
+  const { readdirSync, statSync } = await import('node:fs');
+  const walk = (dir) => readdirSync(new URL(dir, root)).flatMap((name) => {
+    const path = `${dir}/${name}`;
+    return statSync(new URL(path, root)).isDirectory() ? walk(path) : [path];
+  });
+  // The one allowed mention: the key an earlier release kept a credential under, deleted at sign-out.
+  const allowed = /^.*(OLDER_CREDENTIAL_KEY|forgetOlderCredential|docs\/PIN-REMOVAL-PLAN\.md).*$/gm;
+  const banned = [
+    [/\bPINs?\b/, 'PIN'],
+    [/\bpasscodes?\b/i, 'passcode'],
+    [/\bpair(ing|ed)?\b|\bpairPhone|PairPhone|PAIR_/i, 'pairing'],
+    [/Linked phones|Remove phone|Create my account|Send the PIN|You are all set/i, 'pairing words'],
+    [/pair-phone|hyper-function|device_seen|from\('devices'\)|evermore\.device|phone\.evermore\.invalid|checkThisPhone|DeviceCredential|signInPairedPhone|restorePairedPhone|expo-device/, 'pairing plumbing'],
+  ];
+  const files = [...walk('src'), 'app.json', 'package.json', ...walk('scripts/fakes')].filter((path) => /\.(tsx?|mjs|json)$/.test(path));
+  for (const path of files) {
+    const code = inRepo(path).replace(allowed, '');
+    for (const [pattern, what] of banned) assert.ok(!pattern.test(code), `${path}: no ${what} (${code.match(pattern)?.[0]})`);
+  }
+  for (const gone of ['src/components/pair-phone.tsx', 'src/components/sign-in/person-pairing.tsx', 'src/data/pairing.ts', 'src/lib/pairing.ts', 'supabase/functions/pair-phone', 'supabase/tests/pairing.test.mjs', 'supabase/tests/live-pairing.test.mjs', 'scripts/fakes/device.mjs']) {
+    assert.ok(!existsSync(new URL(gone, root)), `${gone} stays removed`);
+  }
+  assert.ok(!/pairing|pair-phone/.test(inRepo('scripts/check-all.mjs')), 'no pairing suite is run');
+  // The family login stays: "I am practicing" goes straight to Hello, which says who set it up and links the policy.
+  const screen = inRepo('src/app/sign-in.tsx');
+  assert.ok(/step === 'person' \? <PersonSignIn onBack=\{\(\) => go\('welcome'\)\} \/>/.test(screen), '"I am practicing" opens Hello, the User ID and password');
+  const hello = inRepo('src/components/sign-in/person-sign-in.tsx');
+  assert.ok(/\{SET_UP_FOR_YOU\}/.test(hello) && /<PolicyLink testID="person-policy"/.test(hello), 'Hello says the caregiver set this up, with the privacy policy link');
+  assert.ok(/<PersonLoginSetting person=\{family\.person\} \/>/.test(inRepo('src/components/settings-page.tsx')), 'Settings keeps Their login');
+  // An earlier build's credential is deleted however the phone signs out, and nothing reads it.
+  const account = inRepo('src/data/account.ts');
+  assert.ok(/async function signedOut\(\) \{[\s\S]*?await forgetOlderCredential\(\);/.test(account), 'every sign-out deletes the older credential');
+  usePhone('older build');
+  vault.set('evermore.device.v1', { value: JSON.stringify({ login: 'x@example.test', credential: 'left-over' }) });
+  const app = await launch();
+  await until(() => app.now().status === 'signed-out', 'the welcome');
+  await app.account.signOut();
+  assert.ok(!vault.has('evermore.device.v1'), 'signed out, the older credential is gone');
 });
 
 console.log(`All ${checks} sign-in checks passed`);

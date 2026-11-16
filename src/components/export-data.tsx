@@ -34,7 +34,6 @@ const STEP_WORDS: Record<ExportProgress['step'], (progress: ExportProgress) => s
   sessions: ({ done }) => `Reading practice sessions… ${done.toLocaleString()} so far`,
   records: ({ done }) => `Reading card records… ${done.toLocaleString()} so far`,
   schedule: () => 'Reading the practice schedule…',
-  phones: () => 'Reading linked phones…',
   photos: ({ done, total }) => (total ? `Gathering photos… ${done} of ${total}` : 'Gathering photos…'),
 };
 

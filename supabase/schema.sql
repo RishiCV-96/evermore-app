@@ -312,6 +312,12 @@ create table if not exists public.ai_usage_days (
   requests int not null default 0
 );
 
+-- NO LONGER USED BY THE APP (2026-11-16, docs/PIN-REMOVAL-PLAN.md). PIN pairing was removed: the app
+-- never calls the pair-phone function or device_seen now, and the person's phone signs in only with
+-- Their login. These tables and functions are kept, unchanged, so nothing is lost and a phone paired
+-- before keeps working (my_caregiver still refuses one marked removed). HANDOFF.md has the optional SQL
+-- to end those phones' access and drop them by hand; until then, rerunning this file keeps them.
+--
 -- Pairing the person's phone (added 2026-11-11). The caregiver creates a 6-digit PIN in the app; on
 -- the person's phone, the caregiver's email and that PIN make a login of its own for that phone,
 -- linked to the family. Only the pair-phone Edge Function reaches these tables, through the

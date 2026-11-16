@@ -536,9 +536,10 @@ const goneHistory = await historyOf();
 check('deleting them removes their facts, attempts and schedule', goneHistory.attempts === 0 && goneHistory.schedule === 0 && goneHistory.cards === 0, JSON.stringify(goneHistory));
 check('and keeps the day totals', (await db.query(`select count(*)::int as n from public.sessions where caregiver_id = $1`, [A])).rows[0].n === sessionsBefore);
 
-// Pairing the person's phone (2026-11-11): the caregiver's email and a PIN make a login of its own for
-// a phone. Only the pair-phone function reaches the PINs and limits, through these functions; the
-// caregiver reads their own phones; the person's login reads none of it; a removed phone reads nothing.
+// The tables and functions PIN pairing used (2026-11-11). The app and its Edge Function were removed on
+// 2026-11-16 (docs/PIN-REMOVAL-PLAN.md), but these stay in supabase/schema.sql until dropped by hand, so
+// their rules are still checked here: only the service role reaches the PINs and limits; the caregiver
+// reads their own phones; the person's login reads none of it; a phone marked removed reads nothing.
 {
   const tables = ['public.pairings', 'public.devices', 'public.pairing_events', 'public.pairing_settings'];
   const PA1 = '00000000-0000-4000-8000-0000000000c1'; // A's first paired phone
@@ -752,7 +753,7 @@ check('and keeps the day totals', (await db.query(`select count(*)::int as n fro
   const store = readFileSync(new URL('../../src/data/export-store.ts', import.meta.url), 'utf8');
   const reads = [...store.matchAll(/allRows<[^(]*\(\s*'(\w+)',\s*'([^']+)'/g)].map(([, table, columns]) => ({ table, columns }));
   reads.push({ table: 'daily_goal', columns: store.match(/from\('daily_goal'\)\.select\('([^']+)'\)/)[1] });
-  check('the check reads the export’s own queries', ['people', 'cards', 'sessions', 'attempt_records', 'card_schedule', 'devices', 'daily_goal'].every((table) => reads.some((read) => read.table === table)), reads.map((read) => read.table).join());
+  check('the check reads the export’s own queries (phones no longer among them)', ['people', 'cards', 'sessions', 'attempt_records', 'card_schedule', 'daily_goal'].every((table) => reads.some((read) => read.table === table)), reads.map((read) => read.table).join());
   for (const { table, columns } of reads) {
     const sql = `select ${columns} from public.${table} where caregiver_id = $1`;
     const all = (await db.query(`select count(*)::int as n from public.${table} where caregiver_id = $1`, [A])).rows[0].n;

@@ -4,7 +4,7 @@
 >
 > Written from `src/lib/privacy-policy.ts` and `src/lib/consent.ts` by `node scripts/build-policy.mjs`: edit those, never this file. The facts behind it are in `docs/DATA-INVENTORY.md`.
 
-**Version:** 2026-11-13 · **Effective date:** [Effective date to be added] · **Contact:** [Contact email to be added]
+**Version:** 2026-11-16 · **Effective date:** [Effective date to be added] · **Contact:** [Contact email to be added]
 
 ## What Evermore is, and is not
 
@@ -18,9 +18,8 @@
 - Your agreements: which version of this policy you agreed to and when, your confirmation that you may add information about the people you include, and your research choice with the date you made it.
 - The people you add: their name, how they are related to the person practicing, a photo if you add one, and your answers about them. Answers can include a nickname, a birthday, work, home and family, interests and favorite things, how you met, and shared memories with a year and a photo. Some questions are optional, such as marital status and family situation. **[REVIEW 3]**
 - The settings you choose for practice and for each person, and the practice sentences made from your words.
-- The person’s logins: the User ID and password you may create for them (the password stored scrambled), and a separate login for each phone you pair with a PIN. For each paired phone we keep its name (the name the phone gives itself, which may include a first name), when it was paired, when it was last seen and when you removed it.
+- The person’s login: the User ID and password you may create for them (the password stored scrambled). If a phone was linked to your account with an earlier version of the app, we also keep that phone’s own login, its name (the name the phone gives itself, which may include a first name) and when it was linked and last seen.
 - How practice goes. For each session: when it started and ended, and how many cards were done. For each card practiced: when, how many tries it took and whether a hint was used, so the app knows when to ask it again. For your Insights, a record of each card shown: how it was asked, each answer chosen and when, the hints shown and the time on screen. These records hold no names, photos or words. **[REVIEW 4]**
-- For pairing a phone: a scrambled form of the PIN until it is used or expires, never the PIN itself. To limit guessing, scrambled forms of the email typed and of the internet address it came from are kept for about a day, never the email or address itself.
 
 ## Who can see it
 
@@ -80,7 +79,7 @@
 
 - To get a copy: Settings, then Privacy and data, then Export my data.
 - To remove one person: archive them on the People tab, then open Archived people, choose them and Delete permanently. Their photos, stories and practice records are deleted.
-- To stop a paired phone: Settings, then Pair the person’s phone, then Remove phone. It loses access at once.
+- To sign the person’s phone out: give Their login a new password in Settings. The phone is asked to sign in again.
 - To delete everything: Settings, then Delete account. It deletes your account, every person, photo, story and practice record, your agreement records, and every login of the person practicing, from our servers straight away. It can’t be undone. **[REVIEW 12]**
 - Copies may remain in the hosting provider’s backups for a limited time before they expire. **[REVIEW 13]**
 - Signing out removes the copies kept on that phone. Everything in your account stays.
@@ -91,14 +90,13 @@
 - Your account, people, photos, stories, settings and practice sessions: until you delete them or your account.
 - The card records behind Insights: 120 days.
 - The notes that decide when a card comes back (tries and hints): until that fact, that person or your account is deleted. **[REVIEW 15]**
-- Removed phones: their names and dates stay in your list until you delete your account.
-- Pairing PINs: until used or expired, then removed within 30 days. The scrambled email and internet address used to limit guessing: about a day.
+- A phone linked with an earlier version of the app: its name and dates, until you delete your account.
 
 ## Keeping it safe
 
 - Information travels over encrypted connections. Supabase stores it encrypted. **[REVIEW 16]**
 - The database lets each login reach only its own family’s information. Photos are in private storage.
-- Sign-ins are kept in the phone’s secure storage. Passwords and PINs are stored only in scrambled form.
+- Sign-ins are kept in the phone’s secure storage. Passwords are stored only in scrambled form.
 - No system is perfectly secure, and we can’t promise perfect safety. If something happens that affects your information, we will tell you as the law requires. **[REVIEW 17]**
 
 ## Where it is stored

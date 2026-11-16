@@ -9,7 +9,7 @@
 // foreign key (23503). The server sets uploaded_at, and sends times the way Postgres writes them.
 
 export const server = {
-  tables: { people: [], cards: [], daily_goal: [], profiles: [], card_schedule: [], attempts: [], sessions: [], attempt_records: [], devices: [], pairings: [] },
+  tables: { people: [], cards: [], daily_goal: [], profiles: [], card_schedule: [], attempts: [], sessions: [], attempt_records: [] },
   /** Paths in the photo bucket. */
   objects: [],
   /** Every call, in order. */

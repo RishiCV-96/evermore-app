@@ -31,7 +31,7 @@ For every type below: **Linked to the user: Yes** (it is stored in the caregiver
 | User Content → Gameplay Content, Customer Support | No | | Customer Support becomes Yes if a support channel collects data in the app |
 | User Content → **Other User Content** | Yes | The caregiver's profile answers and stories (relationship, nickname, birthday, work, home, interests, shared memories) | |
 | Identifiers → **User ID** | Yes | The account's user ID; the person's User ID (a username the caregiver chooses) | |
-| Identifiers → Device ID | No | | **[REVIEW]** A paired phone's *name* (for example "Rose's iPhone") is stored, but no device-level identifier. The AI install token can't be reached in the shipped app |
+| Identifiers → Device ID | No | | **[REVIEW]** The app no longer stores any phone's name (PIN pairing was removed on 2026-11-16); names an earlier build stored for paired phones stay on the server until the account is deleted or the tables are dropped. No device-level identifier. The AI install token can't be reached in the shipped app |
 | Usage Data → **Product Interaction** | Yes | Sessions; for each card, the answers chosen, when, hints shown and time on screen (shown to the caregiver as Insights, and used to schedule cards) | **[REVIEW]** Purpose: App Functionality (it is a feature the caregiver sees), not Analytics. Nothing is used to study how people use the app |
 | Usage Data → Advertising Data, Other Usage Data | No | | |
 | Diagnostics → Crash Data, Performance Data, Other Diagnostic Data | No | | No crash or diagnostics SDK. Crash reports Apple collects from users who opt in are Apple's, not the app's. **[REVIEW]** Confirm Apple's current guidance on that point |

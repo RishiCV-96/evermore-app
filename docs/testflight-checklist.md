@@ -37,7 +37,7 @@ Guideline 2.1(a): "include demo account info (and turn on your back-end service!
 
 - Make a **caregiver test account** on the real project for the reviewer: an email you control (not a `.invalid` address, since Confirm email may be on), a password you don't use elsewhere, and only the **fictional sample people** the server seeds (June, Leo, Ruth, Omar, Mae). Never the real family.
 - Make two or three sample people complete, so practice works (two people is the minimum), and approve their stories.
-- For the person's side, make a **User ID login** under Settings → Linked phones → Their login, and give the reviewer the User ID and password in the notes ("I am practicing", then Sign in). Pairing needs a live PIN, so the User ID is simpler for review.
+- For the person's side, make a **User ID login** under Settings → The person's phone → Their login, and give the reviewer the User ID and password in the notes ("I am practicing", then Sign in). Pairing needs a live PIN, so the User ID is simpler for review.
 - Leave AI questions off. Keep `pairing_settings.enabled` on. Don't change the account during review, and keep the Supabase project awake: a paused free-tier project fails sign-in. **[Check]** Supabase's current pausing rules for your plan.
 - Agree to the current policy once on the demo account before you submit, so the reviewer isn't asked again (they may still see the sign-up agreements if they make their own account).
 
