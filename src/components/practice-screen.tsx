@@ -12,7 +12,7 @@ import { ProgressBar } from '@/components/progress-bar';
 import { RevealPhoto } from '@/components/reveal-photo';
 import { SAME_SESSION_MOST, type RevealSetting } from '@/config/schedule';
 import type { CardTiming } from '@/lib/attempts';
-import { askForHelp, cardResult, chooseName, hintNow, notSureButton, startSteps } from '@/lib/card-steps';
+import { askForHelp, cardResult, chooseName, hintNow, nameLive, notSureButton, startSteps, type CardSteps } from '@/lib/card-steps';
 import { firstTryCorrect, type CardResult } from '@/lib/queue';
 import { noteAnswer, photoShown, startsHidden } from '@/lib/reveal';
 import { AFTER_THE_DAY, askedAgain, nextTapCounts, reaskSpot, reviewPass, todayYouSaw, type AskedToday } from '@/lib/session';
@@ -160,8 +160,11 @@ function PracticeCard({ card, photo, memoryPhoto, progress, isLast, onRemembered
   const reduced = useReducedMotion();
   // Each other name chosen, and each "I'm not sure", moves the hint one step (src/lib/card-steps.ts).
   const [steps, setSteps] = useState(startSteps);
+  // The newest steps, for the press handlers: two taps that land before the card draws again each
+  // step on from the one before, so no tap is lost and none counts twice (docs/HINT-LADDER.md).
+  const latest = useRef<CardSteps>(steps);
   const { misses, setAside, answered: remembered } = steps;
-  // The hint, so a screen reader moves to it after "I'm not sure".
+  // The hint, so a screen reader moves to it after each new step.
   const hintBox = useRef<HostInstance>(null);
   const focusHint = useRef(false);
   // The "?" was tapped: a free hint, with no penalty.
@@ -205,7 +208,7 @@ function PracticeCard({ card, photo, memoryPhoto, progress, isLast, onRemembered
     if (misses > 0) scroll.current?.scrollToEnd({ animated: !reduced });
   }, [misses, reduced]);
 
-  /** After "I'm not sure", a screen reader's focus moves to the new hint as soon as it is laid out. */
+  /** After a new step (another name or "I'm not sure"), a screen reader's focus moves to the new hint as soon as it is laid out. */
   function hintLaidOut() {
     if (!focusHint.current || !hintBox.current) return;
     focusHint.current = false;
@@ -213,31 +216,38 @@ function PracticeCard({ card, photo, memoryPhoto, progress, isLast, onRemembered
     AccessibilityInfo.sendAccessibilityEvent?.(hintBox.current, 'focus');
   }
 
-  function choose(name: string) {
-    if (remembered) return;
-    timing.current.selections.push({ at: tapTime(), right: name === target });
-    const next = chooseName(card, steps, name);
+  /** The card's steps move on: kept for the next tap at once, and drawn. */
+  function stepTo(next: CardSteps) {
+    latest.current = next;
     timing.current.hints = next.hints;
     setSteps(next);
+  }
+
+  function choose(name: string) {
+    const now = latest.current;
+    if (now.answered) return;
+    timing.current.selections.push({ at: tapTime(), right: name === target });
+    const next = chooseName(card, now, name);
+    stepTo(next);
     if (next.answered) {
       answeredAt.current = tapTime();
       // Saved now, so the card counts even if the app is closed before Next.
       onRemembered(cardResult(next), tapped);
       speak(readBack);
-    } else {
-      const shown = hintNow(card, next);
-      AccessibilityInfo.announceForAccessibility(`${shown.lead} ${shown.detail}`);
+    } else if (next.misses > now.misses) {
+      // The new hint is read out where it appears; the dimmed name keeps no focus.
+      focusHint.current = true;
     }
   }
 
   /** "I'm not sure": the next hint at once, with no name chosen and nothing marked wrong. */
   function notSureTapped() {
-    const next = askForHelp(card, steps);
-    if (next === steps) return;
-    timing.current.hints = next.hints;
+    const now = latest.current;
+    const next = askForHelp(card, now);
+    if (next === now) return;
     timing.current.help = [...(timing.current.help ?? []), { at: tapTime(), step: next.help[next.help.length - 1] }];
     focusHint.current = true;
-    setSteps(next);
+    stepTo(next);
   }
 
   /** Hands up what the card measured, once, as the person leaves it. */
@@ -339,8 +349,15 @@ function PracticeCard({ card, photo, memoryPhoto, progress, isLast, onRemembered
             </AppText>
           )}
           {choices.map((name) => (
-            // Once the hint has said the answer, its button shows which one it is.
-            <BigButton key={name} label={name} selected={hint.show && name === target} onPress={() => choose(name)} />
+            // Once the hint has said the answer, its button shows which one it is. A name already
+            // chosen is dimmed and can't be chosen again (no red), and so is every other name once the answer shows.
+            <BigButton
+              key={name}
+              label={name}
+              selected={hint.show && name === target}
+              disabled={!nameLive(card, steps, name)}
+              onPress={() => choose(name)}
+            />
           ))}
           {notSure ? (
             // Quiet and last, under the names: never one of the answers. Gone once the answer is shown.

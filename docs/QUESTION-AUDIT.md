@@ -262,6 +262,7 @@ Added 2026-11-13. `src/lib/card-steps.ts` (the steps, pure), the words in `NOT_S
 
 - **Interval schedule:** the same-session gaps (1, 2, 4, 8 minutes, as cards), the ceiling of 8, and the across-day steps (10 minutes, 1, 3, 7, 14 days).
 - **Hint ladder order:** fact, relationship, letter, fewer names, then the answer. Also whether the answer should come sooner (more errorless) or later.
+- **Dimming a name once chosen** (since 2026-11-16, `docs/HINT-LADDER.md`): each wrong tap is one step and the tried name dims, so with three names two wrong taps leave only the right one live before the ladder reaches the answer. Whether that elimination is acceptable, or the ladder should jump to the answer at that point.
 - **Cue fading thresholds:** the four bands in `CUE_FADING`, and the cue levels given to each way to ask.
 - **Re-exposure placement:** the wrap-up strip, its 6 people, the first-seen order, and whether a mid-session re-exposure would help.
 - **Sound-alike rule:** whether the same first letter and a spelling one or two letters apart is the right test.

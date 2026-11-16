@@ -1,4 +1,18 @@
-# Handoff: "I'm not sure" on the person's cards
+# Handoff: hints on every wrong tap, PIN pairing removed, Forgot password fixed
+
+Updated 2026-11-16, on the branch `hints-pin-password` (not pushed, not merged), one commit per part. Work in `~/evermore-clean` so `CLAUDE.md` loads.
+
+## Part A: every wrong tap moves the hint one step
+
+**Built, committed and checked** (`npm test`, typecheck, lint; the local-only web build walked in headless Chrome at 375x647 and 430x839, Large and Extra large, Reduce Motion on and off). `docs/HINT-LADDER.md` has the audit, the cause and the decisions.
+
+- **The cause.** The card's press handlers read the steps from the render they were created in, so two taps landing before the card drew again (a double tap, a tremor, a name and **I’m not sure** together) gave one step. A tried name stayed live, so a mistake could loop, and taps after the answer counted steps that showed nothing. The same walk run against the build before the fix recorded four names chosen against three rungs, one step lost.
+- **Now.** One step per tap from the newest steps (`latest` in `PracticeCard`); a name once chosen is dimmed and disabled (the existing disabled look, no red); the answer is the last step and every other name dims there; focus moves to each new hint for VoiceOver. "I'm not sure" shares the same state. No new hint words.
+- **Unchanged:** the ladder, the hint words, recording (`selections`, the rungs recorded up to the answer), "How answers were found", the Memory score, scheduling, reveal-card rules.
+- **Only a phone can verify:** VoiceOver and TalkBack moving to the new hint after a wrong tap and reading the dimmed name as "dimmed"; a real double tap or tremor on glass.
+- **For the clinician:** with three names, two wrong taps leave only the right name live before the hint says it (`docs/QUESTION-AUDIT.md`).
+
+# The release before: "I'm not sure" on the person's cards
 
 Updated 2026-11-13. Work in `~/evermore-clean` so `CLAUDE.md` loads. The history cleanup and the move to `~/evermore-clean` are finished; nothing below touches them.
 

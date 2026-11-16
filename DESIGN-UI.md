@@ -523,6 +523,8 @@ From existing pieces, person scale, no new colors.
 | The control | A quiet `BigButton` under the names: label only, `primaryDark`, body size, 48pt tall, full width. **I’m not sure**, and **Show me** for the tap that will show the answer. Never among the names or styled like one, gone once the answer is shown and on the success banner. |
 | The hint it brings | The existing hint box (`accentSoft`, bulb icon), with **That is okay. Here is a little help.** in bold in place of "Take your time." on a first hint it brought. Slides in like any hint; a plain fade with Reduce Motion. |
 
+| A name already chosen (since 2026-11-16) | The same `BigButton`, disabled: half opacity, no color change, no red, no shake, no sound. VoiceOver says "dimmed". Once the hint says the answer, every other name is dimmed and the answer's button is shown selected. |
+
 **Checked** in the local-only web build at 375x647, 390x763 and 430x839, at Medium, Large and Extra large, with Reduce Motion on and off: the control below the names with a 48pt target, the calm first hint, each tap to Show me and the answer, the control gone then, the right name still tapped to finish, no red, no judging words, scores or timers, nothing wider than the page.
 
 ## No-login mode

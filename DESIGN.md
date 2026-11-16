@@ -636,6 +636,8 @@ The ladder (`hintAt` in `src/lib/stories.ts`) moves one rung per other name chos
 
 The newest rung leads and the first stays beside it ("This is your mom. This person enjoys gardening."). With every rung off the first hint is "Take your time."
 
+**Every wrong tap is one step (2026-11-16).** `docs/HINT-LADDER.md` has the audit. Taps used to read the state the card last drew, so two quick taps (or a name and **I’m not sure** together) could give one step, a tried name stayed live so a mistake could loop, and taps after the answer counted steps that showed nothing. Now the handlers step on from the newest steps, a name once chosen is dimmed and disabled (the button's existing disabled look: no red, shake or sound), the answer is the last step and every other name dims there, and focus moves to each new hint. Decisions: dimming uses the existing disabled style rather than a new one; the other names dim at the answer so the right one is the only way on; a stray tap that lands before a name dims still counts as a name chosen and one step (recording unchanged); focus to the hint replaces the separate announcement on a wrong tap, so VoiceOver reads it once. With three names, two wrong taps leave only the right name live before the hint says it; nothing is skipped, and that is for the clinician.
+
 ## Offline
 
 `src/data/practice-store.ts` keeps the person's approved deck, schedule and recent sessions in AsyncStorage, so practice works without a connection.

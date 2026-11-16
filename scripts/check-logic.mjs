@@ -223,6 +223,122 @@ for (const [round, misses] of [[first, 1], [first, 4], [first, 5], [oneFact, 3],
   for (const text of Object.values(NOT_SURE)) assert.ok(!/wrong|incorrect|score|fail|try again|hurry|quick/i.test(text), `calm words: ${text}`);
 }
 
+// Every other name chosen moves the hint exactly one step (2026-11-16, docs/HINT-LADDER.md): the same
+// name again included, never two steps for one tap, never back, never past the answer. A name once
+// chosen is dimmed and disabled; once the answer shows, only it is live. Recording and scheduling as before.
+{
+  const steps = await import('@/lib/card-steps');
+  const { nextSchedule: schedule } = await import('@/lib/queue');
+  const { HINT_RUNGS: rungs, answerOf: answerOfRound } = await import('@/lib/stories');
+  const { attemptOf, resolvedOn: resolved } = await import('@/lib/attempts');
+  const said = (round, state) => {
+    const hint = steps.hintNow(round, state);
+    return `${hint.lead}|${hint.detail}|${hint.show}`;
+  };
+  // Steps to the answer: every rung allowed, then the answer (one "Take your time." with none).
+  const toAnswer = (round) => Math.max(hintLadder(round).length, 1) + 1;
+  // What the card recorded for its rungs before this change, one entry per step.
+  const legacyHints = (round, taps) => {
+    const ladder = hintLadder(round);
+    return Array.from({ length: taps }, (_, at) => ladder[Math.min(at + 1, ladder.length) - 1]).filter(Boolean);
+  };
+  const others = (round) => round.choices.filter((name) => name !== answerOfRound(round));
+  const [a, b] = others(first);
+
+  // Repeated wrong taps: one step each, the same wrong name tapped again included
+  let state = steps.startSteps();
+  const seen = [];
+  for (const name of [a, a, b, a]) {
+    const before = state.misses;
+    state = steps.chooseName(first, state, name);
+    assert.equal(state.misses, before + 1, `each wrong tap is exactly one step (${state.misses})`);
+    assert.ok(!seen.includes(said(first, state)), 'and never repeats a hint already shown');
+    seen.push(said(first, state));
+  }
+  assert.deepEqual([state.wrong, state.tried], [4, [a, b]], 'four names chosen, two different ones dimmed');
+  assert.deepEqual(state.hints, legacyHints(first, 4), 'the rungs recorded as the card always recorded them');
+  // Two different wrong options: two steps
+  const two = steps.chooseName(first, steps.chooseName(first, steps.startSteps(), a), b);
+  assert.deepEqual([two.misses, two.wrong], [2, 2], 'two different wrong names: two steps');
+  assert.equal(steps.hintNow(first, two).lead, 'This is your mom.', 'the second rung, in order');
+  // The same wrong option twice: two steps, two different hints
+  const once = steps.chooseName(first, steps.startSteps(), a);
+  const twice = steps.chooseName(first, once, a);
+  assert.deepEqual([once.misses, twice.misses], [1, 2], 'the same name again still moves one step');
+  assert.notEqual(said(first, once), said(first, twice), 'with a new hint, never the same one');
+  assert.deepEqual(twice.tried, [a], 'and is dimmed once');
+  // Dimmed and disabled: a name once chosen; the answer never
+  assert.ok(!steps.nameLive(first, once, a) && steps.nameLive(first, once, b) && steps.nameLive(first, once, 'Sofia'), 'the chosen name is dimmed; the rest stay live');
+  // Ladder end: the answer shows, nothing moves past it, only the answer is live, and the right tap is still needed
+  let end = steps.startSteps();
+  for (let tap = 0; tap < toAnswer(first); tap++) end = steps.chooseName(first, end, tap % 2 ? b : a);
+  assert.ok(steps.hintNow(first, end).show && steps.hintNow(first, end).lead === 'It’s Sofia.', 'the last step says the answer');
+  assert.equal(end.answered, false, 'the person still taps the right name to finish');
+  assert.ok(others(first).every((name) => !steps.nameLive(first, end, name)) && steps.nameLive(first, end, 'Sofia'), 'once the answer shows, only it is live');
+  const stray = steps.chooseName(first, end, a);
+  assert.deepEqual([stray.misses, stray.hints, said(first, stray)], [end.misses, end.hints, said(first, end)], 'a stray tap at the end never moves past the answer');
+  assert.equal(stray.wrong, end.wrong + 1, 'though it is still counted as a name chosen');
+  const finished = steps.chooseName(first, end, 'Sofia');
+  assert.ok(finished.answered, 'the card ends on the right name, a success');
+  assert.equal(steps.chooseName(first, finished, a), finished, 'and nothing moves after it');
+
+  // Every hint setting, every kind of card with the ladder (blank, ask, who, photo-only, reverse, reveal):
+  // wrong taps alone, then wrong taps and "I'm not sure" mixed, never skip, repeat, double or go back
+  const kinds = phrasingsFor({ relationship: 'mom', hasPhoto: true }, { type: 'interest', text: 'gardening', timeSensitive: false });
+  const settings = Array.from({ length: 16 }, (_, bits) => Object.fromEntries(rungs.map((rung, at) => [rung, Boolean(bits & (1 << at))])));
+  let walked = 0;
+  for (const hints of settings) {
+    const kindRounds = [...new Set(kinds.map((way) => way.kind))].map((kind) => makeRounds([sofia('k', 'x', hints, kinds.filter((way) => way.kind === kind))], [...deck, ...twoFacts])[0]);
+    const reverse = { ...first, hints, phrasing: { id: 'ai-x', kind: 'reverse', ask: 'Sofia enjoys {name}.', reveal: 'Sofia enjoys {name}.', fill: { answer: 'gardening', others: ['chess', 'golf'] } }, choices: ['chess', 'gardening', 'golf'] };
+    for (const round of [...kindRounds, reverse, { ...first, hints, reveal: true }]) {
+      const label = `${round.phrasing.kind}${round.reveal ? ' (reveal)' : ''} ${JSON.stringify(hints)}`;
+      const wrongs = others(round);
+      for (const mix of [false, true]) {
+        let walk = steps.startSteps();
+        const shown = [];
+        for (let tap = 0; tap < toAnswer(round); tap++) {
+          const before = walk.misses;
+          // A dimmed name tapped again before it dims (the race the fix covers) still counts as one step.
+          walk = mix && tap % 2 ? steps.askForHelp(round, walk) : steps.chooseName(round, walk, wrongs[tap % wrongs.length]);
+          assert.equal(walk.misses, before + 1, `${label}: one step per tap`);
+          assert.ok(!shown.includes(said(round, walk)), `${label}: never the same hint twice`);
+          shown.push(said(round, walk));
+        }
+        assert.ok(steps.hintNow(round, walk).show && !walk.answered, `${label}: ends on the answer, still to be tapped`);
+        assert.ok(wrongs.every((name) => !steps.nameLive(round, walk, name)) && steps.nameLive(round, walk, answerOfRound(round)), `${label}: only the answer is live`);
+        assert.equal(steps.askForHelp(round, walk), walk, `${label}: "I’m not sure" is gone at the end`);
+        assert.equal(steps.chooseName(round, walk, wrongs[0]).misses, walk.misses, `${label}: nothing past the answer`);
+        if (!mix) assert.deepEqual(walk.hints, legacyHints(round, toAnswer(round)), `${label}: recorded as before`);
+        assert.ok(steps.chooseName(round, walk, answerOfRound(round)).answered, `${label}: finished on the right answer`);
+        walked++;
+      }
+    }
+  }
+  assert.ok(walked === 16 * 6 * 2, `every setting and kind walked (${walked})`);
+
+  // "I'm not sure" and wrong taps share one ladder: alternating, every tap one step, never two
+  let shared = steps.startSteps();
+  shared = steps.askForHelp(first, shared);
+  shared = steps.chooseName(first, shared, a);
+  shared = steps.askForHelp(first, shared);
+  assert.deepEqual([shared.misses, shared.wrong, shared.help], [3, 1, ['fact', 'letter']], 'three taps, three steps; help keeps the step it reached');
+  assert.equal(steps.hintNow(first, shared).lead, 'The name starts with S.', 'the third rung, whichever way each step came');
+
+  // Recording and scheduling unchanged: tries are the names chosen, hints used the steps; "How answers were found" as before
+  for (const wrongTaps of [0, 1, 2, 3]) {
+    let card = steps.startSteps();
+    for (let tap = 0; tap < wrongTaps; tap++) card = steps.chooseName(first, card, a);
+    card = steps.chooseName(first, card, 'Sofia');
+    assert.deepEqual(steps.cardResult(card), { tries: wrongTaps + 1, hintsUsed: wrongTaps }, `${wrongTaps} wrong taps: the same result as before`);
+    const onStep = { step: 3, dueAt: new Date(2026, 10, 16, 10).toISOString() };
+    assert.deepEqual(schedule(onStep, steps.cardResult(card), new Date(2026, 10, 16, 10)), schedule(onStep, { tries: wrongTaps + 1, hintsUsed: wrongTaps }, new Date(2026, 10, 16, 10)), 'scheduled as before');
+    const selections = [...Array.from({ length: wrongTaps }, (_, at) => ({ at: 1000 + at, right: false })), { at: 2000, right: true }];
+    const record = attemptOf(first, { shownAt: 500, selections, away: [], leftAt: 3000, hints: card.hints, help: [] }, { id: 'r', sessionId: 's', goal: 10, source: 'template', studyDay: '2026-11-16' });
+    assert.equal(resolved(record), Math.min(wrongTaps + 1, 3), 'first try, second try, then with help, as Insights already count them');
+  }
+
+}
+
 // Facts: every kind makes a sentence from the caregiver's words in a fixed shape
 const stories = await import('@/lib/stories');
 const facts = await import('@/lib/facts');
@@ -1279,6 +1395,21 @@ assert.ok(!('READ_BACK' in pacing) && !('dwellMs' in sessions5), 'the old minimu
   assert.ok(!/Haptics|playSound|Audio|shake|Colors\.(red|error)/i.test(screen), 'no haptics, no sound, no shake, no red');
   const helpFn = /function notSureTapped\(\) \{[\s\S]*?\n  \}/.exec(screen)?.[0] ?? '';
   assert.ok(helpFn && !/selections|onRemembered/.test(helpFn), 'a help tap records no answer and finishes nothing');
+}
+
+// Wrong taps on the person's card (2026-11-16, docs/HINT-LADDER.md)
+{
+  // The person's card: handlers step on from the newest state, names dim instead of looping, focus moves to the new hint
+  const screen = inRepo('src/components/practice-screen.tsx');
+  const chooseFn = /function choose\(name: string\) \{[\s\S]*?\n  \}/.exec(screen)?.[0] ?? '';
+  const helpFn = /function notSureTapped\(\) \{[\s\S]*?\n  \}/.exec(screen)?.[0] ?? '';
+  assert.ok(/const now = latest\.current;/.test(chooseFn) && /const now = latest\.current;/.test(helpFn), 'both handlers start from the newest steps, never a stale render');
+  assert.ok(!/\bsteps\b/.test(chooseFn.replace(/\/\/.*/g, '')) && !/\bsteps\b/.test(helpFn.replace(/\/\/.*/g, '')), 'and never read the rendered steps');
+  assert.ok(/latest\.current = next;/.test(/function stepTo\([\s\S]*?\n  \}/.exec(screen)?.[0] ?? ''), 'each new step is kept for the next tap at once');
+  assert.ok(/disabled=\{!nameLive\(card, steps, name\)\}/.test(screen), 'a name once chosen, and every other name at the answer, is dimmed and disabled');
+  assert.ok(/focusHint\.current = true;/.test(chooseFn), 'after a wrong tap, focus moves to the new hint');
+  assert.ok(/disabled && styles\.disabled/.test(inRepo('src/components/big-button.tsx')) && /disabled: \{\n    opacity: 0\.5,\n  \}/.test(inRepo('src/components/big-button.tsx')), 'dimmed is a calm fade, not a color');
+  assert.ok(!/Haptics|Vibration|playSound|Audio|shake|Colors\.(red|error|danger)/i.test(screen), 'no haptics, sound, shake or red for a wrong tap');
 }
 
 // Rotation still holds across a whole planned day: phrasing, names and the right name's place

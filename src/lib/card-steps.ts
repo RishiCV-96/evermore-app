@@ -1,10 +1,13 @@
 import type { CardResult } from '@/lib/queue';
 import { NOT_SURE, answerOf, hintAt, hintLadder, hintStep, type HintRung, type HintStep, type Round } from '@/lib/stories';
 
-// One practice card's way to its answer: each other name chosen, and each "I'm not sure" tap, moves
-// the hint one step along the same ladder (hintAt in src/lib/stories.ts). A help tap is not a wrong
-// answer: it chooses nothing, records no selection, and the person still ends the card by tapping
-// the right name. Pure, so scripts/check-logic.mjs can walk it.
+// One practice card's way to its answer: every other name chosen (the same one again included), and
+// each "I'm not sure" tap, moves the hint exactly one step along the same ladder (hintAt in
+// src/lib/stories.ts), never two, never back, and never past the answer. A name once chosen is
+// dimmed and can't be chosen again, so a mistake can't loop; once the hint says the answer, only
+// that name is live. A help tap is not a wrong answer: it chooses nothing, records no selection, and
+// the person still ends the card by tapping the right name. docs/HINT-LADDER.md has the reasons.
+// Pure, so scripts/check-logic.mjs can walk it.
 
 export type CardSteps = {
   /** Hint steps taken, by either way. hintAt reads this. */
@@ -19,16 +22,25 @@ export type CardSteps = {
   setAside?: string;
   /** The last other name chosen, set aside first once the ladder reaches "fewer names". */
   lastOther?: string;
+  /** Every other name chosen, once each, in order: dimmed and no longer offered as a live choice. */
+  tried: string[];
   /** The newest step came from "I'm not sure", so the first hint opens with the calm line. */
   fromHelp: boolean;
   /** The right name was chosen. */
   answered: boolean;
 };
 
-export const startSteps = (): CardSteps => ({ misses: 0, wrong: 0, hints: [], help: [], fromHelp: false, answered: false });
+export const startSteps = (): CardSteps => ({ misses: 0, wrong: 0, hints: [], help: [], tried: [], fromHelp: false, answered: false });
 
-/** One step further along the ladder: the rung it shows (as the card always recorded it), and a name set aside at "fewer names". */
+/** The hint has said the answer: the last step, so nothing moves it further. */
+export const answerShown = (round: Round, state: CardSteps) => hintAt(round, state.misses).show;
+
+/**
+ * One step further along the ladder: the rung it shows (as the card always recorded it), and a name
+ * set aside at "fewer names". At the answer it stays put: there is no step after it.
+ */
 function stepOn(round: Round, state: CardSteps, other: string | undefined): CardSteps {
+  if (answerShown(round, state)) return state;
   const misses = state.misses + 1;
   const ladder = hintLadder(round);
   const rung = ladder[Math.min(misses, ladder.length) - 1];
@@ -43,11 +55,26 @@ function stepOn(round: Round, state: CardSteps, other: string | undefined): Card
   };
 }
 
-/** A name was chosen: the right one ends the card; another moves the hint one step. */
+/**
+ * A name was chosen: the right one ends the card; any other moves the hint one step, even one chosen
+ * before (a second tap that lands before it dims still counts, and still brings the next hint). Each
+ * is counted as a name chosen, as the card always counted it.
+ */
 export function chooseName(round: Round, state: CardSteps, name: string): CardSteps {
   if (state.answered) return state;
   if (name === answerOf(round)) return { ...state, answered: true };
-  return { ...stepOn(round, state, name), wrong: state.wrong + 1, lastOther: name, fromHelp: false };
+  const tried = state.tried.includes(name) ? state.tried : [...state.tried, name];
+  return { ...stepOn(round, state, name), wrong: state.wrong + 1, lastOther: name, tried, fromHelp: false };
+}
+
+/**
+ * Whether a name's button is live. Dimmed (and disabled) once chosen, so the same mistake can't loop,
+ * and every other name once the hint has said the answer, so the right one is the way on. The answer
+ * is always live. A calm dim, never red.
+ */
+export function nameLive(round: Round, state: CardSteps, name: string) {
+  if (name === answerOf(round)) return true;
+  return !state.tried.includes(name) && !answerShown(round, state);
 }
 
 /** "I'm not sure": the next hint step at once, as if it had been earned, with nothing chosen. Nothing once the answer is shown. */
@@ -58,7 +85,7 @@ export function askForHelp(round: Round, state: CardSteps): CardSteps {
 }
 
 /** Whether the control shows: never once the answer is chosen or the hint has said it. */
-export const notSureShown = (round: Round, state: CardSteps) => !state.answered && !hintAt(round, state.misses).show;
+export const notSureShown = (round: Round, state: CardSteps) => !state.answered && !answerShown(round, state);
 
 /** The control's words: "I'm not sure", and "Show me" when the next tap shows the answer. None when it is hidden. */
 export function notSureButton(round: Round, state: CardSteps) {
