@@ -547,12 +547,12 @@ The brand guide (`brand-kit/tandem-brand-guide.png`) is the reference; `docs/BRA
 |---|---|---|---|
 | Ink | `#1F2B4D` | Headlines, body text, filled buttons (white text, 13.9:1) | |
 | Mist | `#EAF3FB` | Surfaces: answer buttons, fields, notices | text |
-| Sky | `#8EC5F2` | The progress fill, "some practice" days, shapes | text |
+| Sky | `#8EC5F2` | "Some practice" days, shapes | text |
 | Sun | `#F7C948` | Behind the filled-in name | text |
 | Rose | `#E8629C` | The score ring's arc (caregiver only) | small text, the person's screens |
 | Deep Rose | `#B0467F` | Links and small accents on caregiver screens (5.2:1 on white, 4.6:1 on Mist) | the person's screens |
 
-`primaryDark` (`#2F4A7A`, Ink lifted toward Sky) is the pressed button and the person's link color. The success banner is a soft Sky (`#D2E8FA`) with Ink text: the brand has no green.
+`primaryDark` (`#2F4A7A`, Ink lifted toward Sky) is the pressed button and the person's link color. **The progress bar** is an outline (2pt, 1.5 on caregiver screens) and a solid fill in one color: Ink on the person's screens (13.9:1 on white), Deep Rose on the caregiver's (5.2:1), from `useProgressColor()`. The success banner is a soft Sky (`#D2E8FA`) with Ink text: the brand has no green.
 
 **The logo.** One component, `<TandemLogo size="…" />` (`src/components/tandem-logo.tsx`), drawn with `react-native-svg` from the kit's shapes. Its box is the drawing plus one lobe radius (34 kit units) on every side, its height follows the kit's proportions, and it is read as the brand name (or hidden where `decorative`).
 

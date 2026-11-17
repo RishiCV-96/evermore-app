@@ -126,4 +126,7 @@ export const MARK_PAIRS: [mark: Color, on: Color][] = [
   ['text', 'pink2'],
   ['text', 'pink3'],
   ['text', 'pink4'],
+  // The progress bar's outline and fill: Ink on the person's screens, Deep Rose on the caregiver's.
+  ['text', 'background'],
+  ['deepRose', 'background'],
 ];

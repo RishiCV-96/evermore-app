@@ -2104,7 +2104,11 @@ for (const hex of ['#FF0000', '#D32F2F', '#E53935', '#C62828']) assert.ok(isRed(
   const users = walkFiles('src').filter((path) => PINK.test(inRepo(path)));
   for (const path of users) assert.ok(insightsFamily(path) || caregiverAccent(path), `${path} uses the Insights pinks`);
   assert.ok(/<AccentProvider color=\{Colors\.deepRose\}>/.test(inRepo('src/app/caregiver/_layout.tsx')), 'the caregiver layout gives Deep Rose to its screens');
-  assert.ok(!PINK.test(inRepo('src/theme/accent.tsx')) && /createContext<string>\(Colors\.primaryDark\)/.test(inRepo('src/theme/accent.tsx')), 'without the caregiver layout, the accent is the person’s ink-blue');
+  assert.ok(!PINK.test(inRepo('src/theme/accent.tsx')) && /createContext<Accent>\(\{ link: Colors\.primaryDark, progress: Colors\.text \}\)/.test(inRepo('src/theme/accent.tsx')), 'without the caregiver layout, links are the person’s ink-blue and the progress bar Ink');
+  // The progress bar (2026-11-16): an outline track and a solid fill in one color, Ink or Deep Rose, never Sky on Mist.
+  const bar = inRepo('src/components/progress-bar.tsx');
+  assert.ok(/useProgressColor\(\)/.test(bar) && /borderColor: color/.test(bar) && /backgroundColor: color/.test(bar) && !/Colors\./.test(bar), 'the progress bar takes its one color from the accent');
+  for (const mark of ['text', 'deepRose']) assert.ok(MARK_PAIRS.some(([one, on]) => one === mark && on === 'background'), `the progress bar's ${mark} is checked at 3:1 on white`);
   assert.ok(users.includes('src/app/caregiver/index.tsx') && users.includes('src/components/insight-ring.tsx'), 'the check sees the files that do use them');
   // Every file a person-facing screen reaches, through every import, is free of pink.
   const resolveImport = (from, spec) => {

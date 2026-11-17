@@ -10,7 +10,7 @@ The brand kit (`./brand-kit`, from `tandem-brand-kit.zip`, 20 files) is the sour
 
 - **The brand kit:** the designer's files, copied as they are into `./brand-kit`. Nothing is rebuilt from the guide image.
 - **Pinks stay caregiver-side.** The hard rule in `CLAUDE.md` holds: Rose and Deep Rose never appear on a person-facing screen. On caregiver screens, links and small accents become Deep Rose, and the Insights pinks move to Rose and Deep Rose. Person screens use Ink, Sky, Mist and Sun, plus the logo's own colors in the logo itself.
-- **Main buttons are Ink with white text** (13.9:1), on both sides. Progress bars are Sky on a Mist track.
+- **Main buttons are Ink with white text** (13.9:1), on both sides. Progress bars were Sky on a Mist track; since the follow-up the same day, Ink (person) or Deep Rose (caregiver), outline and fill.
 
 ## How the search was done
 
@@ -149,7 +149,7 @@ Each is left as the safest default, so nothing waits on it:
 4. **The guessable-password list** (`src/lib/auth-form.ts`) still has the old name and not the new one. Add `tandem` and `tandem1`? It slightly changes the strength hint for those two passwords.
 5. **Dark mode.** The dark splash (Ink, reversed logo) is configured, but `app.json` keeps `"userInterfaceStyle": "light"`, so phones show the light splash until the app supports dark mode. Switching to `"automatic"` would also turn system alerts, pickers and the status bar dark: a behavior change, left out of this task.
 6. **Developer docs.** `CLAUDE.md`, `DESIGN.md`, `DESIGN-UI.md` and `HANDOFF.md` still call the project Evermore in their headings and history; only the rules that changed were updated. Rename them now, or after trademark clearance?
-7. **The progress bar** is Sky on a Mist track (1.64:1), as decided. On white the empty track is barely visible (Mist on white is 1.07:1). The count is always in words beside it on the home and Today. Ink fill (12.4:1) would be much easier to see for low vision.
+7. ~~**The progress bar**~~ Decided 2026-11-16: no longer Sky on Mist. The empty track is a 2-point outline (1.5 on the caregiver's compact bar) and the filled part solid, in one color: Ink on the person's screens (13.90:1 on white) and Deep Rose on the caregiver's (5.21:1), given by `useProgressColor()` (`src/theme/accent.tsx`). Both pairs are in `MARK_PAIRS`, checked at 3:1.
 8. **Deep Rose on every caregiver tab.** The selected tab, section headings, Close and info icons are now Deep Rose on the caregiver's screens, so Insights' pink is no longer unique among the tabs. Keep, or give the completion tabs (Today, Trends) the ink-blue?
 9. **`POLICY_VERSION` is 2026-11-17, not today's date.** 2026-11-16 was already in force on main and may have been agreed to, and the database accepts only a date, so a new date is the only way to ask every caregiver again. If no caregiver has seen 2026-11-16 yet, it could instead be amended (`node scripts/build-policy.mjs --amend`) and kept at today's date.
 
@@ -185,7 +185,7 @@ Each is left as the safest default, so nothing waits on it:
 | `primaryDark` | `#2B5791` | `#2F4A7A` (Ink lifted toward Sky) | Pressed buttons; links and figures on the person's side |
 | `surface` | `#EAF5FC` | Mist `#EAF3FB` | Answer buttons, fields, notices |
 | `accent` | `#FFD93B` | Sun `#F7C948` | Behind the filled-in name; never text |
-| `sky` | `#A9D8F5` | Sky `#8EC5F2` | Progress fill, "some practice" days; never text |
+| `sky` | `#A9D8F5` | Sky `#8EC5F2` | "Some practice" days, shapes; never text |
 | `skySoft` | `#D3E9F8` | `#C6E2F9` (Sky at half) | Pressed surfaces |
 | `accentSoft` | `#FFEEA7` | `#FCE9B6` (Sun at 40%) | The hint panel |
 | `softSuccess` / `onSoftSuccess` | sage `#D8E6CA` / `#2F5A2A` | `#D2E8FA` / Ink | The success banner (the brand has no green) |
@@ -243,7 +243,9 @@ Other pairs worth knowing:
 
 | Pair | Colors | Ratio |
 |---|---|---|
-| Progress fill Sky on its Mist track | `#8EC5F2` on `#EAF3FB` | **1.64:1**: soft on purpose (agreed 2026-11-16); the home and Today also say the count in words. Ink fill would be 12.4:1 |
+| Progress bar, person's screens (home, card, wrap-up): Ink outline and fill | `#1F2B4D` on white | **13.90:1** (fill on white, outline on white, and fill against the empty track's white inside) |
+| Progress bar, caregiver's screens (Add a person): Deep Rose outline and fill | `#B0467F` on white | **5.21:1** (the same three edges) |
+| Before (replaced 2026-11-16): Sky fill on a Mist track | `#8EC5F2` on `#EAF3FB`; Mist on white | 1.64:1 and 1.07:1 |
 | Rose on white | `#E8629C` on white | 3.15:1: shapes only, never text |
 | Ink on Rose | `#1F2B4D` on `#E8629C` | 4.41:1: why `pink4` isn't Rose |
 | Deep Rose on `pink1` | `#B0467F` on `#FFE1EC` | 4.28:1: why `pinkInk` isn't Deep Rose |

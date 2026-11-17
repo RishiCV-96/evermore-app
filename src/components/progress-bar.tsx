@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { AppText } from '@/components/app-text';
-import { Colors } from '@/theme/colors';
+import { useProgressColor } from '@/theme/accent';
 import { RADIUS, Space } from '@/theme/layout';
 import { useCompact } from '@/theme/type';
 
@@ -28,6 +28,7 @@ export function ProgressBar({ completed, goal, bare = false, label: ownLabel }: 
   }, [fill, fraction]);
   const fillStyle = useAnimatedStyle(() => ({ width: `${fill.get() * 100}%` }));
   const compact = useCompact();
+  const color = useProgressColor();
 
   return (
     <View
@@ -37,8 +38,8 @@ export function ProgressBar({ completed, goal, bare = false, label: ownLabel }: 
       accessibilityLabel={label}
       accessibilityValue={{ min: 0, max: goal, now: shown }}
       style={styles.wrap}>
-      <View style={[styles.track, compact && styles.trackCompact]}>
-        <Animated.View style={[styles.fill, fillStyle]} />
+      <View style={[styles.track, compact && styles.trackCompact, { borderColor: color }]}>
+        <Animated.View style={[styles.fill, fillStyle, { backgroundColor: color }]} />
       </View>
       {bare ? null : (
         <AppText fit center size="caption" bold muted>
@@ -53,19 +54,19 @@ const styles = StyleSheet.create({
   wrap: {
     gap: Space.s,
   },
+  // The empty track is an outline in the bar's color, the filled part solid: both are at least 3:1 on the
+  // white behind them (Ink 13.9:1 on the person's screens, Deep Rose 5.2:1 on the caregiver's).
   track: {
-    height: 10,
+    height: 12,
     borderRadius: RADIUS,
-    backgroundColor: Colors.surface,
+    borderWidth: 2,
     overflow: 'hidden',
   },
   trackCompact: {
-    height: Space.xs,
+    height: Space.s,
+    borderWidth: 1.5,
   },
   fill: {
     height: '100%',
-    borderRadius: RADIUS,
-    // Sky on a Mist track, from the brand: soft on purpose (about 1.6:1). The home and Today also say the count in words.
-    backgroundColor: Colors.sky,
   },
 });
