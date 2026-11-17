@@ -101,6 +101,11 @@ async function openFromPhone() {
 }
 
 async function onSession(session: Session | null) {
+  // A password reset in progress keeps the caregiver on its step until the new password is saved.
+  if (resetHold) {
+    resetHold.session = session;
+    return;
+  }
   if (!session) {
     // supabase-js says there is no session when it couldn't refresh an expired one for want of a
     // connection, though it keeps it to try again. This phone is still signed in then: it opens on
@@ -286,18 +291,75 @@ export async function confirmEmail(email: string, code: string): Promise<Result>
   return error ? failed(error, 'code') : { ok: true };
 }
 
+/**
+ * "Forgot password?": asks Supabase to email a code (the Reset password template must hold
+ * {{ .Token }}: docs/FORGOT-PASSWORD.md). The same answer whether or not the address has an account,
+ * so nobody can probe for accounts. That includes Supabase's "wait a minute" (429), which it gives
+ * only for an address that has an account and was sent an email in the last minute: the reset step
+ * keeps its own minute between sends instead. Only no connection reads differently, since it says
+ * nothing about any account. Neither the email nor the code is ever logged.
+ */
 export async function sendPasswordReset(email: string): Promise<Result> {
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
-  // The same answer whether or not the address has an account, so nobody can probe for accounts.
-  if (error && (unreachable(error) || error.status === 429)) return failed(error, 'email');
+  if (error && unreachable(error)) return failed(error, 'email');
   return { ok: true };
 }
 
-/** Signs in with the code from the reset email, then sets the new password. */
+/**
+ * A reset in progress: once the code is accepted the phone holds a session, but the caregiver stays
+ * on the reset step (onSession waits) until the new password is saved, so a password Supabase refuses
+ * is said there, with the chance to choose another, rather than lost behind their home.
+ */
+let resetHold: { session: Session | null; verified: boolean } | null = null;
+
+/** The code was accepted and only the new password is still to be saved. */
+export const resetAwaitingPassword = () => Boolean(resetHold?.verified);
+
+/** Checks the code from the reset email, then saves the new password; saved, the caregiver is signed in. */
 export async function resetPasswordWithCode(email: string, code: string, password: string): Promise<Result> {
+  if (resetHold?.verified) return finishPasswordReset(password);
+  const hold: NonNullable<typeof resetHold> = { session: null, verified: false };
+  resetHold = hold;
   const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'recovery' });
-  if (error) return failed(error, 'code');
-  return setNewPassword(password);
+  // The caregiver left the step while the code was being checked: nothing it brought stays.
+  if (resetHold !== hold) {
+    if (!error) await supabase.auth.signOut({ scope: 'local' }).catch(() => forgetKeptSession());
+    return { ok: false, reason: 'other', message: SOMETHING };
+  }
+  if (error) {
+    await releaseReset();
+    return failed(error, 'code');
+  }
+  hold.verified = true;
+  return finishPasswordReset(password);
+}
+
+/** After the code was accepted: the new password (again, if Supabase refused the last one). */
+export async function finishPasswordReset(password: string): Promise<Result> {
+  if (!resetHold?.verified) return { ok: false, reason: 'code', message: SOMETHING };
+  const result = await setNewPassword(password);
+  if (result.ok) await releaseReset();
+  return result;
+}
+
+/** Leaving the reset step before the new password is saved: the session the code gave goes too. */
+export async function cancelPasswordReset() {
+  const held = resetHold;
+  if (!held) return;
+  resetHold = null;
+  if (held.verified) await supabase.auth.signOut({ scope: 'local' }).catch(() => forgetKeptSession());
+  else if (held.session) await onSession(held.session);
+}
+
+/** Lets the session the reset brought (or the lack of one) through, as onSession would have. */
+async function releaseReset() {
+  const held = resetHold;
+  resetHold = null;
+  if (!held) return;
+  const { data } = await supabase.auth.getSession();
+  const session = data.session ?? held.session;
+  // A code that didn't match brought no session, and the phone stays as it was: signed out, on this step.
+  if (session) await onSession(session);
 }
 
 async function setNewPassword(password: string): Promise<Result> {

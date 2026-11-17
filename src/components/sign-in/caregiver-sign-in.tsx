@@ -5,8 +5,8 @@ import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { CaregiverScreen, Field, Notice, QuietLink } from '@/components/caregiver-ui';
 import { PasswordField } from '@/components/password-field';
-import { resetPasswordWithCode, sendPasswordReset, signIn } from '@/data/account';
-import { emailProblem, isClear, newPasswordProblems, resendLabel, secondsLeft, signInProblems } from '@/lib/auth-form';
+import { cancelPasswordReset, resetAwaitingPassword, resetPasswordWithCode, sendPasswordReset, signIn } from '@/data/account';
+import { RESET_CODE_ACCEPTED, RESET_SENT, RESET_SENT_MORE, codeDigits, codeProblem, emailProblem, isClear, newPasswordProblems, resendLabel, secondsLeft, signInProblems } from '@/lib/auth-form';
 import { Space } from '@/theme/layout';
 import { CompactType } from '@/theme/type';
 
@@ -83,10 +83,17 @@ export function CaregiverSignIn({ email, onEmail, onBack, onForgot, onCreate, on
   );
 }
 
-type ForgotProps = { email: string; onEmail: (email: string) => void; onBack: () => void; onSent: (sentAt: number) => void };
+type ForgotProps = {
+  email: string;
+  onEmail: (email: string) => void;
+  onBack: () => void;
+  onSent: (sentAt: number) => void;
+  /** The last code asked for in this visit, and for which address, so a second ask within the minute waits. */
+  lastSent?: { to: string; at: number };
+};
 
-/** "Forgot password?": the address to send the reset email to. */
-export function ForgotPassword({ email, onEmail, onBack, onSent }: ForgotProps) {
+/** "Forgot password?": the address to send the code to. */
+export function ForgotPassword({ email, onEmail, onBack, onSent, lastSent }: ForgotProps) {
   const [tried, setTried] = useState(false);
   const [message, setMessage] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -95,6 +102,11 @@ export function ForgotPassword({ email, onEmail, onBack, onSent }: ForgotProps) 
   async function submit() {
     setTried(true);
     if (problem) return;
+    // Asked for this address less than a minute ago: straight on to the code, with nothing sent again.
+    if (lastSent && lastSent.to === email.trim().toLowerCase() && secondsLeft(lastSent.at, Date.now()) > 0) {
+      onSent(lastSent.at);
+      return;
+    }
     setBusy(true);
     const result = await sendPasswordReset(email);
     setBusy(false);
@@ -108,8 +120,8 @@ export function ForgotPassword({ email, onEmail, onBack, onSent }: ForgotProps) 
         title="Reset password"
         backLabel="Back"
         onBack={onBack}
-        footer={<BigButton testID="forgot-submit" label={busy ? 'Sending…' : 'Send reset email'} primary disabled={busy} onPress={submit} />}>
-        <AppText>Type the email you signed up with. We’ll send it a code to choose a new password.</AppText>
+        footer={<BigButton testID="forgot-submit" label={busy ? 'Sending…' : 'Send code'} primary disabled={busy} onPress={submit} />}>
+        <AppText>Type the email you signed up with. We’ll email a 6-digit code to type here with your new password.</AppText>
         <Field testID="forgot-email" label="Email" value={email} onChangeText={onEmail} note={tried ? problem : undefined} onSubmitEditing={submit} {...EMAIL_FIELD} />
         {message ? <Notice>{message}</Notice> : null}
       </CaregiverScreen>
@@ -120,8 +132,10 @@ export function ForgotPassword({ email, onEmail, onBack, onSent }: ForgotProps) 
 type ResetProps = { email: string; sentAt: number; onBack: () => void; onSignIn: () => void };
 
 /**
- * The calm confirmation after "Send reset email", whether or not the address has an account, then the
- * code from the email and a new password. Saving signs in.
+ * The calm confirmation after "Send code", whether or not the address has an account, then the code
+ * from the email and a new password. Saving signs in. If Supabase refuses the password after taking the
+ * code, the code is used up, so only a new password is asked (src/data/account.ts holds the sign-in
+ * until it is saved). Leaving this step before then forgets what the code gave. docs/FORGOT-PASSWORD.md.
  */
 export function NewPassword({ email, sentAt: firstSent, onBack, onSignIn }: ResetProps) {
   const [code, setCode] = useState('');
@@ -132,8 +146,15 @@ export function NewPassword({ email, sentAt: firstSent, onBack, onSignIn }: Rese
   const [busy, setBusy] = useState(false);
   const [sentAt, setSentAt] = useState(firstSent);
   const [now, setNow] = useState(firstSent);
+  // The code was accepted, but the password wasn't: only a new password is asked now.
+  const [accepted, setAccepted] = useState(false);
   const left = secondsLeft(sentAt, now);
-  const problems = { ...newPasswordProblems({ password, confirm }), ...(code.trim().length < 6 ? { code: 'Please type the code from the email.' } : {}) };
+  const codeNote = accepted ? undefined : codeProblem(code);
+  const problems = { ...newPasswordProblems({ password, confirm }), ...(codeNote ? { code: codeNote } : {}) };
+
+  // However this step is left before the password is saved (Back, Back to sign in, Android's back),
+  // the session the code gave goes, so nobody is signed in by a reset that didn't finish.
+  useEffect(() => () => void cancelPasswordReset(), []);
 
   useEffect(() => {
     if (left <= 0) return;
@@ -147,7 +168,10 @@ export function NewPassword({ email, sentAt: firstSent, onBack, onSignIn }: Rese
     setBusy(true);
     const result = await resetPasswordWithCode(email, code, password);
     setBusy(false);
-    if (!result.ok) setMessage(result.message);
+    if (result.ok) return;
+    const nowAccepted = resetAwaitingPassword();
+    setAccepted(nowAccepted);
+    setMessage(nowAccepted && result.reason !== 'offline' ? `${RESET_CODE_ACCEPTED} ${result.message}` : result.message);
   }
 
   async function resend() {
@@ -170,21 +194,22 @@ export function NewPassword({ email, sentAt: firstSent, onBack, onSignIn }: Rese
         onBack={onBack}
         footer={<BigButton testID="reset-submit" label={busy ? 'Saving…' : 'Save new password'} primary disabled={busy} onPress={submit} />}>
         <AppText testID="reset-sent">
-          If there’s an account for {email.trim()}, we’ve sent it an email with a code. It can take a few minutes; if it isn’t there, look in
-          the spam folder.
+          <AppText bold>{RESET_SENT}</AppText> {RESET_SENT_MORE}
         </AppText>
-        <Field
-          testID="reset-code"
-          label="Code from the email"
-          value={code}
-          onChangeText={setCode}
-          note={tried ? problems.code : undefined}
-          keyboardType="number-pad"
-          autoComplete="one-time-code"
-          textContentType="oneTimeCode"
-          maxLength={10}
-          count={false}
-        />
+        {accepted ? null : (
+          <Field
+            testID="reset-code"
+            label="6-digit code from the email"
+            value={code}
+            onChangeText={(typed) => setCode(codeDigits(typed))}
+            note={tried ? problems.code : undefined}
+            keyboardType="number-pad"
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
+            maxLength={10}
+            count={false}
+          />
+        )}
         <PasswordField
           testID="reset-password"
           label="New password"
@@ -207,7 +232,7 @@ export function NewPassword({ email, sentAt: firstSent, onBack, onSignIn }: Rese
         />
         {message ? <Notice>{message}</Notice> : null}
         <View style={styles.links}>
-          <QuietLink testID="reset-resend" label={resendLabel(left)} disabled={left > 0} onPress={resend} />
+          {accepted ? null : <QuietLink testID="reset-resend" label={resendLabel(left)} disabled={left > 0} onPress={resend} />}
           <QuietLink testID="reset-back-to-sign-in" label="Back to sign in" onPress={onSignIn} />
         </View>
       </CaregiverScreen>

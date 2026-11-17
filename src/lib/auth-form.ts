@@ -157,6 +157,21 @@ export const PERSON_NOT_MATCHED = 'That did not work. Please check the ID and pa
 export const CAREGIVER_NOT_MATCHED = 'That email and password didn’t match. Please try again, or reset your password.';
 export const ALREADY_THERE = 'We couldn’t make an account with that email. If you already have one, sign in or reset your password.';
 export const NOT_CONFIRMED = 'Please confirm your email first. Open the link in the email we sent, then try again.';
+/** After "Send code", whatever happened: never says whether the address has an account. */
+export const RESET_SENT = 'If that email has an account, we have sent a code.';
+export const RESET_SENT_MORE = 'It can take a few minutes. If it isn’t there, look in the spam folder.';
+/** The code was accepted but Supabase refused the password: the code is used up, so only a new password is asked. */
+export const RESET_CODE_ACCEPTED = 'Your code worked.';
+
+/** A code from the email: 6 digits (Supabase allows up to 10 if its setting is changed). Spaces and dashes typed with it are dropped. */
+export const codeDigits = (typed: string) => typed.replace(/\D/g, '').slice(0, 10);
+export const codeProblem = (code: string): Problem => (code.length < 6 ? 'Please type the 6-digit code from the email.' : undefined);
+
+/** Asked before Their login gets a new password (Settings): it signs the person's phone out, and changes nothing else. */
+export const RESET_LOGIN_TITLE = 'Give their login a new password?';
+export const RESET_LOGIN_WORDS =
+  'Their phone will be signed out and will ask for the new password the next time it connects, within the hour. Only your family’s login changes. Their practice and your people are kept.';
+
 export const CODE_NOT_MATCHED = 'That code didn’t match, or it has expired. Please check the newest email and try again.';
 export const SOMETHING = 'Something didn’t work. Please try again.';
 

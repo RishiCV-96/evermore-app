@@ -596,21 +596,142 @@ await check('secure storage that can’t be read for a moment doesn’t sign the
   assert.equal(unlocked.now().status, 'signed-in', 'and the next launch is signed in as before');
 });
 
-await check('Forgot password: the same calm answer for any address, the code from the email, then the new password', async () => {
+// Forgot password (2026-11-16, docs/FORGOT-PASSWORD.md): a 6-digit code by email, typed in the app with
+// the new password. Never says whether an address has an account; never logs a code or an email.
+const UNKNOWN = 'nobody@caregiver.test';
+
+await check('Forgot password: the same calm answer for any address, even asked again within the minute; offline reads differently for all', async () => {
   const app = await caregiverAccount();
-  assert.deepEqual(await app.account.sendPasswordReset('nobody@caregiver.test'), { ok: true }, 'an address with no account: the same answer');
-  assert.equal(standin.emails.filter((one) => one.kind === 'recovery').length, 0, 'and nothing sent');
-  assert.deepEqual(await app.account.sendPasswordReset('pat@caregiver.test'), { ok: true });
-  const soon = await app.account.sendPasswordReset('pat@caregiver.test');
-  assert.deepEqual([soon.ok, soon.reason], [false, 'busy'], 'asking again within the minute: calm words to wait');
-  const sent = standin.emails.find((one) => one.kind === 'recovery');
-  const miss = await app.account.resetPasswordWithCode('pat@caregiver.test', '000000', OTHER_PASSWORD);
-  assert.deepEqual([miss.ok, miss.reason], [false, 'code']);
-  assert.deepEqual(await app.account.resetPasswordWithCode('pat@caregiver.test', sent.code, OTHER_PASSWORD), { ok: true }, 'the code and a new password');
+  const answers = [];
+  answers.push(await app.account.sendPasswordReset(UNKNOWN));
+  assert.equal(standin.emails.filter((one) => one.kind === 'recovery').length, 0, 'an address with no account: nothing sent');
+  answers.push(await app.account.sendPasswordReset('pat@caregiver.test'));
+  assert.equal(standin.emails.filter((one) => one.kind === 'recovery').length, 1, 'the account’s address: one code sent');
+  // Supabase answers "wait a minute" (429) only for an address with an account; passing that on would tell.
+  answers.push(await app.account.sendPasswordReset(' PAT@caregiver.test '));
+  answers.push(await app.account.sendPasswordReset(UNKNOWN));
+  assert.ok(answers.every((one) => JSON.stringify(one) === JSON.stringify({ ok: true })), `every answer the same: ${JSON.stringify(answers)}`);
+  assert.equal(standin.emails.filter((one) => one.kind === 'recovery').length, 1, 'and no second email within the minute');
+  assert.equal(form.RESET_SENT, 'If that email has an account, we have sent a code.', 'the words shown after any of them');
+  standin.settings.offline = true;
+  const offline = [await app.account.sendPasswordReset('pat@caregiver.test'), await app.account.sendPasswordReset(UNKNOWN)];
+  standin.settings.offline = false;
+  assert.ok(offline.every((one) => !one.ok && one.reason === 'offline' && one.message === form.OFFLINE), 'no connection: the calm offline words, the same for any address');
+});
+
+await check('Forgot password: wrong, expired, reused and superseded codes fail calmly and sign nobody in; too many tries waits', async () => {
+  const app = await caregiverAccount();
+  standin.settings.emailSeconds = 0;
+  const calm = (result, why) => assert.deepEqual([result.ok, result.reason, result.message], [false, 'code', form.CODE_NOT_MATCHED], why);
+  await app.account.sendPasswordReset('pat@caregiver.test');
+  const first = standin.emails.findLast((one) => one.kind === 'recovery');
+  calm(await app.account.resetPasswordWithCode('pat@caregiver.test', first.code === '123456' ? '654321' : '123456', OTHER_PASSWORD), 'a wrong code');
+  calm(await app.account.resetPasswordWithCode(UNKNOWN, first.code, OTHER_PASSWORD), 'an address with no account reads the same');
+  await app.account.sendPasswordReset('pat@caregiver.test');
+  const second = standin.emails.findLast((one) => one.kind === 'recovery');
+  if (second.code !== first.code) calm(await app.account.resetPasswordWithCode('pat@caregiver.test', first.code, OTHER_PASSWORD), 'a code from an older email, once a newer one was sent');
+  standin.expireAccessTokens(3700);
+  calm(await app.account.resetPasswordWithCode('pat@caregiver.test', second.code, OTHER_PASSWORD), 'a code past its hour');
+  await settle();
+  assert.equal(app.now().status, 'signed-out', 'none of them signed anyone in');
+  assert.equal(sessionInVault(), null, 'or kept a session');
+  assert.equal(app.account.resetAwaitingPassword(), false);
+  // Reused: a code that worked once never works again.
+  await app.account.sendPasswordReset('pat@caregiver.test');
+  const fresh = standin.emails.findLast((one) => one.kind === 'recovery');
+  assert.deepEqual(await app.account.resetPasswordWithCode('pat@caregiver.test', fresh.code, OTHER_PASSWORD), { ok: true }, 'the newest code, in its hour');
   await until(() => app.now().status === 'signed-in', 'signed in by it');
   await app.account.signOut();
+  calm(await app.account.resetPasswordWithCode('pat@caregiver.test', fresh.code, PASSWORD), 'the same code again');
+  // Supabase's limit on code checks (30 in five minutes per IP address): calm words to wait.
+  standin.settings.verifyLimit = 0;
+  const busy = await app.account.resetPasswordWithCode('pat@caregiver.test', '111111', PASSWORD);
+  assert.deepEqual([busy.ok, busy.reason, busy.message], [false, 'busy', form.TOO_MANY], 'too many tries: wait a few minutes');
+  standin.settings.verifyLimit = 30;
+  standin.settings.offline = true;
+  const offline = await app.account.resetPasswordWithCode('pat@caregiver.test', '111111', PASSWORD);
+  standin.settings.offline = false;
+  assert.deepEqual([offline.reason, offline.message], ['offline', form.OFFLINE], 'no connection: the offline words');
+});
+
+await check('Forgot password: the new password works and the old one doesn’t; signed in only once it is saved, or not at all if left', async () => {
+  const app = await caregiverAccount();
+  standin.settings.emailSeconds = 0;
+  standin.settings.minPassword = 30;
+  await app.account.sendPasswordReset('pat@caregiver.test');
+  let sent = standin.emails.findLast((one) => one.kind === 'recovery');
+  // Supabase refuses the password after taking the code: the caregiver stays on the step, signed out.
+  const refused = await app.account.resetPasswordWithCode('pat@caregiver.test', sent.code, OTHER_PASSWORD);
+  assert.deepEqual([refused.ok, refused.reason], [false, 'weak'], 'Supabase’s own rule, in calm words');
+  await settle();
+  assert.equal(app.now().status, 'signed-out', 'not let into the home with the old password still in place');
+  assert.equal(app.account.resetAwaitingPassword(), true, 'the code is used up, so only a new password is asked');
+  // Leaving the step then: the session the code gave goes, and nothing changed.
+  await app.account.cancelPasswordReset();
+  await settle();
+  assert.deepEqual([app.now().status, sessionInVault(), app.account.resetAwaitingPassword()], ['signed-out', null, false], 'left: signed out, nothing kept');
+  assert.deepEqual(await app.account.signIn('caregiver', 'pat@caregiver.test', PASSWORD), { ok: true }, 'and the old password still works');
+  await until(() => app.now().status === 'signed-in', 'signed in');
+  await app.account.signOut();
+  // Again, this time choosing a password Supabase takes.
+  await app.account.sendPasswordReset('pat@caregiver.test');
+  sent = standin.emails.findLast((one) => one.kind === 'recovery');
+  assert.equal((await app.account.resetPasswordWithCode('pat@caregiver.test', sent.code, 'short but fine')).reason, 'weak');
+  const longer = 'banana bread on Sundays and Mondays too';
+  assert.deepEqual(await app.account.finishPasswordReset(longer), { ok: true }, 'a second password, without a second code');
+  await until(() => app.now().status === 'signed-in', 'signed in once it is saved');
+  assert.equal(app.now().profile.role, 'caregiver');
+  await app.account.signOut();
   assert.equal((await app.account.signIn('caregiver', 'pat@caregiver.test', PASSWORD)).reason, 'credentials', 'the old password no longer works');
-  assert.deepEqual(await app.account.signIn('caregiver', 'pat@caregiver.test', OTHER_PASSWORD), { ok: true }, 'the new one does');
+  assert.deepEqual(await app.account.signIn('caregiver', 'pat@caregiver.test', longer), { ok: true }, 'the new one does');
+});
+
+await check('Forgot password: no code or email in any log, and the screens wait a minute between sends', () => {
+  const codes = standin.emails.map((one) => one.code);
+  for (const line of said) {
+    assert.ok(!codes.some((code) => line.includes(code)), 'no code reaches the console');
+    assert.ok(!/[\w.+-]+@[\w-]+\.(test|invalid|com)/i.test(line), 'no email reaches the console');
+  }
+  for (const path of ['src/data/account.ts', 'src/components/sign-in/caregiver-sign-in.tsx', 'src/lib/auth-form.ts']) {
+    assert.ok(!/(console\.\w+|warnKind)\([^)]*\b(email|code|token)\b/i.test(inRepo(path)), `${path} logs no email or code`);
+  }
+  const screen = inRepo('src/components/sign-in/caregiver-sign-in.tsx');
+  assert.ok(/<AppText bold>\{RESET_SENT\}<\/AppText>/.test(screen) && !/If there’s an account for \{email/.test(screen), 'the same sentence for any address');
+  assert.ok(/disabled=\{left > 0\} onPress=\{resend\}/.test(screen) && form.RESEND_SECONDS === 60, 'Send again waits a minute');
+  assert.ok(/secondsLeft\(lastSent\.at, Date\.now\(\)\) > 0\) \{\s*onSent\(lastSent\.at\);\s*return;/.test(screen), 'and going back to send again within the minute sends nothing');
+  assert.ok(/useEffect\(\(\) => \(\) => void cancelPasswordReset\(\), \[\]\);/.test(screen), 'leaving the step forgets a half-finished reset');
+  assert.ok(/onChangeText=\{\(typed\) => setCode\(codeDigits\(typed\)\)\}/.test(screen) && form.codeDigits(' 12 34-56 ') === '123456' && form.codeProblem('12345') && !form.codeProblem('123456'), 'six digits, spaces and dashes dropped');
+  assert.ok(/\{accepted \? null : \(\s*<Field\s+testID="reset-code"/.test(screen), 'once the code is accepted, only a new password is asked');
+});
+
+await check('Their login: the caregiver resets it from Settings after a clear confirmation, and only their own family’s', async () => {
+  disk.clear();
+  vault.clear();
+  newProject({ autoconfirm: true });
+  const app = await launch();
+  await app.account.signUpCaregiver('ann@caregiver.test', PASSWORD, AGREED);
+  await until(() => app.now().status === 'signed-in', 'Ann signed up');
+  assert.equal((await app.account.createPersonLogin('sam.k', 'sams old password', 'Sam')).ok, true);
+  await app.account.signOut();
+  await app.account.signUpCaregiver('pat@caregiver.test', PASSWORD, AGREED);
+  await until(() => app.now().status === 'signed-in' && app.now().email === 'pat@caregiver.test', 'Pat signed up');
+  assert.equal((await app.account.createPersonLogin('rose.m', 'roses old password', 'Rose')).ok, true);
+  // Pat resets, even naming Ann's person's User ID: only Pat's own family's login changes.
+  const reset = await app.account.resetPersonLogin('rose.m', 'roses new password');
+  assert.equal(reset.ok, true, 'Pat resets Their login');
+  assert.equal((await app.account.resetPersonLogin('sam.k', 'taken over')).ok, false, 'renaming onto another family’s User ID is refused');
+  await app.account.signOut();
+  assert.deepEqual(await app.account.signIn('person', 'sam.k', 'sams old password'), { ok: true }, 'Ann’s person still signs in with their own password');
+  await until(() => app.now().status === 'signed-in', 'Sam signed in');
+  await app.account.signOut();
+  assert.equal((await app.account.signIn('person', 'rose.m', 'roses old password')).reason, 'credentials', 'Rose’s old password stops working');
+  assert.deepEqual(await app.account.signIn('person', 'rose.m', 'roses new password'), { ok: true }, 'and the new one works');
+  const settings = inRepo('src/components/caregiver-settings.tsx');
+  assert.ok(/if \(person && !\(await confirm\(RESET_LOGIN_TITLE, RESET_LOGIN_WORDS, 'Save new password'\)\)\) return;/.test(settings), 'asked first, before anything is sent');
+  assert.ok(/signed out/.test(form.RESET_LOGIN_WORDS) && /Only your family’s login changes/.test(form.RESET_LOGIN_WORDS) && /kept/.test(form.RESET_LOGIN_WORDS), 'naming what changes and what is kept');
+  assert.ok(/manage-family|MANAGE_FAMILY_FUNCTION/.test(inRepo('src/data/account.ts')), 'through the manage-family function');
+  const fn = inRepo('supabase/functions/manage-family/index.ts');
+  assert.ok(/\.eq\('caregiver_id', caregiverId\)\s*\.eq\('role', 'person'\)/.test(fn) && /updateUserById\(person\.id/.test(fn), 'the function finds the login only in the caller’s own family');
 });
 
 await check('the sign-in screens: Show on every password, Forgot password, and Sign out always in Settings', () => {
@@ -618,13 +739,13 @@ await check('the sign-in screens: Show on every password, Forgot password, and S
   const screen = inRepo('src/app/sign-in.tsx');
   const dashboard = inRepo('src/app/caregiver/index.tsx');
   assert.ok(!/<Field[^>]*secureTextEntry/s.test(signIn + inRepo('src/components/sign-in/caregiver-sign-up.tsx')), 'every caregiver password box is a PasswordField, with Show and Hide');
-  assert.ok(signIn.includes('label="Forgot password?"') && signIn.includes("'Send reset email'") && signIn.includes("'Save new password'"), 'Forgot password, its email, and the new password');
-  assert.ok(/If there’s an account for/.test(signIn), 'the reset confirmation never says whether the address has an account');
+  assert.ok(signIn.includes('label="Forgot password?"') && signIn.includes("'Send code'") && signIn.includes("'Save new password'"), 'Forgot password, its code, and the new password');
+  assert.ok(/\{RESET_SENT\}/.test(signIn), 'the reset confirmation never says whether the address has an account');
   assert.ok(!/Keep me signed in/.test(screen + signIn), 'no "Keep me signed in": a phone stays signed in until someone signs it out');
   assert.ok(/tab === 'settings' && \(family \|\| !LOCAL_ONLY\)/.test(dashboard), 'Settings shows with sign-in on even when the family couldn’t load');
   // Settings lives in src/components/settings-page.tsx since 2026-11-12: Sign out is in Account, which never waits for the family.
   const settings = inRepo('src/components/settings-page.tsx');
-  const account = settings.slice(settings.indexOf('<Section title="Account">'), settings.indexOf('<Section title="Linked phones">'));
+  const account = settings.slice(settings.indexOf('<Section title="Account">'), settings.indexOf('<Section title="The person’s phone">'));
   assert.ok(/<SignOutSetting \/>/.test(account) && /<Row testID="sign-out" label="Sign out"/.test(settings) && !/family \? <SignOutSetting/.test(settings), 'and Sign out is never behind the family');
   assert.ok(inRepo('src/data/app-data.ts').includes("import '@/data/forget';"), 'the app registers what sign-out clears');
 });

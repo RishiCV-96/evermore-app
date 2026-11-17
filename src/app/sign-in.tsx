@@ -21,6 +21,8 @@ export default function SignIn() {
   // Only while "Check your email" shows, in memory, so Continue can sign in once confirmed.
   const [pending, setPending] = useState<{ password: string; sentAt?: number; from: Step }>();
   const [resetSentAt, setResetSentAt] = useState(0);
+  // The address the last code went to in this visit (lowercased), so asking again within the minute waits.
+  const [resetSentTo, setResetSentTo] = useState('');
 
   /** Where Back goes from each step. */
   const back: Record<Step, Step | null> = {
@@ -85,8 +87,10 @@ export default function SignIn() {
           email={email}
           onEmail={setEmail}
           onBack={() => go('sign-in')}
+          lastSent={resetSentTo ? { to: resetSentTo, at: resetSentAt } : undefined}
           onSent={(at) => {
             setResetSentAt(at);
+            setResetSentTo(email.trim().toLowerCase());
             go('reset');
           }}
         />

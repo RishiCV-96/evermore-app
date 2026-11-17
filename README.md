@@ -156,8 +156,8 @@ If the phone can't reach the computer, `npx expo start --tunnel` works too, but 
 
 1. The welcome shows **I am practicing** and **I am a caregiver**. Tap **I am a caregiver**, then **Create an account**: email, password (tap **Show** to see it; the hint under it encourages a longer one) and the same again, then tick the consent statement. With Confirm email off the dashboard opens at once, with 5 sample people, all drafts until their profiles are finished, so the person sees no stories before that. With it on, "Check your email": open the link in the email, come back and tap **Continue** (or enter the code, if the email has one).
 2. **Settings** starts with "Signed in as" and your email. Sign out, then sign in with a wrong password: "That email and password didn’t match." After five misses in a row, sign-in pauses for a minute.
-3. **Forgot password?** sends an email with a code. Enter it with a new password. This needs custom SMTP and the code in the email template (see [Before launch](#before-launch)); it isn't verified yet.
-4. On the dashboard, open **Settings → Their login**. Give a first name, a User ID such as `rose.m`, and a password.
+3. **Forgot password?** emails a 6-digit code (the same calm answer for any address). Type it with a new password. This needs custom SMTP and the code in the Reset password template (see [Before launch](#before-launch) and `docs/FORGOT-PASSWORD.md`, which has why it fails without them); it isn't verified against the live project yet.
+4. On the dashboard, open **Settings → The person's phone → Their login**. Give a first name, a User ID such as `rose.m`, and a password.
 5. **Settings → Sign out**, tap **I am practicing**, and sign in with that User ID and password: "Hello", then **Continue**. The phone stays signed in from then on; holding **Caregiver** on the person's home (and confirming) signs it out.
 6. Tap **Start** and practice until the wrap-up. The progress bar on the home screen moves up.
 7. Turn on airplane mode, practice a few cards, then turn it off. The cards reach the server, which you can check on the caregiver dashboard.
@@ -204,8 +204,8 @@ npx expo export --platform ios --platform android --output-dir /tmp/evermore-che
 
 Testing ran with **Confirm email** off and without custom email, so the email code steps (confirming a new account, and resetting a password) are not verified yet. Before real use:
 
-1. **Set up custom SMTP.** In **Authentication → Emails → SMTP settings**, enter your email provider's SMTP details. Supabase's built-in email only reaches your Supabase team, a few messages an hour, and its templates can't be edited.
-2. **Put the code in the email templates.** The app asks for the 6-digit code, not a link. In **Authentication → Emails → Templates**, add the code to both **Confirm signup** and **Reset password**, for example `<p>Your code: {{ .Token }}</p>`.
+1. **Set up custom SMTP.** In **Authentication → Emails → SMTP settings**, enter your email provider's SMTP details. Supabase's built-in email only reaches your Supabase team, about 2 messages an hour, and its templates can't be edited until custom SMTP is on. Then raise **Authentication → Rate Limits → Rate limit for sending emails**. A provider is a new third party: add it to the data inventory and the policy.
+2. **Put the code in the email templates.** The app asks for the 6-digit code, not a link (a link can't open the app in Expo Go). In **Authentication → Emails → Templates**, put `{{ .Token }}` in both **Confirm signup** and **Reset password**, and take the link out. `docs/FORGOT-PASSWORD.md` has a full template, and the OTP length (6) and expiry (one hour) to keep.
 3. **Turn Confirm email back on:** **Authentication → Sign In / Providers → Email → Confirm email**, then **Save**. `mailer_autoconfirm` at `<project URL>/auth/v1/settings` should then be `false`.
 4. **Test both email flows on a phone:**
    - sign up with a real address and enter the code

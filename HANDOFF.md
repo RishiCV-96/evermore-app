@@ -75,6 +75,36 @@ commit;
 - A phone paired with an earlier build: still practicing after the update, the welcome once its session is lost, and Their login working on it.
 - Hello on a real phone with the keyboard up: the sentence, the fields, the policy link and Continue.
 
+## Part C: Forgot password fixed (caregiver accounts)
+
+**Built, committed and checked** against the in-memory Supabase only (`npm test`; typecheck; lint; the sign-in-on web build walked against the stand-in at 375x647 and 430x839, 55 checks). **Not verified against the live project:** that needs the dashboard steps below. `docs/FORGOT-PASSWORD.md` has the full diagnosis and the fix.
+
+- **Why it failed.** The app already had a code screen (`verifyOtp` with `recovery`, then `updateUser`). It still failed for these reasons:
+  1. Supabase's default Reset password email carries a **link, not the code**.
+  2. The link lands on the Site URL in a browser and **can't open Expo Go**.
+  3. Templates **can't be edited without custom SMTP**.
+  4. The built-in sender **emails only your Supabase team, about 2 an hour**, so a real caregiver gets nothing, while the app (rightly) shows the same calm message.
+
+  Two app bugs as well: if Supabase refused the new password after taking the code, the caregiver was **signed in anyway with the old password still set** and never told. And a **second request within a minute revealed whether an account existed** (Supabase's 429 was passed on only for real accounts).
+- **Now.**
+  - "Send code" always answers "If that email has an account, we have sent a code." The 429 is no longer passed on, the step keeps its own minute (Send again counts down; going Back and sending again within the minute sends nothing), and only offline reads differently.
+  - The code field takes 6 digits and drops spaces and dashes. Wrong, expired, reused or superseded codes read calmly and sign nobody in. Too many tries says to wait.
+  - The sign-in is held until the new password is saved. A refused password is said on the step ("Your code worked." and the reason), and a second password needs no second code. Leaving the step signs the code's session out. No code or email is ever logged.
+- **Their login** (no email) already resets from Settings → The person's phone → Their login through `manage-family`, which only finds the login in the caller's own family; verified in tests (another family's login untouched, renaming onto another family's User ID refused). **Added:** a confirmation first that says it signs the person's phone out and what is kept.
+
+### What you must do in the Supabase dashboard (Part C)
+
+1. **Authentication → Emails → SMTP Settings:** set up custom SMTP (a provider such as Resend, Postmark, Amazon SES or Brevo, with a verified sender domain). Without it Supabase emails only your project's team, about 2 an hour, and keeps the default templates. A provider is a **new third party** that receives caregivers' email addresses: it must be added to `docs/DATA-INVENTORY.md` and the privacy policy (a new `POLICY_VERSION`).
+2. **Authentication → Rate Limits:** raise "Rate limit for sending emails" to what you need.
+3. **Authentication → Emails → Templates → Reset Password:** replace the link with the code, `{{ .Token }}` (`docs/FORGOT-PASSWORD.md` has a full template). Do the same in **Confirm signup**.
+4. **Authentication → Providers → Email:** keep "Email OTP Length" at 6 and "Email OTP Expiration" at 3600.
+5. **Redirect URLs:** nothing needed (no link is used). Optionally point **Site URL** at your hosted policy page instead of `localhost`.
+6. **Test on a phone** with an address that is not on your Supabase team: the code arrives, a new password signs in, the old one is refused.
+
+### Only a phone or the live project can verify (Part C)
+
+The real email and its code; Supabase's real answers to wrong, expired and reused codes and to too many tries (the stand-in follows its documented behavior); Supabase's real password rules; one-time-code autofill on iOS and Android; the Their login confirmation as a native alert.
+
 # The release before: "I'm not sure" on the person's cards
 
 Updated 2026-11-13. Work in `~/evermore-clean` so `CLAUDE.md` loads. The history cleanup and the move to `~/evermore-clean` are finished; nothing below touches them.

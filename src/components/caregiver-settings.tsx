@@ -12,7 +12,8 @@ import { REVEAL_CHOICES, SESSION_LENGTH_CHOICES, type RevealSetting, type Sessio
 import { MIN_PASSWORD, USERNAME_PATTERN, changePassword, createPersonLogin, resetPersonLogin, useAccount } from '@/data/account';
 import { LOCAL_ONLY, setAiOn, setRevealCards, setSessionLength } from '@/data/app-data';
 import { refreshFamily, type Family, type PersonLogin } from '@/data/family-store';
-import { isClear, newPasswordProblems } from '@/lib/auth-form';
+import { RESET_LOGIN_TITLE, RESET_LOGIN_WORDS, isClear, newPasswordProblems } from '@/lib/auth-form';
+import { confirm } from '@/lib/confirm';
 import { cardsOf, dailyTarget, minutesLabel, practiceFrom } from '@/lib/session';
 import { Colors } from '@/theme/colors';
 import { COMPACT_TAP, Space } from '@/theme/layout';
@@ -109,6 +110,8 @@ export function PersonLoginSetting({ person }: { person: PersonLogin | null }) {
       setNotice(`Choose a password with at least ${MIN_PASSWORD} characters.`);
       return;
     }
+    // A new password signs their phone out, so ask first, naming what changes and what doesn't.
+    if (person && !(await confirm(RESET_LOGIN_TITLE, RESET_LOGIN_WORDS, 'Save new password'))) return;
     setBusy(true);
     const result = person ? await resetPersonLogin(id, password) : await createPersonLogin(id, password, name);
     setBusy(false);
@@ -117,7 +120,11 @@ export function PersonLoginSetting({ person }: { person: PersonLogin | null }) {
       return;
     }
     setNotice(undefined);
-    setDone(`Saved. On their phone, choose “I am practicing” and sign in with User ID “${id}” and the password you chose. The phone stays signed in after that.`);
+    setDone(
+      person
+        ? `Saved. Their phone will ask them to sign in again, within the hour. Then choose “I am practicing” and sign in with User ID “${id}” and the new password.`
+        : `Saved. On their phone, choose “I am practicing” and sign in with User ID “${id}” and the password you chose. The phone stays signed in after that.`,
+    );
     refreshFamily();
   }
 

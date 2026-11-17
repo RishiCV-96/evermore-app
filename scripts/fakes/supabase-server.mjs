@@ -87,7 +87,13 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
     signInLimit: Infinity,
     /** Supabase's own minimum password length (its default is 6). */
     minPassword: 6,
+    /** Seconds a code from an email works (Supabase's "Email OTP Expiration": 3600). */
+    otpSeconds: 3600,
+    /** Code checks (/verify) allowed in five minutes before the server answers 429 (Supabase: 30 per IP). */
+    verifyLimit: 30,
   };
+  /** When each code check came in, for verifyLimit. */
+  const verifyTries = [];
   const users = []; // { id, email, salt, hash, confirmed_at, user_metadata, app_metadata, created_at }
   const sessions = new Map(); // refresh token -> { userId, sessionId, revoked }
   const emails = []; // { to, kind: 'signup' | 'recovery', code, link, at }
@@ -332,7 +338,11 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
       const kind = body.type === 'recovery' ? 'recovery' : 'signup';
       const sent = [...emails].reverse().find((one) => one.to === email && one.kind === kind);
       const user = users.find((one) => one.email === email);
-      if (!sent || !user || sent.code !== String(body.token ?? '').trim() || sent.used) return authError(403, 'otp_expired', 'Token has expired or is invalid');
+      verifyTries.push(now());
+      if (verifyTries.filter((at) => at > now() - 5 * 60_000).length > settings.verifyLimit) return authError(429, 'over_request_rate_limit', 'Request rate limit reached');
+      // Only the newest email's code works, once, until it expires; the same answer for an unknown address.
+      const expired = sent && now() - sent.at > settings.otpSeconds * 1000;
+      if (!sent || !user || sent.code !== String(body.token ?? '').trim() || sent.used || expired) return authError(403, 'otp_expired', 'Token has expired or is invalid');
       sent.used = true;
       user.confirmed_at ??= nowIso();
       return json(200, issueSession(user));
