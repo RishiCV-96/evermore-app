@@ -198,6 +198,9 @@ await check('the strength hint: calm, about length, and never a reason to refuse
   assert.deepEqual(levels, [0, 0, 0, 1, 1, 2, 3, 3], 'it grows with length');
   for (const easy of ['password', 'Password1', '12345678', 'aaaaaaaa', 'abcdefghij', 'evermore', 'qwerty123']) assert.equal(form.passwordStrength(easy).level, 1, `${easy} is easy to guess`);
   assert.equal(form.passwordStrength('patsmith2026', 'patsmith@family.test').level, 1, 'the email’s name in it is easy to guess');
+  // The app's own name is guessable: short on its own, and named in the list for when spaces make it long enough.
+  for (const name of ['tandem', 'Tandem1']) assert.equal(form.passwordStrength(name).level, 0, `${name} is too short`);
+  for (const spaced of ['tan dem 1', 'TANDEM  ', 'Tan dem 1']) assert.match(form.passwordStrength(spaced).words, /^Easy to guess/, `${spaced} is the app's name`);
   assert.match(form.passwordStrength('').words, /^At least 8 characters\./);
   assert.equal(form.passwordStrength(PASSWORD).words, 'Strong.');
   const component = inRepo('src/components/password-field.tsx');

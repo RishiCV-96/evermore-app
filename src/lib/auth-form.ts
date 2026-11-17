@@ -100,6 +100,8 @@ const EASY = new Set([
   'abc12345',
   'evermore',
   'evermore1',
+  'tandem',
+  'tandem1',
   'sunshine',
   'princess',
   'football',
