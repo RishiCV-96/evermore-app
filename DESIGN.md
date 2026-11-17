@@ -132,6 +132,15 @@ A study day begins at **05:30 local time** on each device and runs until 05:29:5
 - **The person's words** after the day: "Nice work." and "You can keep practicing, or come back in the morning." The wrap-up says the same; "All done today." is gone, as it could read as practice being over.
 - **Needs clinician review:** the 05:30 start, that an unfinished day doesn't carry over, and how extra practice is treated (counted in the score, not in the standard).
 
+## Add a person in five steps (2026-11-17)
+
+At the user's request the form got shorter: **five steps instead of eight**, over the same eight sections and every stored field (`docs/UI-POLISH-PLAN.md`). This supersedes "One flow of eight steps" below, and the audit's "eight steps, not nine".
+
+- **What is stored doesn't change.** `people.profile_step` still means the furthest *section* reached (0 to 7). The steps are a way of showing sections: `pageOf` opens a stored section on the step that holds it, and reaching a step stores its first section (`firstSectionOf`). A draft from any version therefore opens on the nearest step and loses nothing, and no Supabase change was needed. `scripts/check-logic.mjs` checks every value 0 to 7, the round trip, that progress only moves forward, and that every question is on exactly one step.
+- **The steps:** Who they are (with Names and dates behind More details), Work and home (two titled cards), Interests, Memories and hints (two titled cards), Review (one row per step).
+- **More details.** Each card's less-asked questions wait behind one row (`behind: MORE`); anything answered behind it is always shown. Required questions are never behind it.
+- **Measured** at 375x647, empty: 3,717pt of scrolling content over eight steps became about 2,590 over five (`docs/UI-POLISH-PLAN.md` has the numbers).
+
 ## Add a person, refined (2026-11-12)
 
 Screen 5 and the approval that follows it, made consistent and slimmer. `docs/ADD-PERSON-AUDIT.md` has the audit, each finding's cause and what wasn't changed. No new screens, no schema change, and nothing person-facing changed.
@@ -144,7 +153,7 @@ Screen 5 and the approval that follows it, made consistent and slimmer. `docs/AD
 - **The keyboard** says Next and moves to the next typed field; the last says Done (`FieldChain` in `src/components/caregiver-ui.tsx`).
 - **Nothing typed is lost.** Back saves first, as before. Words typed in the hobbies' "Other" become a chip when the field is left; words typed in a list's "Something else" are kept when the list is closed; leaving a new person who has answers but no name asks first, since nothing can be saved without one.
 - **Review's way on is Continue.** Disabled below 100% and showing the percent ("Continue · 60%"), enabled at 100%, opening story approval. Someone the caregiver took out of practice still sees "Add June to practice", since it also puts them back (`reviewAction`). "What's left" opens the step of the first missing item, brings the question into view, focuses it if typed and shows its note; that step's button reads "Back to review". Every other step's button is **Next**, never gated, because the required questions are on three different steps.
-- **Resume profile.** "Finish profile" on the sheet is now "Resume profile", with where it picks up: "Picks up at step 5 of 8, Interests." (`resumeLine`).
+- **Resume profile.** "Finish profile" on the sheet is now "Resume profile", with where it picks up: "Picks up at step 5 of 8, Interests." (`resumeLine`; since 2026-11-17 "Picks up at step 3 of 5, Interests.").
 - **Approve all on story approval (screen 6).** Pinned beside Done: "Approve all 12" approves, in one tap, exactly the stories one tap each would (`storyApproval` in `src/lib/approve-all.ts`, built on the sheet's `approvalPlan`). Skipped stories stay skipped, every story keeps its words, a story open for editing is left out, and a fact that may change keeps its own Confirm. It never approves an AI sentence, which this screen doesn't show. Disabled ("Approve all") when nothing can be. A toast with Undo, the sheet's words ("Approved 6. 1 needs your confirmation."). **No confirmation dialog here**, unlike the sheet: every story is on this screen, which is what the sheet's confirmation shows, and Undo covers a slip. Long sentences stay in and keep their note. Per-story Approve, Edit and **Skip** stay: the brief said "Reject", but Skip is the app's word and gentler.
 
 ## Sign-in, on by default (2026-11-11)

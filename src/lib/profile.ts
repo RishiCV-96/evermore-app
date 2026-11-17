@@ -8,6 +8,8 @@ import {
   displayValue,
   questionFor,
   stepLabel,
+  PAGES,
+  pageOf,
   type Question,
   type Section,
 } from '@/data/questionnaire';
@@ -209,10 +211,10 @@ export function resumeStep(step: number, missing: { step: number }[]) {
   return Math.max(step, 1);
 }
 
-/** Under "Resume profile": "Picks up at step 5 of 8, Interests." */
+/** Under "Resume profile": "Picks up at step 3 of 5, Interests." Takes the stored section; names the step that shows it. */
 export function resumeLine(step: number) {
-  const section = SECTIONS.find((candidate) => candidate.step === step) ?? SECTIONS[0];
-  return `Picks up at ${stepLabel(section.step).toLowerCase()}, ${section.title}.`;
+  const page = pageOf(step);
+  return `Picks up at ${stepLabel(page).toLowerCase()}, ${PAGES[page].title}.`;
 }
 
 function answerText(card: SavedCard) {

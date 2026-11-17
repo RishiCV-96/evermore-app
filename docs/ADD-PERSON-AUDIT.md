@@ -120,7 +120,7 @@ Measured empty, at 390x763: only **Interests** scrolls (180pt; 91pt at 1024x800)
 
 ## Not changed, and why
 
-- **Eight steps, not nine** (finding 7): a ninth needs a schema change and a rerun on Supabase.
+- **Eight steps, not nine** (finding 7): a ninth needs a schema change and a rerun on Supabase. **Superseded 2026-11-17:** five steps over the same eight sections, with `profile_step` still storing the section (`docs/UI-POLISH-PLAN.md`).
 - **Skip stays Skip** on story approval (finding 11).
 - **Approve all never approves a fact that may change, or an AI sentence,** on either screen (finding 11): the hard rule, and what's on screen.
 - **The percent's 100% stays the gate's 100%** (finding 2): optional answers count, but only toward the way there.

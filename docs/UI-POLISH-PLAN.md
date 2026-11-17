@@ -280,3 +280,23 @@ Writing back: step 1 → 0, step 2 → 2, step 3 → 4, step 4 → 5, step 5 →
 6. **The Settings order** by use (Practice first), which changes the order recorded in `CLAUDE.md` and `docs/SETTINGS-AUDIT.md`.
 7. **The privacy policy's case.** Any change to its words, case included, changes its fingerprint, so it needs a new `POLICY_VERSION`, and every caregiver is asked to agree again. I'll list policy case issues under "Needs my decision" in the capitalization audit rather than change them.
 8. **The live card preview** on step 1, and **the tab bar** (keep the soft pill, or an Ink pill with white icon and label).
+
+## Results: Add a person (2026-11-17)
+
+Measured as the baseline was: the local-only web build from the working tree (no ignored file, so no real photo or local deck), Chrome, empty form, the scrolling content of each step.
+
+| | 375x647 | 430x839 |
+|---|---|---|
+| Before, as first shown (8 steps) | 3,717pt: 420, 350, 407, 520, 765, 388, 336, 531 | 3,717pt |
+| **After, as first shown (5 steps)** | **2,592pt: 480, 616, 585, 564, 347 (30.3% shorter)** | **2,540pt (31.7% shorter)** |
+| Before, every hidden row opened | 3,896pt | |
+| After, every More details opened | 3,245pt (16.7% shorter) | |
+
+Counting each screen's fixed header and pinned bar too (141pt a step, 193 on Review), a full pass goes from 4,897pt over 8 screens to 3,349pt over 5 (31.6% shorter), with three fewer Next taps.
+
+**Checked** in a walk at 375x647 (Reduce Motion off) and 430x839 (on), 60 checks: a new person from empty to story approval and Approve all, initials on the placeholder, More details opening, Team and Show on one row, the keyboard simulated (viewport 291pt shorter: the focused field and Next stay in view), and an old draft stored at sections 1, 3, 6 and 7 opening on steps 1, 2, 4 and the form, its Resume line, and what Next then stores. The audit at every step: no sideways scroll, no target under 44pt, no text under 4.5:1 (3:1 at 24pt and up), nothing red; it was shown to catch a planted red word, a 30pt target, faint text and a wide element.
+
+**Deviations from (d), and why:**
+- **The facts-only line stays in full on step 1**, as `docs/ADD-PERSON-AUDIT.md` decided: it's the one place every caregiver reads it. The saving came from elsewhere.
+- **The step title is now the 28pt large title** (the brief's "confident headline"), 7pt taller than before on each step.
+- **The photo preview is 112pt** (from 80), outside the card.

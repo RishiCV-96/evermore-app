@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -18,7 +19,8 @@ import { monthOf, tidyDraft } from '@/lib/facts';
 import { BLANK, PLAIN_MOST_WORDS, asOfLabel, phrasingsFor, sentenceFor, wordCount, type Fact, type PhrasingKind } from '@/lib/stories';
 import { approvedVariants } from '@/lib/variants';
 import { Colors } from '@/theme/colors';
-import { Space } from '@/theme/layout';
+import { Elevation } from '@/theme/elevation';
+import { ROW_ICON, Radius, Space } from '@/theme/layout';
 
 const NOT_SAVED = LOCAL_ONLY
   ? 'That change couldn’t be saved. Please try again.'
@@ -34,6 +36,13 @@ function statusText(card: SavedCard, person: SavedPerson) {
       : 'This may change, so it waits until you confirm it’s true.';
   }
   return card.status === 'approved' ? `Approved. ${appears}` : 'Not approved yet. It won’t appear in practice.';
+}
+
+/** The status line's icon, so where a story stands never rests on color alone. */
+function statusIcon(card: SavedCard) {
+  if (card.status === 'skipped') return 'remove-circle-outline' as const;
+  if (card.status === 'approved') return 'checkmark-circle-outline' as const;
+  return 'time-outline' as const;
 }
 
 /** What each kind of phrasing shows the person. */
@@ -67,6 +76,7 @@ export default function ReviewStories() {
   const person = family.people.find((candidate) => candidate.id === id);
   const cards = family.cards.filter((card) => card.personId === id);
   const waiting = cards.filter((card) => card.status === 'pending').length;
+  const approved = cards.filter((card) => card.status === 'approved').length;
   // The first story waiting shows its ways to ask; approving it opens the next.
   const nextUp = cards.find((card) => card.status === 'pending')?.id;
   const ready = person ? storyApproval(person, cards, editing) : { ids: [], held: 0 };
@@ -113,9 +123,23 @@ export default function ReviewStories() {
       <CaregiverScreen narrow title="Approve stories" backLabel="Dashboard" backTo="/caregiver" footer={footer}>
           {person ? (
           <>
-            <AppText size="caption" muted>
-              This is exactly what practice will show. Only approved stories appear.
-            </AppText>
+            <View style={styles.intro}>
+              {cards.length ? (
+                <AppText testID="approved-count" bold size="headline" accessibilityLiveRegion="polite">
+                  <AppText bold size="headline" tabular>
+                    {approved}
+                  </AppText>{' '}
+                  of{' '}
+                  <AppText bold size="headline" tabular>
+                    {cards.length}
+                  </AppText>{' '}
+                  approved
+                </AppText>
+              ) : null}
+              <AppText size="caption" muted>
+                This is exactly what practice will show. Only approved stories appear.
+              </AppText>
+            </View>
             <View style={styles.card}>
               <FittedPhoto source={photoSource(person)} style={styles.photoArea} />
               <AppText fit center bold>
@@ -246,9 +270,12 @@ function StoryReview({ person, card, sentences, isNext, label, onEditing }: Stor
       ) : null}
       {draft === null ? (
         <>
-          <AppText size="caption" muted>
-            {statusText(card, person)}
-          </AppText>
+          <View style={styles.status}>
+            <Ionicons name={statusIcon(card)} size={ROW_ICON} color={Colors.textMuted} aria-hidden />
+            <AppText size="caption" muted style={styles.statusText}>
+              {statusText(card, person)}
+            </AppText>
+          </View>
           {notice ? <Notice>{notice}</Notice> : null}
           <View style={styles.actions}>
             <View style={styles.action}>
@@ -358,11 +385,25 @@ const styles = StyleSheet.create({
   photoArea: {
     height: 180,
   },
+  intro: {
+    gap: Space.xs,
+  },
+  // Each story is a white card with a hairline-shadow edge in place of a divider.
   story: {
     gap: Space.s,
-    paddingTop: Space.l,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.divider,
+    padding: Space.l,
+    paddingBottom: Space.s,
+    borderRadius: Radius.card,
+    backgroundColor: Colors.background,
+    ...Elevation.edge,
+  },
+  status: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.s,
+  },
+  statusText: {
+    flex: 1,
   },
   storyTop: {
     flexDirection: 'row',

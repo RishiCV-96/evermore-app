@@ -633,11 +633,45 @@ for (const section of q.SECTIONS) {
   assert.ok(section.title.split(' ').length <= 4, `${section.title}: a short title`);
   assert.ok(/^\p{Lu}.*\.$/u.test(section.helper) && section.helper.length <= 80, `${section.title}: a one-line helper, a full sentence`);
 }
-assert.deepEqual(q.questionGroups(q.SECTIONS[3].questions).map((group) => group[0].heading ?? group[0].id), ['Home', 'Family'], 'Family and home: the private questions wait inside the Family card');
+assert.deepEqual(q.questionGroups(q.SECTIONS[3].questions).map((group) => group.length), [7], 'Family and home: one card, the private questions waiting behind More details in it');
 assert.deepEqual(q.questionGroups(q.SECTIONS[4].questions).map((group) => group.length), [2, 6], 'Interests: hobbies and what they always do, then favorites');
 assert.deepEqual(q.questionGroups(q.SECTIONS[5].questions).map((group) => group.length), [5], 'Shared memories: one card');
-assert.equal(q.stepLabel(0), 'Step 1 of 8', 'the first screen is step 1');
-assert.equal(q.stepLabel(q.REVIEW_STEP), 'Step 8 of 8', 'and review the last');
+
+// Five steps over the same eight sections (2026-11-17, docs/UI-POLISH-PLAN.md, "The draft mapping").
+// profile_step still stores the furthest *section* reached, so nothing saved changes meaning.
+assert.equal(q.PAGES.length, 5, 'five steps');
+assert.equal(q.stepLabel(0), 'Step 1 of 5', 'the first screen is step 1');
+assert.equal(q.stepLabel(q.REVIEW_PAGE), 'Step 5 of 5', 'and review the last');
+assert.deepEqual(q.PAGES.flatMap((page) => page.sections), q.SECTIONS.map((section) => section.step), 'every section on exactly one step, in order');
+assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 7].map(q.pageOf), [0, 0, 1, 1, 2, 3, 3, 4], 'an old draft opens on the step that now holds its section');
+for (let section = 0; section <= q.REVIEW_STEP; section++) {
+  assert.ok(q.pageOf(section) <= section && q.PAGES[q.pageOf(section)].sections.includes(section), `section ${section}: never a later step, so nothing between is skipped`);
+}
+for (let page = 0; page < q.PAGES.length; page++) assert.equal(q.pageOf(q.firstSectionOf(page)), page, `step ${page + 1}: a draft saved by this version opens where it was left`);
+assert.deepEqual(q.PAGES.map((_, page) => q.firstSectionOf(page)), [0, 2, 4, 5, 7], 'reaching a step stores its first section');
+assert.ok(q.PAGES.every((_, page) => page === 0 || q.firstSectionOf(page) > q.firstSectionOf(page - 1)), 'what is stored grows with the step, so progress only moves forward');
+assert.deepEqual([-3, 12, Number.NaN, 2.7].map(q.pageOf), [0, 4, 0, 1], 'a value outside 0 to 7, or not a number, is brought into it');
+{
+  const shown = q.PAGES.map((_, page) => q.pageSection(page).questions.map((one) => one.id));
+  const all = shown.flat();
+  assert.deepEqual([...all].sort(), q.SECTIONS.flatMap((section) => section.questions.map((one) => one.id)).sort(), 'every question is on a step');
+  assert.equal(new Set(all).size, all.length, 'and on only one, so no answer is lost or shown twice');
+  assert.deepEqual(q.PAGES.map((_, page) => q.pageSection(page).step), [0, 2, 4, 5, 7], 'a step renders as its first section');
+  assert.deepEqual(q.questionGroups(q.pageSection(1).questions).map((group) => group[0].heading), ['Work and school', 'Family and home'], 'Work and home: a titled card for each section');
+  assert.deepEqual(q.questionGroups(q.pageSection(3).questions).map((group) => group[0].heading), ['Shared memories', 'Hints and recognition'], 'Memories and hints: a titled card for each section');
+  assert.deepEqual(q.questionGroups(q.pageSection(0).questions).length, 1, 'Who they are: one card, Names and dates behind More details in it');
+  assert.ok(q.SECTIONS[1].questions.every((one) => one.behind === q.MORE), 'Names and dates wait behind More details');
+  assert.ok(everyQuestion.filter((one) => one.required).every((one) => !one.behind), 'a required question is never behind More details');
+  assert.deepEqual(everyQuestion.filter((one) => one.sideBySide).map((one) => one.id), ['team', 'show', 'movie', 'music', 'food', 'place'], 'only the short favorites sit side by side');
+  for (const page of q.PAGES) {
+    assert.ok(page.title.split(' ').length <= 4, `${page.title}: a short title`);
+    assert.ok(/^\p{Lu}.*\.$/u.test(page.helper) && page.helper.length <= 80, `${page.title}: a helper, a full sentence`);
+  }
+  const early = async (path) => (await import('node:fs')).readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+  const form = await early('src/components/questionnaire.tsx');
+  assert.ok(/go\(\(\) => onStep\(next\), firstSectionOf\(next\)\)/.test(form) && !/go\([^)]*\), (next|page|section\.step)\)/.test(form), 'the form stores sections, never step numbers');
+  assert.ok(/useState\(\(\) => pageOf\(Number\(params\.step\) \|\| 0\)\)/.test(await early('src/app/caregiver/add.tsx')), 'the screen opens a stored section on its step');
+}
 // "* Required" only where a step asks something required
 assert.deepEqual(q.SECTIONS.filter(q.hasRequired).map((section) => section.step), [0, 4, 5], 'the legend shows on the first step, Interests and Shared memories only');
 
@@ -723,8 +757,10 @@ assert.deepEqual(profile.reviewAction(95, { name: 'Ann' }), { label: 'Continue Â
 assert.deepEqual(profile.reviewAction(100, { name: 'Ann', inDeck: true }), { label: 'Continue', disabled: false }, 'at 100% it opens story approval');
 assert.deepEqual(profile.reviewAction(100, { name: 'Ann', inDeck: false, includeInPractice: false }), { label: 'Add Ann to practice', disabled: false }, 'someone taken out of practice is put back in by it, so it says so');
 // Resume profile says where it picks up
-assert.equal(profile.resumeLine(4), 'Picks up at step 5 of 8, Interests.');
-assert.equal(profile.resumeLine(profile.resumeStep(0, [])), 'Picks up at step 2 of 8, Names and dates.', 'a draft from the first screen picks up at the next step');
+assert.equal(profile.resumeLine(4), 'Picks up at step 3 of 5, Interests.');
+assert.equal(profile.resumeLine(3), 'Picks up at step 2 of 5, Work and home.', 'an old draft that reached Family and home');
+assert.equal(profile.resumeLine(6), 'Picks up at step 4 of 5, Memories and hints.', 'an old draft that reached Hints');
+assert.equal(profile.resumeLine(profile.resumeStep(0, [])), 'Picks up at step 1 of 5, Who they are.', 'a draft from the first screen picks up where Names and dates now are');
 assert.deepEqual(profile.missingItems(started, justOne), [{ id: 'interest', label: 'One interest', step: 4 }, { id: 'shared', label: 'One shared memory', step: 5 }], 'what is missing, and the step it is on');
 assert.deepEqual(profile.missingItems({ name: 'Ann', hasPhoto: false }, []).map((item) => [item.id, item.step]), [['photo', 0], ['relationship', 0], ['interest', 4], ['shared', 5]]);
 assert.ok(profile.needsFinishing(80), 'Resume profile stays until it is all done');
@@ -2194,7 +2230,7 @@ for (const level of levels) assert.deepEqual(Object.keys(TYPE_SCALE[level]).sort
   }
   // The tokens themselves, and the shared pieces that ask useCompact() before using them.
   const tokens = new Set(['src/theme/layout.ts', 'src/theme/elevation.ts', 'src/theme/motion.ts', 'src/components/pressed.tsx']);
-  const gated = new Set(['src/components/big-button.tsx', 'src/components/caregiver-ui.tsx', 'src/components/sheet.tsx']);
+  const gated = new Set(['src/components/big-button.tsx', 'src/components/caregiver-ui.tsx', 'src/components/sheet.tsx', 'src/components/choices.tsx']);
   assert.ok(seen.has('src/components/caregiver-ui.tsx') && seen.has('src/components/big-button.tsx'), 'the walk reaches the shared pieces');
   const CAREGIVER_LOOK = /\bElevation\b|boxShadow|shadow(Color|Opacity|Radius|Offset)\b|\belevation:|\bRadius\.|@\/components\/pressed|@\/theme\/motion|size="(headline|largeTitle)"/;
   for (const path of seen) {
@@ -2208,6 +2244,8 @@ for (const level of levels) assert.deepEqual(Object.keys(TYPE_SCALE[level]).sort
     }
   }
   assert.ok(/size=\{compact \? 'largeTitle' : 'title'\}/.test(ui), "CaregiverScreen's large title is the caregiver's only");
+  const choices = inRepo('src/components/choices.tsx');
+  assert.ok(/compact && styles\.chipPill, compact && !selected && styles\.chipEdge/.test(choices) && !/chip(On|Off): \{[^}]*(Radius\.|Elevation)/.test(choices), "chips are pills with an edge on the caregiver's screens only");
   const button = inRepo('src/components/big-button.tsx');
   const personButton = button.slice(button.indexOf('  return (\n    <Pressable'));
   assert.ok(/if \(compact\) \{[\s\S]*<Pressed/.test(button) && !/<Pressed|Haptics|tapFeel|Elevation/.test(personButton), "BigButton's press, haptics and look are the caregiver's; the person's path is unchanged");

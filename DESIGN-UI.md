@@ -634,3 +634,19 @@ With Reduce Motion: no scale and no entrance, only the tone change. A light hapt
 **The person's touch areas:** every control drawn at 48pt (Aa, Caregiver, the practice card's Home, I'm not sure and any quiet button, Hello's Back, the privacy policy link, a sheet's Close) has a 56pt touch area through `hitSlop` (`touchSlop()` in `src/theme/layout.ts`). Nothing is drawn bigger, so no layout moves.
 
 **Not borrowed from the article** (jakub.kr, "Details that make interfaces feel better"): `text-wrap` and font smoothing are CSS only, blur isn't cheap in React Native (and the brief rules it out), and there are no drawers to slide out.
+
+## Add a person, polished (2026-11-17)
+
+Five steps over the same eight sections (`DESIGN.md`, "Add a person in five steps"), on the caregiver's tokens above.
+
+| Piece | How it looks |
+| --- | --- |
+| Header | As before: the 4pt bar, "Step 2 of 5 · 40% complete" (the percent in tabular figures) and Finish later. The step's title at the 28pt large title, its helper, then "* Required" and the "Facts only" link on one row (the facts-only line in full on step 1). |
+| Photo | First on step 1, above the card: a 112pt preview at the card radius (24), Mist with the person's initials (Ink, the large title) once a name is typed, a person icon before; a photo gets a hairline inside its edge. Beside it the label line with Not applicable, then **Choose a photo** as a Mist pill with an images icon (12pt on the icon side, 16 on the other). Initials are for the caregiver only: practice never shows them. |
+| Cards | One card per section at the card radius; a merged step titles each card with its section's name ("Work and school", "Family and home"; "Shared memories", "Hints and recognition"). |
+| More details | The add row at the end of a card (⊕ and the words in Deep Rose), opening that card's less-asked questions in place. Each card opens on its own; an answered question is always shown. |
+| Two to a row | Team and Show, Movie and Music, Food and Place, side by side where each half keeps at least 120pt for the answer and the phone's own text is at most 1.15×; otherwise one per row. |
+| Chips | Pills; white with the edge shadow, Ink when chosen. |
+| Review | One row per step (four), the first with a 40pt face at the inner radius (the photo, or initials on white). The waiting Continue is a Mist button with muted words and the percent, and the sky strip. |
+| Story approval | "6 of 12 approved" in the headline size under the title (tabular). Each story a white card at the card radius with the edge shadow, in place of a hairline above it; its status line has an icon (a clock waiting, a check approved, a minus skipped) so it never rests on color. Approve, Edit, Skip and the pinned Approve all and Done are unchanged. |
+| Pinned bar | Floats on a soft shadow in place of its hairline. Back is Deep Rose like every other caregiver link (it was the person's ink-blue). |

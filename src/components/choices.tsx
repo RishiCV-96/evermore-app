@@ -9,7 +9,9 @@ import { Sheet } from '@/components/sheet';
 import { NOT_APPLICABLE, displayValue, type Option } from '@/data/questionnaire';
 import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
-import { COMPACT_TAP, ICON, RADIUS, Space } from '@/theme/layout';
+import { Elevation } from '@/theme/elevation';
+import { COMPACT_TAP, ICON, RADIUS, Radius, Space } from '@/theme/layout';
+import { useCompact } from '@/theme/type';
 
 // Tappable answers for the profile form: chips for a few short choices, and a row that opens a
 // list for many. Same surface, radius and selected fill as the buttons.
@@ -24,13 +26,15 @@ type ChipProps = {
 };
 
 export function Chip({ label, selected, onPress, role = 'checkbox', testID }: ChipProps) {
+  // The caregiver's chips are pills with a hairline edge; anywhere else they keep the one radius.
+  const compact = useCompact();
   return (
     <Pressable
       testID={testID}
       accessibilityRole={role}
       aria-checked={selected}
       onPress={onPress}
-      style={({ pressed }) => [styles.chip, selected ? styles.chipOn : styles.chipOff, pressed && styles.pressed]}>
+      style={({ pressed }) => [styles.chip, selected ? styles.chipOn : styles.chipOff, compact && styles.chipPill, compact && !selected && styles.chipEdge, pressed && styles.pressed]}>
       <AppText fit size="caption" color={selected ? Colors.onPrimary : Colors.text}>
         {label}
       </AppText>
@@ -188,6 +192,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Space.m,
     borderRadius: RADIUS,
   },
+  chipPill: {
+    borderRadius: Radius.pill,
+  },
   chipOn: {
     backgroundColor: Colors.primary,
   },
@@ -195,8 +202,12 @@ const styles = StyleSheet.create({
   chipOff: {
     backgroundColor: Colors.background,
   },
+  // White on Mist: a hairline edge so each reads as a shape.
+  chipEdge: {
+    ...Elevation.edge,
+  },
   pressed: {
-    transform: [{ scale: 0.98 }],
+    transform: [{ scale: 0.97 }],
   },
   option: {
     flexDirection: 'row',

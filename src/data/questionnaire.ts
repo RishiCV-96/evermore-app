@@ -75,6 +75,8 @@ export type Question = {
   heading?: string;
   /** Waits behind a quiet button with this label until it's wanted, or already answered. */
   behind?: string;
+  /** A short answer that may sit beside the next one, two to a row, where the screen has the room. */
+  sideBySide?: boolean;
   /** Needed for a complete profile. Each required question counts the same toward the percent. */
   required?: boolean;
   /** A required question that can honestly have no answer, so it offers "Not applicable". */
@@ -88,7 +90,7 @@ export type Question = {
 };
 
 export type Section = {
-  /** Its place in the form, from 0. The caregiver sees it counted from 1 ("Step 1 of 8"). */
+  /** Its place in the form, from 0: what `profile_step` stores. The caregiver sees the step that shows it (PAGES). */
   step: number;
   /** Short: one idea per step. */
   title: string;
@@ -98,6 +100,9 @@ export type Section = {
   relativeSafe: boolean;
   questions: Question[];
 };
+
+/** The row that opens a card's less-asked questions. Anything answered behind it is always shown. */
+export const MORE = 'More details';
 
 const SHORT = 40;
 const PHRASE = 60;
@@ -144,6 +149,7 @@ export const SECTIONS: Section[] = [
     questions: [
       {
         id: 'nickname',
+        behind: MORE,
         properName: true,
         label: 'Goes by',
         short: 'Nickname',
@@ -155,6 +161,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'calls',
+        behind: MORE,
         properName: true,
         label: 'What the person calls them',
         short: 'What they’re called',
@@ -166,6 +173,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'known',
+        behind: MORE,
         label: 'Known each other',
         short: 'Known each other',
         input: 'picker',
@@ -182,7 +190,7 @@ export const SECTIONS: Section[] = [
           { label: 'A few years', value: 'for a few years' },
         ],
       },
-      { id: 'birthday', label: 'Birthday', input: 'text', factType: 'birthday', properName: true, placeholder: 'March 3', limit: SHORT },
+      { id: 'birthday', label: 'Birthday', input: 'text', factType: 'birthday', properName: true, placeholder: 'March 3', limit: SHORT, behind: MORE },
     ],
   },
   {
@@ -205,6 +213,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'field',
+        behind: MORE,
         label: 'Field',
         input: 'picker',
         factType: 'field',
@@ -235,6 +244,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'workplace',
+        behind: MORE,
         properName: true,
         label: 'Employer or school',
         input: 'text',
@@ -245,6 +255,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'plans',
+        behind: MORE,
         label: 'Future plans',
         input: 'text',
         factType: 'plans',
@@ -264,7 +275,6 @@ export const SECTIONS: Section[] = [
       {
         id: 'home',
         properName: true,
-        heading: 'Home',
         label: 'Lives in',
         input: 'text',
         factType: 'home',
@@ -276,6 +286,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'lives_with',
+        behind: MORE,
         label: 'Lives with',
         input: 'text',
         factType: 'lives_with',
@@ -288,7 +299,6 @@ export const SECTIONS: Section[] = [
       {
         id: 'partner',
         properName: true,
-        heading: 'Family',
         label: 'Partner',
         input: 'text',
         factType: 'partner',
@@ -334,7 +344,7 @@ export const SECTIONS: Section[] = [
         changes: 'always',
         caregiverOnly: true,
         hintOff: true,
-        behind: 'Marital status or situation',
+        behind: MORE,
       },
       {
         id: 'situation',
@@ -347,7 +357,7 @@ export const SECTIONS: Section[] = [
         changes: 'always',
         caregiverOnly: true,
         hintOff: true,
-        behind: 'Marital status or situation',
+        behind: MORE,
       },
     ],
   },
@@ -388,6 +398,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'team',
+        sideBySide: true,
         properName: true,
         heading: 'Favorites',
         label: 'Team',
@@ -400,6 +411,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'show',
+        sideBySide: true,
         properName: true,
         label: 'Show',
         short: 'Favorite show',
@@ -411,6 +423,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'movie',
+        sideBySide: true,
         properName: true,
         label: 'Movie',
         short: 'Favorite movie',
@@ -422,6 +435,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'music',
+        sideBySide: true,
         properName: true,
         label: 'Music',
         short: 'Favorite music',
@@ -433,6 +447,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'food',
+        sideBySide: true,
         label: 'Food',
         short: 'Favorite food',
         input: 'text',
@@ -443,6 +458,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'place',
+        sideBySide: true,
         properName: true,
         label: 'Place',
         short: 'Favorite place',
@@ -477,6 +493,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'regular',
+        behind: MORE,
         label: 'The place we always…',
         short: 'A place we went',
         input: 'memory',
@@ -487,6 +504,7 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'holiday',
+        behind: MORE,
         label: 'A holiday we…',
         short: 'A holiday',
         input: 'memory',
@@ -516,7 +534,7 @@ export const SECTIONS: Section[] = [
         most: 3,
         more: 'Add something else',
         changes: 'may',
-        behind: 'Add something else',
+        behind: MORE,
       },
     ],
   },
@@ -548,8 +566,51 @@ export const SECTIONS: Section[] = [
 /** The step that ends the form. */
 export const REVIEW_STEP = SECTIONS[SECTIONS.length - 1].step;
 
-/** "Step 3 of 8": steps are counted from 1 for the caregiver, Review included. */
-export const stepLabel = (step: number) => `Step ${step + 1} of ${SECTIONS.length}`;
+/**
+ * The form's five steps (since 2026-11-17, docs/UI-POLISH-PLAN.md). A step shows one or two sections.
+ * What is stored never changed: `profile_step` is still the furthest *section* reached (0 to 7), so a
+ * draft saved by any version opens on the step that holds its section, and reaching a step stores its
+ * first section, a value every version understands. `headed` gives each section its own card, titled.
+ */
+export type Page = { title: string; helper: string; sections: number[]; headed?: boolean };
+
+export const PAGES: Page[] = [
+  { title: 'Who they are', helper: 'Their name, a photo, and how they’re related.', sections: [0, 1] },
+  { title: 'Work and home', helper: 'What they do, where they live, and who is close to them.', sections: [2, 3], headed: true },
+  { title: 'Interests', helper: 'What they enjoy. A favorite counts as an interest.', sections: [4] },
+  { title: 'Memories and hints', helper: 'Times you shared, as the person practicing tells them.', sections: [5, 6], headed: true },
+  { title: 'Review', helper: 'Each answer becomes a sentence you approve before it reaches practice.', sections: [7] },
+];
+
+/** The step that ends the form. */
+export const REVIEW_PAGE = PAGES.length - 1;
+
+/** The step that shows a stored section. Anything outside 0 to 7, or not a number, is brought into it. */
+export function pageOf(section: number) {
+  const clamped = Number.isFinite(section) ? Math.min(Math.max(Math.trunc(section), 0), REVIEW_STEP) : 0;
+  return PAGES.findIndex((page) => page.sections.includes(clamped));
+}
+
+/** What reaching a step stores: its first section. */
+export const firstSectionOf = (page: number) => PAGES[Math.min(Math.max(page, 0), REVIEW_PAGE)].sections[0];
+
+/** A step's questions as one section to render: its sections' questions in order, each section's first titled when `headed`. */
+export function pageSection(page: number): Section {
+  const shown = PAGES[page];
+  const parts = shown.sections.map((step) => SECTIONS.find((section) => section.step === step)!);
+  return {
+    step: shown.sections[0],
+    title: shown.title,
+    helper: shown.helper,
+    relativeSafe: false,
+    questions: parts.flatMap((section) =>
+      section.questions.map((question, index) => (shown.headed && index === 0 ? { ...question, heading: section.title } : question)),
+    ),
+  };
+}
+
+/** "Step 3 of 5": steps are counted from 1 for the caregiver, Review included. */
+export const stepLabel = (page: number) => `Step ${page + 1} of ${PAGES.length}`;
 
 /** In full on the first step; behind a small "Facts only" link on the others. */
 export const FACTS_ONLY = 'Facts only, please: nothing medical, financial or private.';

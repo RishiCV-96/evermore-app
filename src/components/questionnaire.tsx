@@ -4,7 +4,7 @@ import { Image, type ImageProps } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { Fragment, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type ViewInstance } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions, type ViewInstance } from 'react-native';
 import Animated, { FadeInLeft, FadeInRight, useReducedMotion } from 'react-native-reanimated';
 
 import { AppText } from '@/components/app-text';
@@ -12,6 +12,7 @@ import { BigButton } from '@/components/big-button';
 import {
   AddRow,
   CaregiverScreen,
+  FORM_WIDTH,
   FieldChain,
   FieldNote,
   FormCell,
@@ -28,6 +29,7 @@ import {
   type NotApplicable,
 } from '@/components/caregiver-ui';
 import { Chip, Chips, Picker } from '@/components/choices';
+import { Pressed } from '@/components/pressed';
 import { Avatar, avatarSource, hasPhoto, photoSource, profileOf, type PhotoFields } from '@/components/person-photo';
 import { ProgressBar } from '@/components/progress-bar';
 import { Checkbox } from '@/components/sheet';
@@ -36,14 +38,19 @@ import { LOCAL_ONLY, addPerson, addToPractice, saveFacts, setFactHints, setProfi
 import type { SavedCard, SavedPerson } from '@/data/family-store';
 import {
   FACTS_ONLY,
+  MORE,
   NOT_APPLICABLE,
-  REVIEW_STEP,
+  PAGES,
+  REVIEW_PAGE,
   SECTIONS,
   STILL_NEEDED,
   canNotApply,
   displayValue,
   exampleOf,
+  firstSectionOf,
   hasRequired,
+  pageOf,
+  pageSection,
   questionFor,
   questionGroups,
   stepLabel,
@@ -68,7 +75,8 @@ import {
 import { tidyName, tidyRelationship, type BestClue } from '@/lib/stories';
 import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
-import { COMPACT_TAP, ICON, RADIUS, Space } from '@/theme/layout';
+import { PHOTO_OUTLINE } from '@/theme/elevation';
+import { CAREGIVER_GUTTER, COMPACT_TAP, ICON, RADIUS, ROW_ICON, Radius, Space } from '@/theme/layout';
 import { warnKind } from '@/lib/log';
 import { shrinkPhoto } from '@/lib/shrink-photo';
 
@@ -76,8 +84,10 @@ const NOT_SAVED = LOCAL_ONLY
   ? 'That step couldn’t be saved. Please try again.'
   : 'That step couldn’t be saved. Please check the internet connection and try again.';
 
-/** The person's photo on the form: large enough to see who it is. */
-const PHOTO = 80;
+/** The person's photo, first on the form: large enough to see who it is. */
+const PHOTO = 112;
+/** A face on the review's first row. */
+const THUMB = 40;
 const MEMORY_PHOTO = 32;
 
 /** Quick: long enough to read as moving on, never a wait. Reduce Motion skips it. */
@@ -95,12 +105,13 @@ type QuestionnaireProps = {
   person?: SavedPerson & PhotoFields;
   /** This person's facts. */
   cards: SavedCard[];
+  /** The step shown, from 0 ("Step 1 of 5"). Not what is stored: see PAGES in src/data/questionnaire.ts. */
   step: number;
-  /** Go to a step; 0 is the first (shown as "Step 1 of 8"). */
+  /** Go to a step. */
   onStep: (step: number) => void;
 };
 
-// Screen 5 as steps, every one with the same slim header: the bar, "Step N of 8 · X% complete" and
+// Screen 5 as five steps, every one with the same slim header: the bar, "Step N of 5 · X% complete" and
 // Finish later. Answers save as a draft while they are typed (src/components/use-autosave.ts), so the
 // caregiver can stop anywhere and resume from the person's sheet. The questions are in
 // src/data/questionnaire.ts; docs/ADD-PERSON-AUDIT.md has why it looks the way it does.
@@ -111,7 +122,7 @@ export function Questionnaire({ id, person, cards, step, onStep }: Questionnaire
   const [forward, setForward] = useState(true);
   // What's left: the question to bring into view on arriving.
   const [focus, setFocus] = useState<string>();
-  const section = SECTIONS.find((candidate) => candidate.step === step)!;
+  const section = pageSection(step);
 
   function moveTo(to: number, question?: string) {
     setForward(to > step);
@@ -119,16 +130,16 @@ export function Questionnaire({ id, person, cards, step, onStep }: Questionnaire
     onStep(to);
   }
 
-  if (step === REVIEW_STEP && person) {
+  if (step === REVIEW_PAGE && person) {
     return (
       <ReviewStep
         person={person}
         cards={cards}
         forward={forward}
-        onBack={() => moveTo(REVIEW_STEP - 1)}
+        onBack={() => moveTo(REVIEW_PAGE - 1)}
         onEdit={(to, question) => {
           setFromReview(true);
-          moveTo(to, question);
+          moveTo(pageOf(to), question);
         }}
       />
     );
@@ -137,13 +148,14 @@ export function Questionnaire({ id, person, cards, step, onStep }: Questionnaire
     <SectionStep
       key={step}
       id={id}
+      page={step}
       section={section}
       person={person}
       cards={cards}
       forward={forward}
       focus={focus}
       toReview={fromReview}
-      next={fromReview ? REVIEW_STEP : step + 1}
+      next={fromReview ? REVIEW_PAGE : step + 1}
       onStep={moveTo}
     />
   );
@@ -152,6 +164,8 @@ export function Questionnaire({ id, person, cards, step, onStep }: Questionnaire
 const leave = () => (router.canGoBack() ? router.back() : router.replace('/caregiver'));
 
 type StepLayoutProps = {
+  /** The step shown, from 0. */
+  page: number;
   section: Section;
   /** How much of the profile is done. */
   percent: number;
@@ -165,15 +179,15 @@ type StepLayoutProps = {
 };
 
 /**
- * A step of the form. Fixed: the slim bar, "Step N of 8 · X% complete" and Finish later. Sliding in:
+ * A step of the form. Fixed: the slim bar, "Step N of 5 · X% complete" and Finish later. Sliding in:
  * the title, its one-line helper, "* Required" only where something is, and the facts-only line (in
  * full on the first step, behind a small link after it). The way on is pinned below.
  */
-function StepLayout({ section, percent, forward, busy = false, onLater, footer, children }: StepLayoutProps) {
+function StepLayout({ page, section, percent, forward, busy = false, onLater, footer, children }: StepLayoutProps) {
   const accent = useAccent();
   const reduced = useReducedMotion();
   const [factsOpen, setFactsOpen] = useState(false);
-  const first = section.step === 0;
+  const first = page === 0;
   const asks = section.questions.length > 0;
   const legend = hasRequired(section);
   const entering = reduced ? undefined : (forward ? FadeInRight : FadeInLeft).duration(STEP_MOTION);
@@ -187,7 +201,7 @@ function StepLayout({ section, percent, forward, busy = false, onLater, footer, 
           <ProgressBar completed={percent} goal={100} bare label={`Profile ${percent}% complete`} />
           <View style={styles.metaRow}>
             <AppText testID="percent" fit size="caption" muted style={styles.grow}>
-              {stepLabel(section.step)} · {percent}% complete
+              {stepLabel(page)} · <AppText size="caption" muted tabular>{percent}%</AppText> complete
             </AppText>
             <Pressable
               testID="finish-later"
@@ -204,7 +218,7 @@ function StepLayout({ section, percent, forward, busy = false, onLater, footer, 
       }>
       <Animated.View entering={entering} style={styles.stepBody}>
         <View style={styles.intro}>
-          <AppText testID="step-title" accessibilityRole="header" fit bold size="title">
+          <AppText testID="step-title" accessibilityRole="header" fit bold size="largeTitle">
             {section.title}
           </AppText>
           <AppText testID="step-helper" size="caption" muted>
@@ -271,6 +285,9 @@ function Target({ active, children }: { active: boolean; children: ReactNode }) 
 
 type SectionStepProps = {
   id: string;
+  /** The step shown, from 0. */
+  page: number;
+  /** Its questions, as one section (pageSection). */
   section: Section;
   person?: SavedPerson & PhotoFields;
   cards: SavedCard[];
@@ -284,7 +301,7 @@ type SectionStepProps = {
   onStep: (step: number) => void;
 };
 
-function SectionStep({ id, section, person, cards, forward, focus, toReview, next, onStep }: SectionStepProps) {
+function SectionStep({ id, page, section, person, cards, forward, focus, toReview, next, onStep }: SectionStepProps) {
   const [name, setName] = useState(person?.name ?? '');
   const [relationship, setRelationship] = useState(person?.relationship ?? '');
   // undefined keeps the current photo; null removes it.
@@ -298,10 +315,18 @@ function SectionStep({ id, section, person, cards, forward, focus, toReview, nex
   // Required questions the caregiver has been to, so a note only follows a touch (or a jump from What's left).
   const [visited, setVisited] = useState<string[]>(focus ? [focus] : []);
   const [marks, setMarks] = useState(person?.notApplicable ?? []);
-  // Questions behind an add row, until it's tapped or they already have an answer.
-  const [showAll, setShowAll] = useState(false);
+  // Each card's questions behind More details, until it's tapped or they already have an answer.
+  const [opened, setOpened] = useState<string[]>([]);
+  const groups = questionGroups(section.questions.filter((question) => question.sets !== 'photo'));
+  const groupOf = (question: Question) => groups.find((group) => group.includes(question))?.[0].id ?? '';
   const waiting = (question: Question) =>
-    Boolean(question.behind) && !showAll && !entries.some((entry) => entry.question === question.id && entry.text.trim());
+    Boolean(question.behind) && !opened.includes(groupOf(question)) && !entries.some((entry) => entry.question === question.id && entry.text.trim());
+
+  // Short favorites sit two to a row where each half keeps a comfortable field: not on the narrowest
+  // phones, and not once the phone's own text is much larger.
+  const window = useWindowDimensions();
+  const half = (Math.min(window.width, FORM_WIDTH) - 2 * CAREGIVER_GUTTER) / 2 - 2 * Space.l;
+  const twoUp = half >= 120 && window.fontScale <= 1.15;
 
   const has = (sets: Question['sets']) => section.questions.some((question) => question.sets === sets);
   const hasHintFacts = section.questions.some((question) => question.input === 'hint-facts');
@@ -432,16 +457,17 @@ function SectionStep({ id, section, person, cards, forward, focus, toReview, nex
     return sure;
   }
 
+  // What is stored is a section, never a step: reaching a step stores its first section (PAGES).
   async function goBack() {
-    if (section.step > 0) {
-      go(() => onStep(section.step - 1), section.step);
+    if (page > 0) {
+      go(() => onStep(page - 1), firstSectionOf(page));
       return;
     }
-    if (await mayLeave()) go(leave, section.step);
+    if (await mayLeave()) go(leave, firstSectionOf(page));
   }
 
   async function finishLater() {
-    if (await mayLeave()) go(leave, section.step);
+    if (await mayLeave()) go(leave, firstSectionOf(page));
   }
 
   function goForward() {
@@ -449,7 +475,7 @@ function SectionStep({ id, section, person, cards, forward, focus, toReview, nex
       setNameTouched(true);
       return;
     }
-    go(() => onStep(next), next);
+    go(() => onStep(next), firstSectionOf(next));
   }
 
   function change(key: string, patch: Partial<Entry>) {
@@ -491,6 +517,7 @@ function SectionStep({ id, section, person, cards, forward, focus, toReview, nex
         <PhotoField
           question={question}
           shown={shownPhoto}
+          name={name}
           mark={markFor(question)!}
           note={stillNeeded(question)}
           onChoose={() => {
@@ -582,8 +609,26 @@ function SectionStep({ id, section, person, cards, forward, focus, toReview, nex
     );
   }
 
+  const photoQuestion = section.questions.find((question) => question.sets === 'photo');
+
+  /** A card's questions in order, the short favorites side by side where they fit. */
+  function rowsOf(group: Question[]) {
+    const shown = group.filter((question) => !waiting(question));
+    const rows: Question[][] = [];
+    for (let index = 0; index < shown.length; index++) {
+      const question = shown[index];
+      const following = shown[index + 1];
+      if (twoUp && question.sideBySide && following?.sideBySide) {
+        rows.push([question, following]);
+        index++;
+      } else rows.push([question]);
+    }
+    return rows;
+  }
+
   return (
     <StepLayout
+      page={page}
       section={section}
       percent={percent}
       forward={forward}
@@ -598,18 +643,27 @@ function SectionStep({ id, section, person, cards, forward, focus, toReview, nex
         </View>
       }>
       <FieldChain.Provider value={chain}>
-        {questionGroups(section.questions).map((group) => {
+        {photoQuestion ? <Target active={focus === photoQuestion.id}>{answer(photoQuestion)}</Target> : null}
+        {groups.map((group) => {
           const behind = group.find(waiting);
           return (
             <FormGroup key={group[0].id} heading={group[0].heading}>
-              {group
-                .filter((question) => !waiting(question))
-                .map((question) => (
-                  <Target key={question.id} active={focus === question.id}>
-                    {answer(question)}
+              {rowsOf(group).map((row) =>
+                row.length === 2 ? (
+                  <View key={row[0].id} style={styles.twoUpRow}>
+                    {row.map((question) => (
+                      <View key={question.id} style={styles.grow}>
+                        <Target active={focus === question.id}>{answer(question)}</Target>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Target key={row[0].id} active={focus === row[0].id}>
+                    {answer(row[0])}
                   </Target>
-                ))}
-              {behind ? <AddRow testID="show-more" label={behind.behind!} onPress={() => setShowAll(true)} /> : null}
+                ),
+              )}
+              {behind ? <AddRow testID={`show-more-${group[0].id}`} label={behind.behind ?? MORE} onPress={() => setOpened((current) => [...current, group[0].id])} /> : null}
             </FormGroup>
           );
         })}
@@ -622,18 +676,34 @@ type PhotoFieldProps = {
   question: Question;
   /** The photo to show: just picked, or saved. */
   shown?: ImageProps['source'];
+  /** The name as typed, for the initials shown until there is a photo. */
+  name: string;
   mark: NotApplicable;
   note?: string;
   onChoose: () => void;
   onRemove: () => void;
 };
 
-/** The person's photo: a large preview that is itself the button, one clear action beside it, and "Not applicable" on the label line. */
-function PhotoField({ question, shown, mark, note, onChoose, onRemove }: PhotoFieldProps) {
+/** Up to two initials, for the caregiver's placeholder only. Practice never shows initials: they would give away the first-letter hint. */
+const initialsOf = (name: string) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0].toUpperCase())
+    .join('');
+
+/**
+ * The person's photo, first on the step and above the card: a large rounded preview that is itself the
+ * button (their initials on Mist until there is one), and beside it the label line and one clear action.
+ */
+function PhotoField({ question, shown, name, mark, note, onChoose, onRemove }: PhotoFieldProps) {
   const accent = useAccent();
   const marked = mark.marked && !shown;
+  const initials = initialsOf(name);
   return (
-    <View style={styles.photoCell}>
+    <View style={styles.photoHero}>
       <View style={styles.photoField}>
         <Pressable
           testID="photo-preview"
@@ -642,7 +712,14 @@ function PhotoField({ question, shown, mark, note, onChoose, onRemove }: PhotoFi
           onPress={onChoose}
           style={({ pressed }) => [styles.photoPreview, pressed && styles.previewPressed]}>
           {shown ? (
-            <Image source={shown} contentFit="cover" style={styles.photoImage} accessibilityElementsHidden importantForAccessibility="no" />
+            <>
+              <Image source={shown} contentFit="cover" style={styles.photoImage} accessibilityElementsHidden importantForAccessibility="no" />
+              <View pointerEvents="none" style={styles.photoOutline} />
+            </>
+          ) : initials ? (
+            <AppText bold size="largeTitle" aria-hidden>
+              {initials}
+            </AppText>
           ) : (
             <Ionicons name="person-outline" size={ICON + Space.s} color={Colors.textMuted} aria-hidden />
           )}
@@ -651,15 +728,12 @@ function PhotoField({ question, shown, mark, note, onChoose, onRemove }: PhotoFi
           <LabelLine label={question.label} required={question.required} notApplicable={shown ? undefined : mark} />
           {marked ? <AppText fit muted>{NOT_APPLICABLE}</AppText> : null}
           <View style={styles.photoActions}>
-            <Pressable
-              testID="choose-photo"
-              accessibilityRole="button"
-              onPress={onChoose}
-              style={({ pressed }) => [styles.photoButton, pressed && styles.previewPressed]}>
+            <Pressed testID="choose-photo" accessibilityRole="button" onPress={onChoose} tone={[Colors.surface, Colors.skySoft]} style={styles.photoButton}>
+              <Ionicons name="images-outline" size={ROW_ICON} color={accent} aria-hidden />
               <AppText fit color={accent}>
                 {shown ? 'Change photo' : 'Choose a photo'}
               </AppText>
-            </Pressable>
+            </Pressed>
             {shown ? <QuietLink testID="remove-photo" label="Remove" onPress={onRemove} /> : null}
           </View>
         </View>
@@ -978,7 +1052,7 @@ function ReviewStep({ person, cards, forward, onBack, onEdit }: ReviewStepProps)
   const percent = profileCompletion(about, cards);
   const action = reviewAction(percent, person);
   const [notice, setNotice] = useState<string>();
-  const section = SECTIONS.find((candidate) => candidate.step === REVIEW_STEP)!;
+  const section = pageSection(REVIEW_PAGE);
 
   async function finish() {
     try {
@@ -992,6 +1066,7 @@ function ReviewStep({ person, cards, forward, onBack, onEdit }: ReviewStepProps)
 
   return (
     <StepLayout
+      page={REVIEW_PAGE}
       section={section}
       percent={percent}
       forward={forward}
@@ -1022,18 +1097,40 @@ function ReviewStep({ person, cards, forward, onBack, onEdit }: ReviewStepProps)
       }>
       {missing.length === 0 && cards.length === 0 ? <Notice>There are no stories yet, so practice has nothing to show for {person.name}.</Notice> : null}
       <FormGroup>
-        {SECTIONS.filter((one) => one.questions.length).map((one) => (
-          <SummaryRow
-            key={one.step}
-            title={one.step === 0 ? person.name : one.title}
-            lines={sectionSummary(one, about, cards)}
-            avatar={one.step === 0 ? <Avatar name={person.name} source={avatarSource(person)} size={COMPACT_TAP - Space.xs} /> : null}
-            testID={`edit-section-${one.step}`}
-            onEdit={() => onEdit(one.step)}
-          />
-        ))}
+        {PAGES.slice(0, REVIEW_PAGE).map((page, index) => {
+          const first = page.sections[0];
+          const lines = page.sections.flatMap((step) => sectionSummary(SECTIONS.find((one) => one.step === step)!, about, cards));
+          return (
+            <SummaryRow
+              key={first}
+              title={index === 0 ? person.name : page.title}
+              lines={lines}
+              avatar={index === 0 ? <ReviewFace name={person.name} source={hasPhoto(person) ? avatarSource(person) : undefined} /> : null}
+              testID={`edit-section-${first}`}
+              onEdit={() => onEdit(first)}
+            />
+          );
+        })}
       </FormGroup>
     </StepLayout>
+  );
+}
+
+/** The review's first row: their photo, or their initials on white, never a letter in a circle. Inside the card, so its corner is the card's less its padding. */
+function ReviewFace({ name, source }: { name: string; source?: ImageProps['source'] }) {
+  return (
+    <View aria-hidden style={styles.thumb}>
+      {source ? (
+        <>
+          <Image source={source} contentFit="cover" style={styles.thumbImage} />
+          <View pointerEvents="none" style={[styles.photoOutline, styles.thumbOutline]} />
+        </>
+      ) : (
+        <AppText bold size="caption">
+          {initialsOf(name)}
+        </AppText>
+      )}
+    </View>
   );
 }
 
@@ -1105,7 +1202,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stepBody: {
-    gap: Space.xl,
+    gap: Space.l,
   },
   intro: {
     gap: Space.xs,
@@ -1156,27 +1253,23 @@ const styles = StyleSheet.create({
     marginLeft: -Space.l,
     marginRight: -Space.l,
   },
-  photoCell: {
+  photoHero: {
     gap: Space.s,
-    marginLeft: Space.l,
-    paddingRight: Space.l,
-    paddingVertical: Space.m,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.divider,
   },
   photoField: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Space.m,
+    gap: Space.l,
   },
+  // Standalone on the page: the card radius, the shape of a photo in an album.
   photoPreview: {
     width: PHOTO,
     height: PHOTO,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    borderRadius: RADIUS,
-    backgroundColor: Colors.background,
+    borderRadius: Radius.card,
+    backgroundColor: Colors.surface,
   },
   previewPressed: {
     opacity: 0.7,
@@ -1184,6 +1277,13 @@ const styles = StyleSheet.create({
   photoImage: {
     width: PHOTO,
     height: PHOTO,
+  },
+  // A hairline inside the photo's edge, so a pale photo keeps its shape.
+  photoOutline: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    borderRadius: Radius.card,
+    borderWidth: 1,
+    borderColor: PHOTO_OUTLINE,
   },
   photoSide: {
     flex: 1,
@@ -1195,12 +1295,34 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Space.s,
   },
+  // A pill; less padding on the icon's side, so it looks centered (optical alignment).
   photoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.xs + 2,
     minHeight: COMPACT_TAP,
+    paddingLeft: Space.m,
+    paddingRight: Space.l,
+    borderRadius: Radius.pill,
+  },
+  twoUpRow: {
+    flexDirection: 'row',
+  },
+  thumb: {
+    width: THUMB,
+    height: THUMB,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Space.m,
-    borderRadius: RADIUS,
+    overflow: 'hidden',
+    borderRadius: Radius.inner,
     backgroundColor: Colors.background,
+  },
+  thumbImage: {
+    width: THUMB,
+    height: THUMB,
+  },
+  thumbOutline: {
+    borderRadius: Radius.inner,
   },
   summaryRow: {
     flexDirection: 'row',
