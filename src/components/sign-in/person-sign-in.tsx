@@ -12,7 +12,7 @@ import { signIn } from '@/data/account';
 import { personProblems } from '@/lib/auth-form';
 import { SET_UP_FOR_YOU } from '@/lib/consent';
 import { Colors } from '@/theme/colors';
-import { ICON, RADIUS, Space, TAP } from '@/theme/layout';
+import { ICON, RADIUS, Space, TAP, touchSlop } from '@/theme/layout';
 
 // Screen 1's step for the person practicing: "Hello", the User ID and password the caregiver made
 // under Settings, Their login, and one big Continue. The person's own large type (the Text size
@@ -48,6 +48,7 @@ export function PersonSignIn({ onBack }: { onBack: () => void }) {
             testID="person-back"
             accessibilityRole="button"
             onPress={onBack}
+            hitSlop={touchSlop()}
             style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
             <Ionicons name="chevron-back" size={ICON} color={Colors.primaryDark} aria-hidden />
             <AppText fit color={Colors.primaryDark}>

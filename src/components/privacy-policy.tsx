@@ -6,7 +6,7 @@ import { Sheet } from '@/components/sheet';
 import { CONTACT, DRAFT_LINE, EFFECTIVE_DATE, POLICY, POLICY_VERSION, WHAT_WE_STORE } from '@/lib/privacy-policy';
 import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
-import { RADIUS, Space, TAP } from '@/theme/layout';
+import { RADIUS, Space, TAP, touchSlop } from '@/theme/layout';
 import { CompactType } from '@/theme/type';
 
 // The privacy policy and "What the app stores", in the app. The words are in src/lib/privacy-policy.ts,
@@ -95,7 +95,7 @@ function Bullet({ children }: { children: string }) {
 export function PolicyLink({ onPress, testID }: { onPress: () => void; testID: string }) {
   const accent = useAccent();
   return (
-    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel="Read the privacy policy" onPress={onPress} style={({ pressed }) => [styles.link, pressed && styles.pressed]}>
+    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel="Read the privacy policy" onPress={onPress} hitSlop={touchSlop()} style={({ pressed }) => [styles.link, pressed && styles.pressed]}>
       <CompactType value={true}>
         <AppText color={accent} style={styles.underline}>
           Privacy policy

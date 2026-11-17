@@ -7,7 +7,7 @@ import { signOut } from '@/data/account';
 import { LOCAL_ONLY, openCaregiver } from '@/data/app-data';
 import { confirm } from '@/lib/confirm';
 import { Colors } from '@/theme/colors';
-import { ICON, RADIUS, Space, TAP } from '@/theme/layout';
+import { ICON, RADIUS, Space, TAP, touchSlop } from '@/theme/layout';
 
 // Small and quiet, at the top of the person's home screen. It opens only when held, so a tap
 // by the person does nothing but show how to use it. With sign-in on, holding it (and confirming)
@@ -39,6 +39,7 @@ export function CaregiverButton() {
       delayLongPress={1000}
       onPress={() => setTapped(true)}
       onLongPress={open}
+      hitSlop={touchSlop()}
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
       <Ionicons name="lock-closed-outline" size={ICON} color={Colors.textMuted} aria-hidden />
       <AppText fit bold size="caption" muted>

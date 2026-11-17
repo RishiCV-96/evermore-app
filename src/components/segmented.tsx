@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
 import { Colors } from '@/theme/colors';
+import { Elevation } from '@/theme/elevation';
 import { COMPACT_TAP, RADIUS, Space } from '@/theme/layout';
 
 type SegmentedProps<T extends string> = {
@@ -55,8 +56,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Space.s,
     borderRadius: RADIUS - Space.xs,
   },
+  // Concentric: the track's 16 less its 4pt padding. A hairline edge marks it as a shape, not only a color.
   selected: {
     backgroundColor: Colors.background,
+    ...Elevation.edge,
   },
   pressed: {
     backgroundColor: Colors.skySoft,

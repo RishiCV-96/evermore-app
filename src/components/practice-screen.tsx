@@ -20,7 +20,7 @@ import { AFTER_THE_DAY, askedAgain, nextTapCounts, reaskSpot, reviewPass, todayY
 import { speak, stopSpeaking } from '@/lib/speak';
 import { BLANK, answerOf, fillBlank, listNames, type Card, type Round } from '@/lib/stories';
 import { Colors } from '@/theme/colors';
-import { GUTTER, ICON, RADIUS, Space, TAP } from '@/theme/layout';
+import { GUTTER, ICON, RADIUS, Space, TAP, touchSlop } from '@/theme/layout';
 import { Fonts } from '@/theme/type';
 
 // The core loop: a card asks for a name (usually a photo and a sentence with a blank; see
@@ -378,6 +378,7 @@ function HomeButton({ onPress }: { onPress: () => void }) {
       accessibilityRole="button"
       accessibilityLabel="Home"
       onPress={onPress}
+      hitSlop={touchSlop()}
       style={({ pressed }) => [styles.homeButton, pressed && styles.homePressed]}>
       <Ionicons name="home-outline" size={ICON} color={Colors.textMuted} aria-hidden />
     </Pressable>

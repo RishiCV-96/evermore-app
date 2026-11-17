@@ -2,9 +2,9 @@ import { createContext, useContext } from 'react';
 import { StyleSheet } from 'react-native';
 
 import { useTextSize, type TextSize } from '@/data/text-size';
-import { COMPACT_SCALE, TYPE_SCALE, type TypeSize } from '@/theme/type-scale';
+import { COMPACT_SCALE, TYPE_SCALE, type TextRole, type TypeSize } from '@/theme/type-scale';
 
-export { COMPACT_MAX_SCALE, MIN_FONT_SCALE, type TypeSize } from '@/theme/type-scale';
+export { COMPACT_MAX_SCALE, MIN_FONT_SCALE, type TextRole, type TypeSize } from '@/theme/type-scale';
 
 // Atkinson Hyperlegible, designed for readers with low vision. Loaded in src/app/_layout.tsx.
 export const Fonts = {
@@ -12,10 +12,16 @@ export const Fonts = {
   bold: 'AtkinsonHyperlegible_700Bold',
 };
 
-function stylesFor(s: Record<TypeSize, number>) {
+// On the person's screens the caregiver-only sizes fall back: a headline is body size, a large
+// title is the title size, so nothing there grows or changes.
+function stylesFor(s: Record<TypeSize, number> & Partial<Record<TextRole, number>>) {
+  const headline = s.headline ?? s.body;
+  const largeTitle = s.largeTitle ?? s.title;
   return StyleSheet.create({
     display: { fontSize: s.display, lineHeight: Math.round(s.display * 1.2) },
+    largeTitle: { fontSize: largeTitle, lineHeight: Math.round(largeTitle * 1.2) },
     title: { fontSize: s.title, lineHeight: Math.round(s.title * 1.3) },
+    headline: { fontSize: headline, lineHeight: Math.round(headline * 1.3) },
     body: { fontSize: s.body, lineHeight: Math.round(s.body * 1.4) },
     caption: { fontSize: s.caption, lineHeight: Math.round(s.caption * 1.35) },
   });

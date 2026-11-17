@@ -19,8 +19,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import Animated, { Keyframe, useReducedMotion } from 'react-native-reanimated';
+
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
+import { Pressed } from '@/components/pressed';
 import { TandemLogo } from '@/components/tandem-logo';
 import { useKeyboardOpen } from '@/components/use-keyboard-open';
 import { NOT_APPLICABLE, REQUIRED_LEGEND, REQUIRED_MARK } from '@/data/questionnaire';
@@ -28,7 +31,9 @@ import { addMonths, monthOf } from '@/lib/facts';
 import { asOfLabel } from '@/lib/stories';
 import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
-import { COMPACT_TAP, GUTTER, ICON, RADIUS, Space } from '@/theme/layout';
+import { Elevation } from '@/theme/elevation';
+import { CAREGIVER_GUTTER, COMPACT_TAP, GUTTER, ICON, RADIUS, ROW_ICON, Radius, Space } from '@/theme/layout';
+import { EASE_ENTER, Motion } from '@/theme/motion';
 import { COMPACT_MAX_SCALE, Fonts, useCompact, useType } from '@/theme/type';
 
 /** A fact is a short phrase that finishes a sentence. */
@@ -96,7 +101,10 @@ export function CaregiverScreen({ title, backLabel, backTo, onBack, header, foot
   const scrolled = useRef(0);
   const focused = useRef<Revealable | null>(null);
   const keyboardOpen = useKeyboardOpen();
-  const column = { maxWidth: narrow ? FORM_WIDTH : SCREEN_WIDTH };
+  // The caregiver's screens: the large title, narrower margins and a floating bar. The person's
+  // screens that share this (the welcome, Hello) keep theirs.
+  const compact = useCompact();
+  const column = { maxWidth: narrow ? FORM_WIDTH : SCREEN_WIDTH, paddingHorizontal: compact ? CAREGIVER_GUTTER : GUTTER };
 
   // A new step starts at the top.
   useEffect(() => {
@@ -150,7 +158,7 @@ export function CaregiverScreen({ title, backLabel, backTo, onBack, header, foot
             ) : null}
             {logo ? <TandemLogo size="form" testID={logo} foldWithKeyboard /> : null}
             {title ? (
-              <AppText accessibilityRole="header" fit bold size="title">
+              <AppText accessibilityRole="header" fit bold size={compact ? 'largeTitle' : 'title'}>
                 {title}
               </AppText>
             ) : null}
@@ -173,7 +181,7 @@ export function CaregiverScreen({ title, backLabel, backTo, onBack, header, foot
         </ScrollView>
       </View>
       {footer ? (
-        <View style={[styles.footer, column, { paddingBottom: keyboardOpen ? Space.s : insets.bottom + Space.m }]}>{footer}</View>
+        <View style={[styles.footer, compact && styles.footerFloat, column, { paddingBottom: keyboardOpen ? Space.s : insets.bottom + Space.m }]}>{footer}</View>
       ) : null}
     </KeyboardAvoidingView>
   );
@@ -460,14 +468,127 @@ export function AddRow({ label, onPress, testID }: { label: string; onPress: () 
  * Related questions on one soft surface: no border, thin dividers between rows and whitespace
  * around it. The last row's hairline is clipped, so a group ends cleanly.
  */
-export function FormGroup({ heading, children }: { heading?: string; children: ReactNode }) {
+export function FormGroup({ heading, footnote, children }: { heading?: string; /** One muted line under the card. */ footnote?: string; children: ReactNode }) {
+  const compact = useCompact();
   return (
     <View style={styles.formBlock}>
       {heading ? <GroupHeading>{heading}</GroupHeading> : null}
-      <View style={styles.formGroup}>
-        <View style={styles.formRows}>{children}</View>
+      <View style={[styles.formGroup, compact && styles.formGroupCompact]}>
+        <InGroup.Provider value={true}>
+          <View style={styles.formRows}>{children}</View>
+        </InGroup.Provider>
+      </View>
+      {footnote ? (
+        <AppText size="caption" muted style={styles.groupFootnote}>
+          {footnote}
+        </AppText>
+      ) : null}
+    </View>
+  );
+}
+
+/** Rows inside a FormGroup take its inset edges and hairlines. */
+const InGroup = createContext(false);
+
+/** A card: the soft Mist surface every group of rows sits on. The caregiver's has the larger card radius. */
+export function Card({ children, testID }: { children: ReactNode; testID?: string }) {
+  const compact = useCompact();
+  return (
+    <View testID={testID} style={[styles.card, compact && styles.formGroupCompact]}>
+      {children}
+    </View>
+  );
+}
+
+/**
+ * A tip or note as an accent bar beside the words, not a box: a 3pt bar in the accent, the words in
+ * the caption size. For "How to read this" kinds of notes on the caregiver's screens.
+ */
+export function Callout({ children, title, color, testID }: { children: ReactNode; title?: string; /** The bar's color; the accent unless given. */ color?: string; testID?: string }) {
+  const accent = useAccent();
+  return (
+    <View testID={testID} style={styles.callout}>
+      <View aria-hidden style={[styles.calloutBar, { backgroundColor: color ?? accent }]} />
+      <View style={styles.calloutText}>
+        {title ? (
+          <AppText bold size="caption" color={color ?? accent}>
+            {title}
+          </AppText>
+        ) : null}
+        <AppText size="caption" muted>
+          {children}
+        </AppText>
       </View>
     </View>
+  );
+}
+
+type EmptyStateProps = {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  /** One line saying what will appear, or what to do. */
+  children?: ReactNode;
+  /** One action, such as Add a person. */
+  action?: ReactNode;
+  testID?: string;
+};
+
+/** Nothing here yet: an icon, a short title, one line, and at most one action. Calm, centered, on white. */
+export function EmptyState({ icon, title, children, action, testID }: EmptyStateProps) {
+  const accent = useAccent();
+  return (
+    <View testID={testID} accessibilityLiveRegion="polite" style={styles.empty}>
+      <View aria-hidden style={styles.emptyIcon}>
+        <Ionicons name={icon} size={ICON} color={accent} />
+      </View>
+      <AppText bold size="headline" center accessibilityRole="header">
+        {title}
+      </AppText>
+      {children ? (
+        <AppText size="caption" muted center>
+          {children}
+        </AppText>
+      ) : null}
+      {action}
+    </View>
+  );
+}
+
+/**
+ * Something still loading, as quiet Mist shapes where the rows will be. Nothing moves; the words
+ * beside it (such as "Getting your practice settings…") are what screen readers hear.
+ */
+export function Skeleton({ rows = 3, testID }: { rows?: number; testID?: string }) {
+  const compact = useCompact();
+  return (
+    <View testID={testID} aria-hidden style={[styles.skeleton, compact && styles.formGroupCompact]}>
+      {Array.from({ length: rows }, (_, index) => (
+        <View key={index} style={[styles.skeletonRow, index === rows - 1 && styles.joined]}>
+          <View style={[styles.skeletonBar, { width: `${70 - index * 12}%` }]} />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * The caregiver's screens arrive in a few groups: each slides up 8pt and fades in, 70ms after the one
+ * before, the first time the screen shows. With Reduce Motion it simply appears.
+ */
+export function Enter({ index = 0, children, style }: { index?: number; children: ReactNode; style?: object }) {
+  const reduced = useReducedMotion();
+  const entering = reduced
+    ? undefined
+    : new Keyframe({
+        0: { opacity: 0, transform: [{ translateY: Motion.enter.distance }] },
+        100: { opacity: 1, transform: [{ translateY: 0 }], easing: EASE_ENTER },
+      })
+        .duration(Motion.enter.duration)
+        .delay(Math.min(index, Motion.enter.most - 1) * Motion.enter.stagger);
+  return (
+    <Animated.View entering={entering} style={style}>
+      {children}
+    </Animated.View>
   );
 }
 
@@ -585,45 +706,79 @@ export function Notice({ children }: { children: ReactNode }) {
 type RowProps = {
   label: string;
   value?: string;
+  /** One muted line under the label, saying what the row is or does. */
+  subtitle?: string;
+  /** A small outline icon before the label, in the accent: one color, never a rainbow. */
+  icon?: keyof typeof Ionicons.glyphMap;
   /** Makes the row a button with a chevron. */
   onPress?: () => void;
   testID?: string;
-  /** A control on the right, in place of a value. */
+  /** A control on the right, in place of a value, such as a switch. */
   children?: ReactNode;
 };
 
-/** One line of a settings list: a label, then a value or a control. No box, just a hairline. */
-export function Row({ label, value, onPress, testID, children }: RowProps) {
-  const content = (
+/**
+ * One line of a settings list: an optional icon, a label (and a line under it), then a value, a
+ * control or a chevron. Inside a FormGroup it takes the card's inset edges; on its own, just a hairline.
+ */
+export function Row({ label, value, subtitle, icon, onPress, testID, children }: RowProps) {
+  const accent = useAccent();
+  const grouped = useContext(InGroup);
+  const iconView = icon ? (
+    <View aria-hidden style={styles.rowIcon}>
+      <Ionicons name={icon} size={ROW_ICON} color={accent} />
+    </View>
+  ) : null;
+  const body = (
     <>
-      <AppText fit style={styles.rowLabel}>
-        {label}
-      </AppText>
+      <View style={styles.rowLabel}>
+        <AppText fit>{label}</AppText>
+        {subtitle ? (
+          <AppText size="caption" muted>
+            {subtitle}
+          </AppText>
+        ) : null}
+      </View>
       {children ??
         (value ? (
-          <AppText fit muted style={styles.rowValue}>
+          <AppText fit muted tabular style={styles.rowValue}>
             {value}
           </AppText>
         ) : null)}
-      {onPress ? <Ionicons name="chevron-forward" size={ICON} color={Colors.textMuted} aria-hidden /> : null}
+      {onPress ? <Ionicons name="chevron-forward" size={ROW_ICON} color={Colors.textMuted} aria-hidden style={styles.chevron} /> : null}
     </>
   );
+  // In a card the hairline starts at the words, after the icon, and the pressed tone fills the row.
+  const content = grouped ? (
+    <>
+      {iconView}
+      <View style={styles.rowBody}>{body}</View>
+    </>
+  ) : (
+    <>
+      {iconView}
+      {body}
+    </>
+  );
+  const look = grouped ? [styles.rowGrouped, icon && styles.rowWithIcon] : styles.row;
   if (!onPress) {
     return (
-      <View testID={testID} style={styles.row}>
+      <View testID={testID} style={look}>
         {content}
       </View>
     );
   }
   return (
-    <Pressable
+    <Pressed
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={value ? `${label}: ${value}` : label}
+      accessibilityLabel={[label, value, subtitle].filter(Boolean).join(': ')}
       onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+      shrink={false}
+      tone={grouped ? [Colors.surface, Colors.skySoft] : ['rgba(234, 243, 251, 0)', Colors.surface]}
+      style={look}>
       {content}
-    </Pressable>
+    </Pressed>
   );
 }
 
@@ -654,6 +809,11 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.divider,
     backgroundColor: Colors.background,
+  },
+  // The caregiver's: a soft shadow rising from the bar in place of the hairline.
+  footerFloat: {
+    borderTopWidth: 0,
+    ...Elevation.float,
   },
   back: {
     alignSelf: 'flex-start',
@@ -713,6 +873,64 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS,
     overflow: 'hidden',
     backgroundColor: Colors.surface,
+  },
+  formGroupCompact: {
+    borderRadius: Radius.card,
+  },
+  card: {
+    padding: Space.l,
+    gap: Space.m,
+    borderRadius: RADIUS,
+    backgroundColor: Colors.surface,
+  },
+  groupFootnote: {
+    paddingHorizontal: Space.l,
+  },
+  callout: {
+    flexDirection: 'row',
+    gap: Space.m,
+  },
+  calloutBar: {
+    width: 3,
+    borderRadius: Radius.xs,
+  },
+  calloutText: {
+    flex: 1,
+    gap: 2,
+    paddingVertical: 2,
+  },
+  empty: {
+    alignItems: 'center',
+    gap: Space.s,
+    paddingVertical: Space.xl,
+    paddingHorizontal: Space.l,
+  },
+  emptyIcon: {
+    width: COMPACT_TAP + Space.s,
+    height: COMPACT_TAP + Space.s,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Space.xs,
+    borderRadius: Radius.pill,
+    backgroundColor: Colors.surface,
+  },
+  skeleton: {
+    overflow: 'hidden',
+    borderRadius: RADIUS,
+    backgroundColor: Colors.surface,
+  },
+  skeletonRow: {
+    minHeight: COMPACT_TAP + Space.xs,
+    justifyContent: 'center',
+    marginLeft: Space.l,
+    paddingRight: Space.l,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.divider,
+  },
+  skeletonBar: {
+    height: Space.m,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.skySoft,
   },
   formRows: {
     marginBottom: -StyleSheet.hairlineWidth,
@@ -837,8 +1055,38 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.divider,
   },
+  // In a card: the rows' inset edges, and a little more room.
+  rowGrouped: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.m,
+    paddingLeft: Space.l,
+  },
+  rowBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.m,
+    minHeight: COMPACT_TAP + Space.xs,
+    paddingRight: Space.m,
+    paddingVertical: Space.s,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.divider,
+  },
+  // The icon's side gets less padding, so the icon, not its box, lines up with the edge (optical alignment).
+  rowWithIcon: {
+    paddingLeft: Space.m + 2,
+  },
+  rowIcon: {
+    width: ROW_ICON + Space.xs,
+    alignItems: 'center',
+  },
+  chevron: {
+    marginRight: -2,
+  },
   rowLabel: {
     flex: 1,
+    gap: 2,
   },
   rowValue: {
     flexShrink: 1,

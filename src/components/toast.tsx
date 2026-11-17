@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/app-text';
 import { Colors } from '@/theme/colors';
+import { Elevation } from '@/theme/elevation';
 import { COMPACT_TAP, GUTTER, RADIUS, Space } from '@/theme/layout';
 
 /** How long a toast stays: time to reach its action, and longer with a screen reader, which has to find it first. */
@@ -83,6 +84,7 @@ const styles = StyleSheet.create({
     paddingRight: Space.xs,
     borderRadius: RADIUS,
     backgroundColor: Colors.primaryDark,
+    ...Elevation.lifted,
   },
   message: {
     flex: 1,

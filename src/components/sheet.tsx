@@ -7,7 +7,7 @@ import { AppText } from '@/components/app-text';
 import { RevealContext } from '@/components/caregiver-ui';
 import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
-import { COMPACT_TAP, GUTTER, ICON, RADIUS, Space, TAP } from '@/theme/layout';
+import { COMPACT_TAP, GUTTER, ICON, RADIUS, Space, TAP, touchSlop } from '@/theme/layout';
 import { useCompact } from '@/theme/type';
 
 type SheetProps = {
@@ -55,6 +55,7 @@ export function Sheet({ visible, title, onClose, children, overlay, header }: Sh
                 accessibilityRole="button"
                 accessibilityLabel="Close"
                 onPress={onClose}
+                hitSlop={compact ? undefined : touchSlop()}
                 style={({ pressed }) => [styles.close, compact && styles.closeCompact, pressed && styles.pressed]}>
                 <AppText fit bold color={accent}>
                   Close

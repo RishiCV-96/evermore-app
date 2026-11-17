@@ -11,7 +11,7 @@ import { REMINDERS_AVAILABLE } from '@/data/reminders';
 import { setTextSize, TEXT_SIZES, textSizeLabel, useTextSize } from '@/data/text-size';
 import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
-import { ICON, RADIUS, Space, TAP } from '@/theme/layout';
+import { ICON, RADIUS, Space, TAP, touchSlop } from '@/theme/layout';
 import { Fonts, MIN_FONT_SCALE, typeFor } from '@/theme/type';
 
 /**
@@ -77,6 +77,7 @@ export function TextSizeButton() {
         accessibilityRole="button"
         accessibilityLabel={REMINDERS_AVAILABLE ? 'Text size and reminders' : 'Text size'}
         onPress={() => setOpen(true)}
+        hitSlop={touchSlop()}
         style={({ pressed }) => [styles.aa, pressed && styles.pressed]}>
         <AppText bold color={Colors.primaryDark}>
           Aa

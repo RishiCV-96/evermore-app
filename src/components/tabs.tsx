@@ -6,7 +6,8 @@ import { TAB_BAR } from '@/lib/caregiver-tabs';
 import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
 import { COMPACT_MAX_SCALE, Fonts, MIN_FONT_SCALE } from '@/theme/type';
-import { COMPACT_TAP, RADIUS, Space } from '@/theme/layout';
+import { Elevation } from '@/theme/elevation';
+import { COMPACT_TAP, RADIUS, Radius, Space } from '@/theme/layout';
 
 export type TabItem<T extends string> = {
   id: T;
@@ -46,7 +47,7 @@ export function Tabs<T extends string>({ tabs, active, onChange, onLayout }: Tab
             aria-selected={selected}
             onPress={() => onChange(tab.id)}
             style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
-            <View style={[styles.pill, selected && { backgroundColor: tab.accent?.soft ?? Colors.surface }]}>{tab.icon(selected, color)}</View>
+            <View style={[styles.pill, selected && styles.pillChosen, selected && { backgroundColor: tab.accent?.soft ?? Colors.surface }]}>{tab.icon(selected, color)}</View>
             <Text
               numberOfLines={1}
               adjustsFontSizeToFit
@@ -67,9 +68,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingTop: Space.xs,
     paddingHorizontal: TAB_BAR.bar,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.divider,
     backgroundColor: Colors.background,
+    ...Elevation.float,
   },
   tab: {
     flex: 1,
@@ -88,7 +88,11 @@ const styles = StyleSheet.create({
     height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 14,
+    borderRadius: Radius.pill,
+  },
+  // The chosen tab's soft pill, with a hairline edge so it reads as a shape, not only a color.
+  pillChosen: {
+    ...Elevation.edge,
   },
   label: {
     fontSize: TAB_BAR.label,

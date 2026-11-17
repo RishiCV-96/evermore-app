@@ -30,7 +30,7 @@ import { DASHBOARD_PROBLEM } from '@/lib/load-problem';
 import type { StepTarget } from '@/lib/insights';
 import { enoughPeople, practiceFrom, todayLine } from '@/lib/session';
 import { Colors } from '@/theme/colors';
-import { COMPACT_TAP, GUTTER, ICON, Space } from '@/theme/layout';
+import { CAREGIVER_GUTTER, COMPACT_TAP, ICON, Space } from '@/theme/layout';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -103,7 +103,7 @@ export default function Dashboard() {
       {/* A compact header: the logo's mark and the tab's name, so the page keeps the room. */}
       <View style={styles.header}>
         <TandemLogo size="header" testID="logo-header" />
-        <AppText testID="page-title" fit bold size="title" accessibilityRole="header" color={tab === 'insights' ? Colors.pinkInk : Colors.text} style={styles.title}>
+        <AppText testID="page-title" fit bold size="largeTitle" accessibilityRole="header" color={tab === 'insights' ? Colors.pinkInk : Colors.text} style={styles.title}>
           {CAREGIVER_TABS.find((one) => one.id === tab)!.label}
         </AppText>
       </View>
@@ -312,9 +312,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Space.m,
     minHeight: COMPACT_TAP,
-    paddingHorizontal: GUTTER,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.divider,
+    paddingHorizontal: CAREGIVER_GUTTER,
     paddingBottom: Space.s,
   },
   title: {
@@ -325,8 +323,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 640,
     alignSelf: 'center',
-    paddingHorizontal: GUTTER,
-    paddingTop: Space.l,
+    paddingHorizontal: CAREGIVER_GUTTER,
+    paddingTop: Space.s,
   },
   page: {
     flexGrow: 1,

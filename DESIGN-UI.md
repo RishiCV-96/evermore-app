@@ -147,9 +147,9 @@ Atkinson comes in regular and bold only, so "light" means regular: labels, links
 ### Layout
 
 - **Spacing:** 4, 8, 12, 16, 24, 32 only. Side margins 24.
-- **Radius:** 16 for everything. A slim bar is shorter than 32, so its ends come out fully round.
+- **Radius:** 16 for everything on the person's screens. A slim bar is shorter than 32, so its ends come out fully round. **The caregiver's screens have a radius scale since 2026-11-17** ("The caregiver's design system", below).
 - **Borders:** none on cards, buttons or tiles. Hairline dividers in lists. Fields have a hairline edge, except on a form's soft groups, which have none.
-- **Shadows:** none.
+- **Shadows:** none on the person's screens. The caregiver's screens have three hairline levels since 2026-11-17 (below).
 - **Icons:** Ionicons outline style, 24pt.
 - **Buttons:** full width, rounded, at least 64 tall on person screens and 44 on caregiver screens. Primary: filled blue, white label. Secondary: surface fill, text label. Quiet: label only, for low-emphasis actions such as "Forgot password?".
 - **Tap targets:** at least 48 on person screens at every text size, and at least 44 on caregiver screens.
@@ -567,3 +567,70 @@ The brand guide (`brand-kit/tandem-brand-guide.png`) is the reference; `docs/BRA
 
 Every size keeps the guide's minimums (mark 24pt, lockup 140pt, clear space not counted), which `scripts/check-logic.mjs` checks. The reversed colors (`reversed`) are for Ink backgrounds; no screen has one yet. No practice card shows the logo.
 
+
+## The caregiver's design system (2026-11-17)
+
+A polish pass on the caregiver's screens (`docs/UI-POLISH-PLAN.md`). It supersedes, **for the caregiver's screens only**, "Radius: 16 for everything", "Shadows: none" and the four-size compact scale. **The person's screens keep their rules:** the one 16pt radius, no shadows, the four sizes at each Text size, and no new motion. `scripts/check-logic.mjs` walks every import from the person's screens and fails if any reaches the caregiver's depth, corners, motion or sizes, except through the three shared pieces that ask `useCompact()` first (`BigButton`, `caregiver-ui`, `Sheet`).
+
+**Type** (`COMPACT_SCALE`): six sizes. On the person's screens `headline` falls back to body and `largeTitle` to title, so nothing there changes.
+
+| Size | Compact | Used for |
+| --- | --- | --- |
+| display | 30 | hero figures |
+| largeTitle | 28 | a screen's header: the dashboard's tab name, a form's title |
+| title | 21 | step and sheet titles |
+| headline | 17 bold | a card's or group's title, an empty state's title |
+| body | 16 | rows, fields, buttons |
+| caption | 13 | labels, help, row subtitles |
+
+Every number that changes uses tabular figures (`AppText tabular`; Atkinson Hyperlegible has `tnum`, and its default digits are proportional).
+
+**Spacing:** 4, 8, 12, 16, 24, 32 and 48 (the break before something destructive). The caregiver's side margins are 20 (`CAREGIVER_GUTTER`); the person's stay 24.
+
+**Radius** (`Radius` in `src/theme/layout.ts`), with the concentric rule: a corner inside another, inset by some padding, is the outer radius less that padding.
+
+| Token | Value | For |
+| --- | --- | --- |
+| xs | 4 | slim bars, tags, chart marks, the callout's bar |
+| inner | 8 | inside a card at its 16pt padding, near its corner |
+| control | 16 | standalone buttons, fields, notices, the toast (the person's one radius) |
+| card | 24 | cards and grouped lists (`FormGroup`, `Card`) |
+| pill | 999 | chips, the chosen tab's pill, pill buttons |
+
+The segmented control was already concentric (a 16 track, 4 padding, 12 segments).
+
+**Elevation** (`src/theme/elevation.ts`): `boxShadow` (the New Architecture, on iOS, Android and web), tinted with Ink, never black. Most surfaces stay flat: Mist on white needs no edge.
+
+| Level | For |
+| --- | --- |
+| edge: a 1px Ink ring at 6% and two soft shadows | white on Mist or white: the chosen segment, the chosen tab's pill, chips, pill buttons |
+| float: a rising shadow, 6% and 8% | the pinned bar under a form, the tab bar (each in place of its hairline) |
+| lifted: a ring and an 8pt shadow at 14% | the toast |
+
+**Motion** (`src/theme/motion.ts`): Reanimated shared values with `withTiming`, which start from where they are, so a press or toggle turns around without jumping.
+
+| Token | For |
+| --- | --- |
+| press: 120ms ease-out, scale 0.97 and a tone darker | caregiver buttons and rows (`Pressed`, `src/components/pressed.tsx`; full-width rows change tone only) |
+| toggle: 180ms | segments and pills |
+| enter: 300ms, 8pt up and a fade, 70ms apart, at most 5 groups | a caregiver screen's first appearance (`Enter`) |
+
+With Reduce Motion: no scale and no entrance, only the tone change. A light haptic (`expo-haptics`, already installed) on the caregiver's filled buttons only.
+
+**Pieces** (`src/components/caregiver-ui.tsx` unless named):
+
+- **Screen header:** `CaregiverScreen`'s title, and the dashboard's tab name, at `largeTitle`. The dashboard's header has no hairline under it.
+- **Section header:** `GroupHeading`, the bold caption in the accent.
+- **Grouped list:** `FormGroup` (the card radius, an optional `footnote` under it) holding `Row`s, each with an optional leading icon (20pt outline, in the accent: one color, never a rainbow), a label and a muted subtitle, then a value (tabular), a control or a chevron. In a card the hairline starts at the words, after the icon, and the press fills the row. The icon side has 2pt less padding, so the glyph, not its box, lines up (optical alignment).
+- **Card surface:** `Card`.
+- **Buttons:** `BigButton`. On the caregiver's screens a quiet button's words are the accent (Deep Rose; they were the person's ink-blue), and a filled button that isn't ready yet is a soft Mist button with muted words, not a faded dark one, so it reads as "not yet". It says why to screen readers, as before.
+- **Text field:** `FormRow` and `Field`, the label above, never a placeholder alone; calm notes under them (`FieldNote`), never red.
+- **Chosen tab:** `Tabs`' soft pill, now pill-round with the edge shadow; the bar floats.
+- **Callout:** `Callout`: a 3pt accent bar beside the words, no box.
+- **Empty state:** `EmptyState`: an icon on a Mist circle, a headline, one muted line, at most one action.
+- **Loading:** `Skeleton`: quiet Mist rows where the content will be. Nothing moves; the words beside it are what screen readers hear.
+- **Pressed:** `Pressed`, above.
+
+**The person's touch areas:** every control drawn at 48pt (Aa, Caregiver, the practice card's Home, I'm not sure and any quiet button, Hello's Back, the privacy policy link, a sheet's Close) has a 56pt touch area through `hitSlop` (`touchSlop()` in `src/theme/layout.ts`). Nothing is drawn bigger, so no layout moves.
+
+**Not borrowed from the article** (jakub.kr, "Details that make interfaces feel better"): `text-wrap` and font smoothing are CSS only, blur isn't cheap in React Native (and the brief rules it out), and there are no drawers to slide out.

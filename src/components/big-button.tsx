@@ -1,9 +1,17 @@
+import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
+import { Pressed } from '@/components/pressed';
+import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
-import { COMPACT_TAP, RADIUS, Space, TAP } from '@/theme/layout';
+import { COMPACT_TAP, RADIUS, Space, TAP, touchSlop } from '@/theme/layout';
 import { useCompact } from '@/theme/type';
+
+/** A light tap under the finger for the caregiver's main actions. Silent where the phone has none. */
+function tapFeel() {
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+}
 
 type BigButtonProps = {
   label: string;
@@ -45,6 +53,44 @@ export function BigButton({
 }: BigButtonProps) {
   const filled = primary || selected;
   const compact = useCompact();
+  const accent = useAccent();
+  const progressStrip =
+    progress === undefined ? null : <View testID="button-progress" aria-hidden style={[styles.strip, { width: `${Math.min(progress, 100)}%` }]} />;
+
+  if (compact) {
+    // The caregiver's: an interruptible press, a light tap on the main action, and a waiting main
+    // action shown as a soft button with muted words rather than a faded dark one.
+    const waiting = Boolean(disabled) && primary;
+    const fill = waiting ? Colors.surface : filled ? Colors.primary : quiet ? 'rgba(234, 243, 251, 0)' : Colors.surface;
+    const fillPressed = filled ? Colors.primaryDark : quiet ? Colors.surface : Colors.skySoft;
+    return (
+      <Pressed
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityHint={accessibilityHint}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityState={{ selected, disabled }}
+        disabled={disabled}
+        tone={[fill, disabled ? fill : fillPressed]}
+        shrink={!disabled}
+        onPress={() => {
+          if (primary) tapFeel();
+          onPress();
+        }}
+        style={[styles.button, styles.compact, disabled && !waiting && styles.disabled]}>
+        <AppText
+          fit
+          bold={filled}
+          center
+          size="body"
+          color={waiting ? Colors.textMuted : filled ? Colors.onPrimary : quiet ? accent : Colors.text}>
+          {label}
+        </AppText>
+        {progressStrip}
+      </Pressed>
+    );
+  }
+
   return (
     <Pressable
       testID={testID}
@@ -54,12 +100,13 @@ export function BigButton({
       accessibilityState={{ selected, disabled }}
       disabled={disabled}
       onPress={onPress}
+      // The person's touch area is 56pt; only a quiet button is drawn smaller than that.
+      hitSlop={quiet ? touchSlop(TAP) : undefined}
       style={({ pressed }) => [
         styles.button,
         small && styles.small,
         large && styles.large,
         quiet && styles.quiet,
-        compact && styles.compact,
         filled ? styles.filled : quiet ? null : styles.soft,
         pressed && (filled ? styles.filledPressed : styles.softPressed),
         pressed && styles.pressed,
@@ -67,15 +114,13 @@ export function BigButton({
       ]}>
       <AppText
         fit
-        bold={!compact || filled}
+        bold
         center
-        size={small || quiet || compact ? 'body' : 'title'}
+        size={small || quiet ? 'body' : 'title'}
         color={filled ? Colors.onPrimary : quiet ? Colors.primaryDark : Colors.text}>
         {label}
       </AppText>
-      {progress === undefined ? null : (
-        <View testID="button-progress" aria-hidden style={[styles.strip, { width: `${Math.min(progress, 100)}%` }]} />
-      )}
+      {progressStrip}
     </Pressable>
   );
 }

@@ -2157,6 +2157,61 @@ for (const size of ['display', 'title', 'body', 'caption']) {
   assert.ok(row.every((value, i) => i === 0 || value > row[i - 1]), `${size} grows with each Text size`);
 }
 assert.ok(TYPE_SCALE.medium.body >= 20, 'body text at the default size stays large');
+for (const level of levels) assert.deepEqual(Object.keys(TYPE_SCALE[level]).sort(), ['body', 'caption', 'display', 'title'], `${level}: the person keeps exactly four sizes`);
+
+// The caregiver's design (2026-11-17, docs/UI-POLISH-PLAN.md): six sizes, a radius scale, hairline shadows
+// and interruptible motion, on the caregiver's screens only. The person's keep one 16pt radius, no
+// shadows, four sizes and no new motion, and every 48pt control of theirs has a 56pt touch area.
+{
+  const caregiverSizes = ['display', 'largeTitle', 'title', 'headline', 'body', 'caption'];
+  assert.deepEqual(Object.keys(COMPACT_SCALE).sort(), [...caregiverSizes].sort(), 'the caregiver has six sizes');
+  caregiverSizes.forEach((size, i) => i === 0 || assert.ok(COMPACT_SCALE[caregiverSizes[i - 1]] > COMPACT_SCALE[size], `the caregiver's ${caregiverSizes[i - 1]} is larger than ${size}`));
+  const layout = await import('@/theme/layout');
+  assert.equal(layout.RADIUS, 16, 'the person keeps the one 16pt radius');
+  assert.equal(layout.Radius.card, layout.Radius.inner + layout.Space.l, 'concentric: a card is its inner radius plus its 16pt padding');
+  assert.equal(layout.Radius.control, layout.RADIUS, 'a standalone control has the same corners on both sides');
+  assert.ok(layout.TAP + 2 * layout.touchSlop() >= 56 && layout.touchSlop(64) === 0, 'touchSlop grows a 48pt control to 56pt, and leaves a larger one alone');
+  for (const path of ['src/components/text-size.tsx', 'src/components/caregiver-button.tsx', 'src/components/practice-screen.tsx', 'src/components/sign-in/person-sign-in.tsx', 'src/components/privacy-policy.tsx', 'src/components/big-button.tsx', 'src/components/sheet.tsx']) {
+    assert.ok(/hitSlop=\{[^}]*touchSlop\(/.test(inRepo(path)), `${path}: the person's 48pt control has a 56pt touch area`);
+  }
+
+  // Walk every file the person's screens reach, as the pink check does.
+  const resolve = (from, spec) => {
+    const base = spec.startsWith('@/') ? `src/${spec.slice(2)}` : spec.startsWith('.') ? new URL(spec, `file:///${from}`).pathname.slice(1) : undefined;
+    if (!base) return undefined;
+    return [`${base}.tsx`, `${base}.ts`, `${base}.web.ts`, `${base}/index.ts`].find((candidate) => existsSync(new URL(`../${candidate}`, import.meta.url)));
+  };
+  const seen = new Set();
+  const stack = ['src/app/index.tsx', 'src/app/practice.tsx', 'src/app/sign-in.tsx', 'src/app/_layout.tsx'];
+  while (stack.length) {
+    const path = stack.pop();
+    if (seen.has(path)) continue;
+    seen.add(path);
+    for (const match of inRepo(path).matchAll(/(?:from|require\()\s*['"]([^'"]+)['"]/g)) {
+      const next = resolve(path, match[1]);
+      if (next) stack.push(next);
+    }
+  }
+  // The tokens themselves, and the shared pieces that ask useCompact() before using them.
+  const tokens = new Set(['src/theme/layout.ts', 'src/theme/elevation.ts', 'src/theme/motion.ts', 'src/components/pressed.tsx']);
+  const gated = new Set(['src/components/big-button.tsx', 'src/components/caregiver-ui.tsx', 'src/components/sheet.tsx']);
+  assert.ok(seen.has('src/components/caregiver-ui.tsx') && seen.has('src/components/big-button.tsx'), 'the walk reaches the shared pieces');
+  const CAREGIVER_LOOK = /\bElevation\b|boxShadow|shadow(Color|Opacity|Radius|Offset)\b|\belevation:|\bRadius\.|@\/components\/pressed|@\/theme\/motion|size="(headline|largeTitle)"/;
+  for (const path of seen) {
+    if (tokens.has(path) || gated.has(path)) continue;
+    assert.ok(!CAREGIVER_LOOK.test(inRepo(path).replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '')), `${path} is reached from a person's screen and uses the caregiver's depth, corners, motion or sizes`);
+  }
+  const ui = inRepo('src/components/caregiver-ui.tsx');
+  for (const style of ['footerFloat', 'formGroupCompact']) {
+    for (const use of ui.matchAll(new RegExp(`styles\\.${style}\\b`, 'g'))) {
+      assert.ok(/compact && $/.test(ui.slice(Math.max(0, use.index - 11), use.index)), `caregiver-ui: styles.${style} only on the caregiver's screens`);
+    }
+  }
+  assert.ok(/size=\{compact \? 'largeTitle' : 'title'\}/.test(ui), "CaregiverScreen's large title is the caregiver's only");
+  const button = inRepo('src/components/big-button.tsx');
+  const personButton = button.slice(button.indexOf('  return (\n    <Pressable'));
+  assert.ok(/if \(compact\) \{[\s\S]*<Pressed/.test(button) && !/<Pressed|Haptics|tapFeel|Elevation/.test(personButton), "BigButton's press, haptics and look are the caregiver's; the person's path is unchanged");
+}
 
 // Archived people: kept whole, out of the deck at once, back as they were, and gone only when deleted
 {
