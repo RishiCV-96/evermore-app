@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { APP_NAME } from '@/config/brand';
+import { APP_NAME, TAGLINE } from '@/config/brand';
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { CaregiverScreen } from '@/components/caregiver-ui';
@@ -25,7 +25,7 @@ export function Welcome({ onPerson, onCaregiver }: { onPerson: () => void; onCar
           Welcome
         </AppText>
         <AppText center muted>
-          Short stories about the people you love.
+          {TAGLINE}
         </AppText>
       </ScrollView>
       <View style={styles.choices}>

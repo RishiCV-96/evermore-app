@@ -12,7 +12,7 @@ export const APP_NAME = 'Tandem';
 /** The name in lower case, for file names such as tandem-data-2026-11-16.json. */
 export const APP_NAME_LOWER = 'tandem';
 
-/** A short line about the app. A placeholder, not shown in the app yet. */
+/** A short line about the app, under the logo on the welcome. */
 export const TAGLINE = 'Short stories about the people you love.';
 
 /** Where people write for help. A placeholder until a real address exists: never shown as a link. */
