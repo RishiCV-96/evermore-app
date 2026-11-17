@@ -1,0 +1,40 @@
+# Internal identifiers that keep the old name on purpose (docs/BRAND-AUDIT.md says what renaming
+# each would break). scripts/check-brand.mjs allows the old name in front-facing files only inside one
+# of these, exactly as written (case-sensitive), and fails if an entry is no longer used anywhere.
+# One entry per line; text after " #" is a note.
+
+# Storage keys on the phone (AsyncStorage, secure storage, scheduled notifications): renaming loses saved data
+evermore.profile. # the signed-in profile, so the app opens offline
+evermore.recordQueue.v1 # card records not yet uploaded
+evermore.recordBackfill.v1. # the one-time backfill's progress
+evermore.insightsCache.v1. # the caregiver's copy of Insights
+evermore.local.v1 # local-only practice
+evermore.family.v1 # local-only family
+evermore.practice.v1. # the person's deck and outbox of practice not yet sent
+evermore.reminders.v1 # reminder settings
+evermore.studyDay.v1 # the study-day clock, which only moves forward
+evermore.textSize.v1 # the text size
+evermore.attempts.v1 # card records with sign-in off
+evermore.installToken.v1 # the AI install token
+evermore.reminderStandIn.v1 # the web build's stand-in for notifications
+evermore.reminder. # each study day's reminder id
+evermore.device.v1 # an earlier build's credential, deleted at sign-out
+
+# Reserved login domains: every existing person login is on the first
+person.evermore.invalid
+caregiver.evermore.invalid # test accounts
+
+# Expo project identity (app.json)
+"slug": "evermore"
+"scheme": "evermore"
+
+# Guessable passwords the strength hint rates as weak
+'evermore'
+'evermore1'
+
+# The Supabase secret both Edge Functions read
+EVERMORE_SECRET_KEY
+
+# Paths in the README's setup steps (the old project folder and a temp folder)
+~/evermore-expo
+/tmp/evermore-check
