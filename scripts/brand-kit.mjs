@@ -362,15 +362,41 @@ export function difference(a, b) {
 
 // ---- What the app gets ----
 
-/** The kit's files the app uses exactly as they are. */
+export const ROOT = new URL('../', import.meta.url);
+
+/** The kit's files the app uses exactly as they are, by their path in the project. */
 export const COPIED = {
-  'icon.png': 'tandem-app-icon-1024.png',
-  'favicon.png': 'tandem-favicon-256.png',
-  'splash-logo.png': 'tandem-logo-stacked.png',
+  'assets/images/icon.png': 'tandem-app-icon-1024.png',
+  // app.json's web.favicon: Expo makes /favicon.ico from it.
+  'assets/images/favicon.png': 'tandem-favicon-256.png',
+  'assets/images/splash-logo.png': 'tandem-logo-stacked.png',
+  // The web build's head (public/index.html): the SVG where browsers take one, and the PNG.
+  'public/favicon.svg': 'tandem-favicon.svg',
+  'public/favicon.png': 'tandem-favicon-256.png',
 };
 
 /** Android's adaptive icon: 1024 square on Ink, the mark well inside the 66/108 safe circle (its widest point at 280 of 313). */
 const ADAPTIVE = { size: 1024, scale: 2.5 };
+
+/** The kit's navy app icon as a drawing: its 1024 square, background, and where the mark sits (translate and scale). */
+export function appIcon(kit = readKit()) {
+  const text = kitText('tandem-app-icon-1024.svg');
+  const [, x, y, scale] = text.match(/<g transform="translate\(([-\d.]+),([-\d.]+)\) scale\(([\d.]+)\)">/).map(Number);
+  const colors = [...text.matchAll(/fill="(#[0-9A-Fa-f]{6})"/g)].map((match) => match[1]);
+  const [background, rose, , , , sky, , , , sun] = colors;
+  if (rose !== kit.palettes.reversed.rose || sky !== kit.palettes.reversed.sky || sun !== kit.palettes.reversed.sun) throw new Error('the app icon’s colors differ from the reversed logo’s');
+  return { size: 1024, background, at: [x, y], scale };
+}
+
+/** The navy app icon drawn at `size` pixels square, from the kit's own placement of the mark. */
+export function renderAppIcon(size, kit = readKit()) {
+  const icon = appIcon(kit);
+  const { mark } = kit.layouts;
+  const k = size / icon.size;
+  // A kit unit (cx) lands at (at + scale * cx) * k pixels; the mark layout already adds its own offset.
+  const origin = [mark.mark.offset[0] - icon.at[0] / icon.scale, mark.mark.offset[1] - icon.at[1] / icon.scale];
+  return render({ layout: mark, palette: kit.palettes.reversed, width: size, height: size, scale: icon.scale * k, origin, background: icon.background });
+}
 
 /** The images composed from the kit's shapes and colors, which the kit doesn't have as files. */
 export function composed(kit = readKit()) {
@@ -378,10 +404,12 @@ export function composed(kit = readKit()) {
   const box = contentBox(mark);
   const half = ADAPTIVE.size / 2 / ADAPTIVE.scale;
   return {
+    // The web build's home screen icon on iPhone: the navy app icon at 180 square.
+    'public/apple-touch-icon.png': () => renderAppIcon(180, kit),
     // The stacked logo in the reversed colors, framed and sized exactly as the kit's stacked PNG (3x).
-    'splash-logo-dark.png': () =>
+    'assets/images/splash-logo-dark.png': () =>
       render({ layout: stacked, palette: kit.palettes.reversed, width: Math.ceil(stacked.width * 3), height: Math.ceil(stacked.height * 3), scale: 3 }),
-    'android-icon-foreground.png': () =>
+    'assets/images/android-icon-foreground.png': () =>
       render({
         layout: mark,
         // On Ink, as the kit's navy app icon: the reversed tints.
@@ -394,13 +422,15 @@ export function composed(kit = readKit()) {
   };
 }
 
-/** The renderer drawn against the kit's own stacked PNG: if this drifts, nothing it composes is trusted. */
+/** The renderer drawn against the kit's own PNGs (the stacked logo and the navy app icon): if either drifts, nothing it composes is trusted. */
 export function rendererFidelity(kit = readKit()) {
   const { stacked } = kit.layouts;
-  const kitPng = decodePng(readFileSync(new URL('tandem-logo-stacked.png', KIT)));
+  const kitStacked = decodePng(readFileSync(new URL('tandem-logo-stacked.png', KIT)));
   // The kit drew it at exactly 3x, on a canvas rounded up to whole pixels.
-  const drawn = render({ layout: stacked, palette: kit.palettes.normal, width: kitPng.width, height: kitPng.height, scale: 3 });
-  return difference(drawn, kitPng);
+  const drawn = render({ layout: stacked, palette: kit.palettes.normal, width: kitStacked.width, height: kitStacked.height, scale: 3 });
+  const stackedDiff = difference(drawn, kitStacked);
+  const iconDiff = difference(renderAppIcon(1024, kit), decodePng(readFileSync(new URL('tandem-app-icon-1024.png', KIT))));
+  return { mean: Math.max(stackedDiff.mean, iconDiff.mean), max: Math.max(stackedDiff.max, iconDiff.max), stacked: stackedDiff, icon: iconDiff };
 }
 
 /** JSON as TypeScript: unquoted keys, single quotes, and each list of numbers on one line. */

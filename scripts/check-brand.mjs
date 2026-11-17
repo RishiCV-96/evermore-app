@@ -3,9 +3,10 @@
 //      policy, the App Store drafts, the TestFlight checklist), in any case or spelling, except inside
 //      an internal identifier listed in scripts/brand-allowlist.txt. Every entry there must still be used.
 //   2. The name shown comes from src/config/brand.ts: app.json's name, the policy's title and its page.
-//   3. The logo files in assets/images and src/components/tandem-logo-data.ts are what brand-kit/ makes:
-//      copies byte for byte, composed images pixel for pixel (scripts/make-brand-assets.mjs), and the
-//      renderer still reproduces the kit's own stacked PNG. Old logo files are gone.
+//   3. The logo and icon files (assets/images, the web build's favicons and apple-touch-icon in public/)
+//      and src/components/tandem-logo-data.ts are what brand-kit/ makes: copies byte for byte, composed
+//      images pixel for pixel (scripts/make-brand-assets.mjs), and the renderer still reproduces the kit's
+//      own PNGs. Old logo files are gone, and the web head links only the kit's icons.
 // It never prints a file's text, only where.
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -13,7 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { registerHooks } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { ASSETS, COPIED, KIT, LOGO_DATA, composed, decodePng, difference, logoData, readKit, rendererFidelity } from './brand-kit.mjs';
+import { ASSETS, COPIED, KIT, LOGO_DATA, ROOT, composed, decodePng, difference, logoData, readKit, rendererFidelity } from './brand-kit.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const src = `${root}src/`;
@@ -115,28 +116,41 @@ check('the name comes from src/config/brand.ts: app.json, the policy and its pag
 
 const kit = readKit();
 
-check('the renderer still reproduces the kit’s own stacked PNG', () => {
+check('the renderer still reproduces the kit’s own stacked logo and navy app icon', () => {
   const { mean, max } = rendererFidelity(kit);
   assert.ok(mean <= 0.05 && max <= 48, `drawn against the kit: mean ${mean.toFixed(3)}, largest ${max}`);
 });
 
-check('the kit’s icon, favicon and light splash logo are in assets exactly as they are in the kit', () => {
-  for (const [asset, source] of Object.entries(COPIED)) {
-    assert.ok(readFileSync(new URL(asset, ASSETS)).equals(readFileSync(new URL(source, KIT))), `assets/images/${asset} differs from brand-kit/${source}: run node scripts/make-brand-assets.mjs`);
+check('the app icon, favicons and light splash logo are exactly the kit’s files', () => {
+  for (const [path, source] of Object.entries(COPIED)) {
+    assert.ok(existsSync(new URL(path, ROOT)), `${path} is missing: run node scripts/make-brand-assets.mjs`);
+    assert.ok(readFileSync(new URL(path, ROOT)).equals(readFileSync(new URL(source, KIT))), `${path} differs from brand-kit/${source}: run node scripts/make-brand-assets.mjs`);
   }
 });
 
-check('the dark splash logo and Android foreground are what the kit makes, pixel for pixel', () => {
-  for (const [asset, make] of Object.entries(composed(kit))) {
+check('the dark splash logo, Android foreground and apple-touch-icon are what the kit makes, pixel for pixel', () => {
+  for (const [path, make] of Object.entries(composed(kit))) {
     let file;
     try {
-      file = decodePng(readFileSync(new URL(asset, ASSETS)));
+      file = decodePng(readFileSync(new URL(path, ROOT)));
     } catch {
-      assert.fail(`assets/images/${asset} can't be read as the kit's image: run node scripts/make-brand-assets.mjs`);
+      assert.fail(`${path} can't be read as the kit's image: run node scripts/make-brand-assets.mjs`);
     }
     const { mean, max } = difference(file, make());
-    assert.ok(mean === 0 && max === 0, `assets/images/${asset} differs from what brand-kit/ makes: run node scripts/make-brand-assets.mjs`);
+    assert.ok(mean === 0 && max === 0, `${path} differs from what brand-kit/ makes: run node scripts/make-brand-assets.mjs`);
   }
+  assert.equal(decodePng(readFileSync(new URL('public/apple-touch-icon.png', ROOT))).width, 180, 'the apple-touch-icon is 180 square');
+});
+
+check('the web build’s head links only the kit’s icons, and its title is the name', () => {
+  const head = readFileSync(new URL('public/index.html', ROOT), 'utf8');
+  const links = [...head.matchAll(/<link\b[^>]*rel="(icon|apple-touch-icon|shortcut icon|mask-icon|manifest)"[^>]*>/g)].map((match) => match[0]);
+  const hrefs = links.map((link) => link.match(/href="([^"]+)"/)[1]);
+  assert.deepEqual(hrefs, ['/favicon.svg', '/favicon.png', '/apple-touch-icon.png'], 'the SVG favicon, the PNG and the apple-touch-icon, nothing else');
+  for (const href of hrefs) assert.ok(existsSync(new URL(`public${href}`, ROOT)), `public${href} exists`);
+  assert.ok(/<title>%WEB_TITLE%<\/title>/.test(head), 'the title is Expo’s, from app.json’s name (APP_NAME, checked above)');
+  assert.ok(/document\.title = APP_NAME/.test(readFileSync(new URL('src/app/_layout.tsx', ROOT), 'utf8')), 'and the app keeps the tab titled with APP_NAME as it runs');
+  for (const name of ['favicon.ico', 'manifest.json', 'site.webmanifest']) assert.ok(!existsSync(new URL(`public/${name}`, ROOT)), `no stray public/${name}: Expo makes /favicon.ico from web.favicon`);
 });
 
 check('<TandemLogo /> draws the kit’s shapes and colors', () => {

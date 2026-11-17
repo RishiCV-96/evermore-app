@@ -30,3 +30,8 @@ Screens after the Tandem rebrand (`docs/BRAND-AUDIT.md`), taken in the web build
 | Dashboard header (mark) | 40x31 | 40x31 | (no wordmark) |
 
 Sizes include the clear space of one lobe radius. The smallest lockup (152 points) draws its mark and wordmark 142 points wide, above the 140-point minimum; the header mark draws 31 points, above 24.
+
+## Follow-ups the same day
+
+- **`progress-bars.png`**: the progress bar after the change, 375x647 at 2x: the person's home and a card after one card (Ink outline and fill), and Add a person on the caregiver's side (Deep Rose, 0% complete).
+- **`favicon-tab.png`**: the browser tab icon. A fresh Chrome profile opened the web build; Chrome's own favicon store in that profile maps the page to `/favicon.ico` (which Expo makes from the kit's PNG) and holds the 16x16 and 32x32 bitmaps it drew in the tab. macOS refused a screen capture of the real tab strip (this terminal has no Screen Recording permission), so the image places those exact stored bitmaps, at actual size, on a light and a dark tab strip drawn for the purpose, and magnified below. The tab title, read from the page, is "Tandem" before and after navigating.

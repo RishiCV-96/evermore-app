@@ -7,7 +7,9 @@ import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 
+import { APP_NAME } from '@/config/brand';
 import { AUTH_ENABLED } from '@/config/features';
 import { useWho } from '@/data/app-data';
 import { forgetReminders } from '@/data/reminders';
@@ -45,6 +47,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
+
+  // The web build's tab reads the brand name (src/config/brand.ts), whatever screen is open.
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') document.title = APP_NAME;
+  }, []);
 
   // Reminders belong to a signed-in person's phone. Opened signed out or as the caregiver, this phone
   // keeps none, whatever happened while the app was closed (src/data/forget.ts cancels them on sign-out).

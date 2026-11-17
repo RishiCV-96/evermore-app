@@ -153,6 +153,25 @@ Each is left as the safest default, so nothing waits on it:
 8. **Deep Rose on every caregiver tab.** The selected tab, section headings, Close and info icons are now Deep Rose on the caregiver's screens, so Insights' pink is no longer unique among the tabs. Keep, or give the completion tabs (Today, Trends) the ink-blue?
 9. **`POLICY_VERSION` is 2026-11-17, not today's date.** 2026-11-16 was already in force on main and may have been agreed to, and the database accepts only a date, so a new date is the only way to ask every caregiver again. If no caregiver has seen 2026-11-16 yet, it could instead be amended (`node scripts/build-policy.mjs --amend`) and kept at today's date.
 
+## Browser tab icons (follow-up, 2026-11-16)
+
+The web preview's tab still showed the old Evermore icon (pink brain, blue claw, yellow orb). Every place a web icon was defined, before and after:
+
+| Where | Before | Old or new | After |
+|---|---|---|---|
+| `app.json` → `web.favicon` | `./assets/images/favicon.png` | **New**: byte for byte the kit's `tandem-favicon-256.png` since the icon commit | Unchanged. Expo makes `/favicon.ico` from it and links it in the page head |
+| `assets/images/favicon.png` | the kit's 256 favicon | new | unchanged, checked against the kit |
+| `.expo/web/cache/production/images/favicon/favicon-f4c3a0e8…/favicon-48.png` (ignored cache) | Expo's cached favicon, made at 18:24 from the old `favicon.png` (its folder is named after that file's hash) | **old** | Deleted. A dev server started before the change keeps serving the old icon until it restarts, and browsers cache favicons on their own |
+| `public/` (Expo's page template and static files) | did not exist | | `public/index.html` (Expo's template, plus three links) and the files they name |
+| `<link rel="icon">` | only Expo's own `/favicon.ico` | new (from the kit PNG) | adds `/favicon.svg` (the kit's `tandem-favicon.svg`) and `/favicon.png` (the kit's 256 PNG); Expo's `/favicon.ico` stays, from the same kit PNG |
+| `<link rel="apple-touch-icon">` | none | | `/apple-touch-icon.png`: the kit's navy app icon at 180x180, drawn from its own geometry by the renderer that reproduces the kit's 1024 icon (mean difference 0.005 out of 255) |
+| `src/app/+html.tsx` | none (used only for static rendering, not this single-page build) | | none |
+| `manifest.json` / web manifest | none | | none |
+| Old icon files in `assets/` | `logo-mark.png`, `logo-wordmark.png`, `splash-icon.png` | old | Already deleted in the icon commit; nothing else is left |
+| The tab title | `%WEB_TITLE%`, Expo's template value from `app.json`'s name | new ("Tandem") | The same, kept equal to `APP_NAME` by the guard, and the root layout sets `document.title = APP_NAME` on web |
+
+`scripts/check-brand.mjs` now compares `public/favicon.svg`, `public/favicon.png` and `assets/images/favicon.png` to the kit byte for byte, `public/apple-touch-icon.png` pixel for pixel, and requires the page head to link exactly those three icons. Changing any of the four files, or a link, makes it fail.
+
 ## The screen walk
 
 `docs/brand-screenshots/` has 96 screenshots (12 screens, 375x647 and 430x839, Large and Extra large, light and dark) from a build made from a `git archive` copy, so no real data could be in them. Every logo was checked for its proportions, being wholly on screen, not covered, and its wordmark's contrast (13.9:1 everywhere): no problem found. The folder's README has the sizes.
