@@ -22,3 +22,33 @@ Before and after screenshots of Add a person and Settings for the UI polish pass
 - **Add a person** also checked the keyboard, simulated with a 291pt shorter viewport, and old drafts opening on the right step.
 
 **Large and Extra large text:** the caregiver's screens use the compact scale and ignore the app's Text size setting. They follow the phone's own text size up to 1.3x, which the web build can't simulate, so that needs a look on a phone.
+
+## Sign-in, and the rest of the app (Steps 6 and 7)
+
+**Sign-in** (sign-in on, the same stand-in): `<size>-<before|after>-signin-1-welcome`, `-signin-2-caregiver` and `-signin-3-create-account`, at 375x647 (Reduce Motion off) and 430x839 (on).
+
+**The rest of the app** (local-only build, the sample deck): `<size>-<text size>-<motion|reduced>-<before|after>-<screen>.png`, in four configurations:
+- 375x647 at Large, Reduce Motion off
+- 375x647 at Extra large, Reduce Motion on
+- 430x839 at Extra large, Reduce Motion off
+- 430x839 at Large, Reduce Motion on
+
+The walk practiced six real cards first, so Today, Trends and Insights have something to show.
+
+| # | Screen | Shots |
+|---|---|---|
+| 01 | The person's home | after |
+| 02 | A practice card | after |
+| 03 | A hint | after |
+| 04 | The success banner | after |
+| 05 | Home after practicing | after |
+| 06 | Today | before and after |
+| 07 | Trends | before and after |
+| 08 | Insights | before and after |
+| 09 | People | before and after |
+| 10 | A person's sheet | before and after |
+| 11 | Settings (local-only) | before and after |
+
+The person's screens weren't redrawn, so only "after" is kept for them; the brand walk (`docs/brand-screenshots`) has them from before. Their home is pixel-identical before and after in all four configurations. Practice cards are chosen at random, so those weren't compared pixel by pixel.
+
+**Checked:** 66 checks after, 46 before. The usual audit ran on every screen, at 48pt on the person's screens and 44pt on the caregiver's. On every person screen after, no element has a box shadow. Sign-in and Settings: 24 checks after, 16 before. Add a person: 60 again on the final code.
