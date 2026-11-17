@@ -141,12 +141,38 @@ None of these is shown to anyone. Each is left as it is, and listed in the guard
 
 ## Needs my decision
 
-1. **The Insights brain icon** (`src/components/insight-brain.tsx`) was drawn to echo the old logo's brain. The new mark also reads as a brain. Keep the icon as it is, or redraw it from the new mark?
-2. **The person's home** (`src/app/index.tsx:73`) shows the logo above Start today. The brief lists sign-in, welcome, Hello and About. Keep the new logo on the home, or remove it to keep that screen plainer?
-3. **The wrap-up** (`src/components/practice-screen.tsx:411`) shows the old mark above "All done". It isn't a card, but it is in the practice flow. Swap in the new mark, or drop it?
-4. **The guessable-password list** has the old name. Add `tandem` and `tandem1` too? It slightly changes the strength hint for those two passwords.
-5. **Dark mode.** `app.json` sets `"userInterfaceStyle": "light"`, so the app has no dark mode, and a dark splash only shows if that becomes `"automatic"`, which also turns system alerts, pickers and the status bar dark. The brief asks for a dark splash: add its config anyway, knowing it won't show while the app stays light, or switch to `"automatic"` (a behavior change, out of scope for branding)?
-6. **Developer docs.** Rename the product in `CLAUDE.md`, `DESIGN.md`, `DESIGN-UI.md` and `HANDOFF.md` now, or wait for trademark clearance?
+Each is left as the safest default, so nothing waits on it:
+
+1. **The Insights brain icon** (`src/components/insight-brain.tsx`) was drawn to echo the old logo's brain. Left as it is (only its comment changed). The new mark also reads as a brain: redraw the icon from it?
+2. **The person's home** shows the logo above Start, as before (`logo-home`, now the new logo). Keep it, or remove it to keep that screen plainer?
+3. **The wrap-up** shows the mark above "All done", as it showed the old mark (decorative, hidden from screen readers). Keep it, or drop it?
+4. **The guessable-password list** (`src/lib/auth-form.ts`) still has the old name and not the new one. Add `tandem` and `tandem1`? It slightly changes the strength hint for those two passwords.
+5. **Dark mode.** The dark splash (Ink, reversed logo) is configured, but `app.json` keeps `"userInterfaceStyle": "light"`, so phones show the light splash until the app supports dark mode. Switching to `"automatic"` would also turn system alerts, pickers and the status bar dark: a behavior change, left out of this task.
+6. **Developer docs.** `CLAUDE.md`, `DESIGN.md`, `DESIGN-UI.md` and `HANDOFF.md` still call the project Evermore in their headings and history; only the rules that changed were updated. Rename them now, or after trademark clearance?
+7. **The progress bar** is Sky on a Mist track (1.64:1), as decided. On white the empty track is barely visible (Mist on white is 1.07:1). The count is always in words beside it on the home and Today. Ink fill (12.4:1) would be much easier to see for low vision.
+8. **Deep Rose on every caregiver tab.** The selected tab, section headings, Close and info icons are now Deep Rose on the caregiver's screens, so Insights' pink is no longer unique among the tabs. Keep, or give the completion tabs (Today, Trends) the ink-blue?
+9. **`POLICY_VERSION` is 2026-11-17, not today's date.** 2026-11-16 was already in force on main and may have been agreed to, and the database accepts only a date, so a new date is the only way to ask every caregiver again. If no caregiver has seen 2026-11-16 yet, it could instead be amended (`node scripts/build-policy.mjs --amend`) and kept at today's date.
+
+## The screen walk
+
+`docs/brand-screenshots/` has 96 screenshots (12 screens, 375x647 and 430x839, Large and Extra large, light and dark) from a build made from a `git archive` copy, so no real data could be in them. Every logo was checked for its proportions, being wholly on screen, not covered, and its wordmark's contrast (13.9:1 everywhere): no problem found. The folder's README has the sizes.
+
+## Only a phone can check
+
+- The home screen icon on iOS and Android, including the Android adaptive mask (circle, squircle) and themed icons (no monochrome icon is set, so Android 13+ themed mode shows the full-color icon).
+- The splash: Expo Go shows the app icon instead of the splash, so it needs a release build (TestFlight or a development build). The dark splash shows only if `userInterfaceStyle` becomes `automatic`.
+- The name under the icon and in the phone's Settings ("Tandem"), and the reminder help line that tells the person to open Settings, then Notifications, then Tandem: the name must match what the phone shows.
+- The reminder itself: its text has no app name ("Your practice is ready whenever you are."), but the system shows the app's name and icon above it.
+- The share sheet title ("Save your Tandem export") and the exported file names (`tandem-data-….json`, `tandem-report-….pdf`, `tandem-photos-….zip`).
+- The logo's rendering through `react-native-svg` on iOS and Android (checked on web only).
+
+## To do by hand afterwards
+
+- **Supabase:** rerun nothing (no schema or function changed). In Authentication → Emails, update the **Reset password** and **Confirm signup** templates and their subjects to say Tandem (`docs/FORGOT-PASSWORD.md` has the new reset template), and set the **sender name** to Tandem once custom SMTP is set up.
+- **The hosted privacy policy:** upload the new `docs/privacy-policy.html` (version 2026-11-17) wherever the old page is hosted. Caregivers are asked to agree again on their next fresh check.
+- **App Store Connect and TestFlight:** the app name, subtitle, description and review notes (`docs/testflight-checklist.md`), and the privacy answers (`docs/app-store-privacy-answers.md`). Choose the bundle identifier and Android package only once the name clears trademark: they can't change after the first upload.
+- **The support email and policy contact:** set `SUPPORT_EMAIL` and `POLICY_CONTACT` in `src/config/brand.ts` when a real address exists, then `node scripts/build-policy.mjs` (a new `POLICY_VERSION` if the policy has been shown).
+- **Trademark:** "Tandem" is a placeholder. A rename is `src/config/brand.ts`, `app.json`'s name, a new kit in `brand-kit/` with `node scripts/make-brand-assets.mjs`, the policy with a new version, and the docs above.
 
 ## Colors and contrast ratios
 
