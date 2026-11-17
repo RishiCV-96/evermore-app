@@ -308,7 +308,8 @@ export function reportHtml(report: Report) {
   tr { page-break-inside: avoid; }
   th, td { text-align: left; padding: 3px 4px; border-bottom: 1px solid ${Colors.divider}; vertical-align: top; }
   th { font-weight: bold; color: ${Colors.textMuted}; }
-  .num { text-align: right; white-space: nowrap; }
+  .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .value { font-variant-numeric: tabular-nums; }
   th.num { white-space: normal; }
   .week { white-space: nowrap; }
   table.found td { width: 33%; border: 0; background: ${Colors.pinkTint}; padding: 6px 8px; }

@@ -2244,6 +2244,7 @@ for (const level of levels) assert.deepEqual(Object.keys(TYPE_SCALE[level]).sort
     }
   }
   assert.ok(/size=\{compact \? 'largeTitle' : 'title'\}/.test(ui), "CaregiverScreen's large title is the caregiver's only");
+  assert.ok(/\{edit \|\| onRestore \? <View pointerEvents="none" style=\{\[styles\.outline/.test(inRepo('src/components/people-grid.tsx')), "the grid's photo outline only on the caregiver's People tab, never in the person's Practice more");
   const choices = inRepo('src/components/choices.tsx');
   assert.ok(/compact && styles\.chipPill, compact && !selected && styles\.chipEdge/.test(choices) && !/chip(On|Off): \{[^}]*(Radius\.|Elevation)/.test(choices), "chips are pills with an edge on the caregiver's screens only");
   const button = inRepo('src/components/big-button.tsx');

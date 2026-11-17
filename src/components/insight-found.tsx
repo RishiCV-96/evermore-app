@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
-import { QuietLink } from '@/components/caregiver-ui';
+import { Callout, QuietLink } from '@/components/caregiver-ui';
 import { Note } from '@/components/dashboard';
 import { FOUND_FILL, FoundChart } from '@/components/insight-charts';
 import { Sheet } from '@/components/sheet';
@@ -60,9 +60,7 @@ export function FoundSection({ view, today }: { view: InsightsView; today: strin
         Each day
       </AppText>
       <FoundChart days={view.fortnight} recent={view.recent} today={today} />
-      <AppText size="caption" muted>
-        {`Each bar is a day, out of 100%. A dot is a day with fewer than ${MIN_CARDS_SHOWN} cards.`}
-      </AppText>
+      <Callout testID="found-reading" color={Colors.pinkInk}>{`Each bar is a day, out of 100%. A dot is a day with fewer than ${MIN_CARDS_SHOWN} cards.`}</Callout>
       <View style={styles.link}>
         <QuietLink testID="found-help" label="How to read this" onPress={() => setHelp(true)} />
       </View>

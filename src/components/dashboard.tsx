@@ -29,7 +29,7 @@ type HeroProps = { value: string; label: string; note?: string; testID?: string 
 export function Hero({ value, label, note, testID }: HeroProps) {
   return (
     <View testID={testID} accessible accessibilityLabel={`${label}: ${value}${note ? `. ${note}` : ''}`} style={styles.hero}>
-      <AppText fit bold size="display" color={Colors.primaryDark}>
+      <AppText fit bold size="display" tabular color={Colors.primaryDark}>
         {value}
       </AppText>
       <AppText fit muted>
@@ -51,9 +51,39 @@ export function Stat({ value, label, testID }: { value: string; label: string; t
       <AppText fit style={styles.statLabel}>
         {label}
       </AppText>
-      <AppText fit bold color={Colors.primaryDark}>
+      <AppText fit bold tabular color={Colors.primaryDark}>
         {value}
       </AppText>
+    </View>
+  );
+}
+
+export type StatItem = { label: string; value: string; /** A line under the figure. */ sub?: string; /** What screen readers hear for the value. */ spoken?: string; testID?: string };
+
+/**
+ * A few supporting figures in one quiet row, hairlines between them: each figure bold over its label.
+ * Labels wrap rather than shrink, so the row holds at the phone's largest text.
+ */
+export function StatRow({ items, color = Colors.primaryDark, testID }: { items: StatItem[]; /** The figures' color. */ color?: string; testID?: string }) {
+  return (
+    <View testID={testID} style={styles.statRow}>
+      {items.map((item, index) => (
+        <View key={item.label} style={[styles.statCell, index > 0 ? styles.statDivided : styles.statFirst]}>
+          <View testID={item.testID} accessible accessibilityLabel={`${item.label}: ${item.spoken ?? item.value}`} style={styles.statInner}>
+            <AppText fit bold size="headline" tabular color={color}>
+              {item.value}
+            </AppText>
+            <AppText size="caption" muted>
+              {item.label}
+            </AppText>
+            {item.sub ? (
+              <AppText size="caption" muted>
+                {item.sub}
+              </AppText>
+            ) : null}
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -177,7 +207,7 @@ function DayCell({ day }: { day: DayCompletion }) {
   return (
     <View style={styles.cellSlot}>
       <View accessible accessibilityLabel={`${label}: ${LEVEL_TEXT[level]}`} style={[styles.cell, levelStyles[level]]}>
-        <AppText fit bold size="caption" color={level === 'met' ? Colors.onPrimary : Colors.text}>
+        <AppText fit bold size="caption" tabular color={level === 'met' ? Colors.onPrimary : Colors.text}>
           {String(day.date.getDate())}
         </AppText>
       </View>
@@ -194,7 +224,7 @@ export function PeopleCounts({ rows }: { rows: { name: string; count: number }[]
           <AppText fit style={styles.personName}>
             {row.name}
           </AppText>
-          <AppText bold color={Colors.primaryDark}>
+          <AppText bold tabular color={Colors.primaryDark}>
             {String(row.count)}
           </AppText>
         </View>
@@ -223,6 +253,26 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     flex: 1,
+  },
+  statRow: {
+    flexDirection: 'row',
+    paddingVertical: Space.s,
+  },
+  statCell: {
+    flex: 1,
+    paddingLeft: Space.m,
+    paddingRight: Space.s,
+  },
+  // The first figure lines up with the page's edge; the rest sit after a hairline.
+  statDivided: {
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: Colors.divider,
+  },
+  statFirst: {
+    paddingLeft: 0,
+  },
+  statInner: {
+    gap: 2,
   },
   grid: {
     gap: Space.xs,

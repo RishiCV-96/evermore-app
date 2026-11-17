@@ -4,9 +4,10 @@ import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 
 import { AppText } from '@/components/app-text';
+import { Pressed } from '@/components/pressed';
 import { BigButton } from '@/components/big-button';
 import { Notice } from '@/components/caregiver-ui';
-import { Note } from '@/components/dashboard';
+import { Note, StatRow } from '@/components/dashboard';
 import { ScoreChart, SpeedChart, TimeChart } from '@/components/insight-charts';
 import { FoundSection, MiniBar } from '@/components/insight-found';
 import { PersonInsightSheet } from '@/components/insight-person';
@@ -42,7 +43,7 @@ import {
   type Trend,
 } from '@/lib/insights';
 import { Colors } from '@/theme/colors';
-import { COMPACT_TAP, ICON, RADIUS, Space } from '@/theme/layout';
+import { COMPACT_TAP, ICON, Radius, Space } from '@/theme/layout';
 
 // The Insights tab, for the caregiver only: how practice is going, from each card's record: kept on
 // this phone with sign-in off, or fetched from the server with sign-in on. Practice activity, never a
@@ -307,18 +308,25 @@ function ScoreHero({ day, today, trend, chance, onExplain }: { day?: DayInsight;
       />
       <Note testID="score-note" />
       {day ? (
-        <View style={styles.tiles}>
-          <Tile testID="insights-cards" label="Cards answered" value={String(day.cards)} />
-          {day.standard ? (
-            <Tile
-              testID="insights-time"
-              label="Practice time"
-              value={minutesText(day.standard.activeMs)}
-              sub={day.standard.status === 'partial' ? 'Partial day' : `of about ${minutesText(day.standard.expectedMs)}`}
-              spoken={timeAgainst(day.standard)}
-            />
-          ) : null}
-        </View>
+        // The day's figures in one quiet row, a hairline between them (they were two white tiles).
+        <StatRow
+          testID="insights-figures"
+          color={Colors.text}
+          items={[
+            { testID: 'insights-cards', label: 'Cards answered', value: String(day.cards) },
+            ...(day.standard
+              ? [
+                  {
+                    testID: 'insights-time',
+                    label: 'Practice time',
+                    value: minutesText(day.standard.activeMs),
+                    sub: day.standard.status === 'partial' ? 'Partial day' : `of about ${minutesText(day.standard.expectedMs)}`,
+                    spoken: timeAgainst(day.standard),
+                  },
+                ]
+              : []),
+          ]}
+        />
       ) : null}
       {trend ? (
         <View testID="insights-trend" style={styles.trend}>
@@ -339,34 +347,15 @@ function ScoreHero({ day, today, trend, chance, onExplain }: { day?: DayInsight;
   );
 }
 
-/** A figure in a small white tile on the hero card. */
-function Tile({ label, value, sub, spoken, testID }: { label: string; value: string; sub?: string; spoken?: string; testID?: string }) {
-  return (
-    <View testID={testID} accessible accessibilityLabel={`${label}: ${spoken ?? value}`} style={styles.tile}>
-      <AppText fit size="caption" muted>
-        {label}
-      </AppText>
-      <AppText fit bold size="title" style={styles.figure}>
-        {value}
-      </AppText>
-      {sub ? (
-        <AppText fit size="caption" muted>
-          {sub}
-        </AppText>
-      ) : null}
-    </View>
-  );
-}
-
 /** A clear, full-width button on the hero card: white, with the Insights pink words and icon. */
 function HeroButton({ label, onPress, testID }: { label: string; onPress: () => void; testID?: string }) {
   return (
-    <Pressable testID={testID} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.heroButton, pressed && styles.heroButtonPressed]}>
+    <Pressed testID={testID} accessibilityRole="button" onPress={onPress} tone={[Colors.background, Colors.pink1]} style={styles.heroButton}>
       <Ionicons name="help-circle-outline" size={20} color={Colors.pinkInk} aria-hidden />
       <AppText fit bold color={Colors.pinkInk}>
         {label}
       </AppText>
-    </Pressable>
+    </Pressed>
   );
 }
 
@@ -453,23 +442,12 @@ const styles = StyleSheet.create({
     gap: Space.s,
   },
   // The hero: one card on the softest pink, its pieces centered, nothing boxed inside but two white tiles.
+  // The card radius, so the button hugging its lower corners, 16 in, is the inner radius (concentric).
   heroCard: {
     gap: Space.s,
     padding: Space.l,
-    borderRadius: RADIUS,
+    borderRadius: Radius.card,
     backgroundColor: Colors.pinkTint,
-  },
-  tiles: {
-    flexDirection: 'row',
-    gap: Space.s,
-  },
-  tile: {
-    flex: 1,
-    gap: 2,
-    paddingHorizontal: Space.m,
-    paddingVertical: Space.s,
-    borderRadius: RADIUS - Space.xs,
-    backgroundColor: Colors.background,
   },
   heroButton: {
     minHeight: COMPACT_TAP,
@@ -477,12 +455,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Space.s,
-    paddingHorizontal: Space.l,
-    borderRadius: RADIUS - Space.xs,
-    backgroundColor: Colors.background,
-  },
-  heroButtonPressed: {
-    backgroundColor: Colors.pink1,
+    // The icon leads, so its side is 2pt narrower and icon and words read as centered (optical alignment).
+    paddingLeft: Space.l - 2,
+    paddingRight: Space.l + 2,
+    borderRadius: Radius.inner,
   },
   figure: {
     fontVariant: ['tabular-nums'],
@@ -498,7 +474,7 @@ const styles = StyleSheet.create({
   tag: {
     paddingHorizontal: Space.s,
     paddingVertical: 2,
-    borderRadius: RADIUS,
+    borderRadius: Radius.pill,
     backgroundColor: Colors.background,
   },
   step: {

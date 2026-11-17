@@ -108,6 +108,8 @@ function PersonCard({ person, size, waiting, outOfDeck, onPress, openHint, edit,
         accessibilityElementsHidden
         importantForAccessibility="no"
       />
+      {/* On the caregiver's People tab only: a hairline inside the photo's edge, so a pale photo keeps its shape. */}
+      {edit || onRestore ? <View pointerEvents="none" style={[styles.outline, { width: size, height: size }]} /> : null}
       <AppText fit bold muted={Boolean(onRestore)}>
         {person.name}
       </AppText>
@@ -199,6 +201,14 @@ const styles = StyleSheet.create({
   },
   photo: {
     borderRadius: RADIUS,
+  },
+  outline: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    borderRadius: RADIUS,
+    borderWidth: 1,
+    borderColor: 'rgba(31, 43, 77, 0.10)',
   },
   // Only the picture fades, so the name keeps its contrast.
   mutedPhoto: {

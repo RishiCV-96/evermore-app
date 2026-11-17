@@ -6,7 +6,7 @@ import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { AiConsent, AiQueue, AiSection, AI_TITLES, useGenerate, type AiView } from '@/components/ai-questions';
 import { ApprovalsArea, ApproveConfirm, WaitingList } from '@/components/approve-all';
-import { Notice, Row } from '@/components/caregiver-ui';
+import { FormGroup, Notice, Row } from '@/components/caregiver-ui';
 import { Avatar, avatarSource, profileOf, type PhotoFields } from '@/components/person-photo';
 import { Checkbox, Sheet } from '@/components/sheet';
 import { Toast, type ToastContent } from '@/components/toast';
@@ -160,15 +160,16 @@ export function PersonSheet({ person, cards, ai, practiceReady, visible, onClose
           </AppText>
         </View>
       ) : null}
-      <View>
+      <FormGroup>
         <Row
           testID="person-stories"
           label="Stories"
+          icon="book-outline"
           value={waiting ? `${waiting} to approve` : `${approved} approved`}
           onPress={() => open('/caregiver/review')}
         />
-        <Row testID="person-edit" label="Edit details" onPress={() => open('/caregiver/add')} />
-      </View>
+        <Row testID="person-edit" label="Edit details" icon="create-outline" onPress={() => open('/caregiver/add')} />
+      </FormGroup>
       <ApprovalsArea personId={shown.id} plan={plan} onOpenList={openList} onApproveAll={() => confirmFromHere('person')} />
       {approveNotice ? <Notice>{approveNotice}</Notice> : null}
       {canPractice ? (
@@ -194,7 +195,8 @@ export function PersonSheet({ person, cards, ai, practiceReady, visible, onClose
         />
       ) : null}
       <HintSettings person={shown} />
-      {/* The way to archive without the long press. Deleting is only offered once someone is archived. */}
+      {/* The way to archive without the long press, apart from the rest. Deleting is only offered once someone is archived. */}
+      <View style={styles.apart} />
       <BigButton
         testID="archive-person"
         quiet
@@ -286,5 +288,8 @@ const styles = StyleSheet.create({
   },
   resume: {
     gap: Space.xs,
+  },
+  apart: {
+    height: Space.l,
   },
 });

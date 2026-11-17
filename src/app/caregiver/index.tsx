@@ -10,8 +10,8 @@ import { AppText } from '@/components/app-text';
 import { ArchivedPeople } from '@/components/archived-people';
 import { BigButton } from '@/components/big-button';
 import { SettingsPage } from '@/components/settings-page';
-import { Notice } from '@/components/caregiver-ui';
-import { Hero, MonthGrid, Note, PeopleCounts, Stat, WeekBars } from '@/components/dashboard';
+import { EmptyState, Notice } from '@/components/caregiver-ui';
+import { Hero, MonthGrid, Note, PeopleCounts, StatRow, WeekBars } from '@/components/dashboard';
 import { InsightsPanel, InsightsSegments, type InsightsSegment } from '@/components/insights';
 import { PeopleGrid } from '@/components/people-grid';
 import { profileOf } from '@/components/person-photo';
@@ -156,35 +156,46 @@ function TodayTab({ family, activity, since }: { family: Family; activity: Activ
   const week = weekSessions(activity.sessions, now);
   const average = since ? fourWeekAverage(days, since) : 0;
 
+  const ready = practiceReady(family);
+  const none = activity.sessions.length === 0;
   return (
     <>
-      {activity.sessions.length === 0 ? <Notice>No practice yet. Activity shows here after the first session.</Notice> : null}
-      {/* Fewer than two people to practice with: archived, drafts or deselected. A day already begun still shows its progress. */}
-      {practiceReady(family) ? null : <Notice>Add or restore people to start practicing.</Notice>}
+      {/* One calm message, never two: fewer than two people to practice with comes first (archived, drafts or
+          deselected; a day already begun still shows its progress), then no practice yet. */}
+      {ready ? null : <Notice>Add or restore people to start practicing.</Notice>}
       {family.goal > 0 ? (
         <Hero
           testID="today-percent"
           value={`${today.percent}%`}
           label={`${Math.min(today.completed, today.goal)} of ${today.goal} cards today`}
-          note={practiceReady(family) ? todayLine(today.goal, today.completed) : undefined}
+          note={ready ? todayLine(today.goal, today.completed) : undefined}
         />
       ) : null}
-      <View>
-        <Stat testID="week-sessions" label="Sessions, last 7 days" value={String(week.count)} />
-        <Stat
-          testID="session-length"
-          label="Average session"
-          value={week.count ? `${Math.max(1, Math.round(week.averageMinutes))} min` : '–'}
+      {none && ready ? (
+        <EmptyState testID="today-empty" icon="sunny-outline" title="No practice yet">
+          Activity shows here after the first session.
+        </EmptyState>
+      ) : null}
+      {/* Until the first session the figures are all zero, so they wait with the chart. */}
+      {none ? null : (
+        <StatRow
+          testID="today-stats"
+          items={[
+            { testID: 'week-sessions', label: 'Sessions, last 7 days', value: String(week.count) },
+            { testID: 'session-length', label: 'Average session', value: week.count ? `${Math.max(1, Math.round(week.averageMinutes))} min` : '–' },
+            { testID: 'four-week', label: 'Average day, last 4 weeks', value: `${average}%` },
+          ]}
         />
-        <Stat testID="four-week" label="Average day, last 4 weeks" value={`${average}%`} />
-      </View>
-      <View style={styles.group}>
-        <AppText fit bold accessibilityRole="header">
-          Last 7 days (% of goal)
-        </AppText>
-        <WeekBars days={days.slice(-7)} today={now} />
-        <Note testID="footer" />
-      </View>
+      )}
+      {none ? null : (
+        <View style={styles.group}>
+          <AppText fit bold size="headline" accessibilityRole="header">
+            Last 7 days (% of goal)
+          </AppText>
+          <WeekBars days={days.slice(-7)} today={now} />
+        </View>
+      )}
+      <Note testID="footer" />
     </>
   );
 }
@@ -204,14 +215,14 @@ function TrendsTab({ family, activity }: { family: TrendsFamily; activity: Activ
   return (
     <>
       <View style={styles.group}>
-        <AppText fit bold accessibilityRole="header">
+        <AppText fit bold size="headline" accessibilityRole="header">
           Last 30 days
         </AppText>
         <MonthGrid days={days} />
         <Note />
       </View>
       <View style={styles.group}>
-        <AppText fit bold accessibilityRole="header">
+        <AppText fit bold size="headline" accessibilityRole="header">
           Times practiced this week
         </AppText>
         {covered.length ? <PeopleCounts rows={covered} /> : <AppText muted>No cards practiced in the last 7 days.</AppText>}

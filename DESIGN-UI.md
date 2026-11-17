@@ -664,3 +664,19 @@ The caregiver's tokens above; nothing a row does, opens or confirms changed.
 | Footer | The `about` lockup (168pt), "Tandem · Version 1.0.0" (the name from `src/config/brand.ts`, the version from the app's config), then "Practice activity, not a medical measure." |
 | Entrance | The status card and sections slide up 8pt and fade in, 70ms apart; with Reduce Motion they simply appear. |
 | Not here | Reminders: they live on the person's phone only (the hard rule). |
+
+## The rest of the caregiver's screens (2026-11-17)
+
+The same tokens, on the caregiver's side only. The person's screens changed only by their 56pt touch areas: their home is pixel-identical before and after at 375x647 and 430x839, Large and Extra large.
+
+| Piece | How it looks |
+| --- | --- |
+| Header | The tab's name at the 28pt large title beside the mark, no hairline under it; side margins 20. |
+| Tab bar | The soft pill, now pill-round with the edge shadow; the bar floats on a soft shadow in place of its hairline. |
+| Today | The hero figure (tabular) stays the one focal point. The three supporting figures are one quiet row (`StatRow` in `src/components/dashboard.tsx`): each figure bold in the headline size over its label, hairlines between, labels wrapping rather than shrinking. With no practice yet, one calm `EmptyState` ("No practice yet", "Activity shows here after the first session.") under the hero; the all-zero figures and the empty chart wait for the first session. With fewer than two people, only its notice shows. |
+| Trends | Section titles in the headline size; the calendar's dates and the counts tabular. |
+| Insights | The hero card at the card radius, its button at the inner radius (concentric), with an interruptible press and 2pt less padding on its icon's side. The two white tiles are now one `StatRow` on the pink tint, the Early read tag is a pill, and "Each bar is a day…" is an accent-bar `Callout` in `pinkInk`. |
+| People | Photos keep a hairline inside their edge on the caregiver's People tab and Archived people only (`edit` or `onRestore`), never in the person's Practice more. |
+| A person's sheet | Stories and Edit details on one inset card with icons; Archive set apart below the rest. |
+| Report (PDF) | Its numbers in tabular figures. |
+| Borders kept | The calendar's today and selected rings, checkbox outlines, a focused field, the progress bar's outline and the dashed legend swatches. Each carries meaning, so none became a shadow. |

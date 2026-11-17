@@ -300,3 +300,12 @@ Counting each screen's fixed header and pinned bar too (141pt a step, 193 on Rev
 - **The facts-only line stays in full on step 1**, as `docs/ADD-PERSON-AUDIT.md` decided: it's the one place every caregiver reads it. The saving came from elsewhere.
 - **The step title is now the 28pt large title** (the brief's "confident headline"), 7pt taller than before on each step.
 - **The photo preview is 112pt** (from 80), outside the card.
+
+## Results: Steps 6 and 7 (2026-11-17)
+
+Done as planned in (c), with these differences:
+- **Today with no practice** shows its hero and one `EmptyState`, and holds back the all-zero figures and the empty chart until the first session.
+- **The tab bar** keeps its soft pill (your decision), now pill-round with a soft edge.
+- **The caregiver's entrance** (`Enter`) is a shared value, not a Reanimated layout animation. The web walk showed a layout animation leaving sections mispositioned after data arrived.
+
+Checked: typecheck, lint and all 14 suites in `npm test`, the release bundles included. Walks with fictional data only, all passing; `docs/ui-polish-screenshots/README.md` has the counts.
