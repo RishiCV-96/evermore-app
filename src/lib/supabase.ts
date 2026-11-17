@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
 
+import { APP_NAME } from '@/config/brand';
 import { AUTH_ENABLED } from '@/config/features';
 import { sessionStorage, storedSessionUser } from '@/lib/session-storage';
 
@@ -11,7 +12,8 @@ const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 if (AUTH_ENABLED && (!url || !key)) {
   throw new Error(
-    'Evermore needs EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env (see .env.example). Restart `npx expo start` after adding them. To run without a server, use `npm run start:local`.',
+    APP_NAME +
+      ' needs EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env (see .env.example). Restart `npx expo start` after adding them. To run without a server, use `npm run start:local`.',
   );
 }
 

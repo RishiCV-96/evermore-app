@@ -2,6 +2,8 @@
 // the internet" for everything. Pure, so scripts/check-logic.mjs checks it. Never shows a code or
 // anything about the server's insides.
 
+import { APP_NAME } from '@/config/brand';
+
 export type LoadProblem = 'offline' | 'signed-out' | 'server-update' | 'server';
 
 type ErrorLike = { code?: unknown; message?: unknown; status?: unknown; name?: unknown };
@@ -25,7 +27,7 @@ export function problemOf(error: unknown): LoadProblem {
 export const INSIGHTS_PROBLEM: Record<LoadProblem, string> = {
   offline: 'Insights need the internet the first time they open on this phone. Please check the connection.',
   'signed-out': 'Your sign-in needs renewing. Please sign out in Settings, then sign in again.',
-  'server-update': 'Insights can’t open until Evermore’s server is updated. Practice is saved meanwhile. Please try again later.',
+  'server-update': `Insights can’t open until ${APP_NAME}’s server is updated. Practice is saved meanwhile. Please try again later.`,
   server: 'Insights couldn’t load just now. Practice is saved meanwhile. Please try again in a moment.',
 };
 
@@ -33,6 +35,6 @@ export const INSIGHTS_PROBLEM: Record<LoadProblem, string> = {
 export const DASHBOARD_PROBLEM: Record<LoadProblem, string> = {
   offline: 'Some of this couldn’t load. Please check the internet connection.',
   'signed-out': 'Your sign-in needs renewing. Please sign out in Settings, then sign in again.',
-  'server-update': 'Some of this can’t load until Evermore’s server is updated. Please try again later.',
+  'server-update': `Some of this can’t load until ${APP_NAME}’s server is updated. Please try again later.`,
   server: 'Some of this couldn’t load just now. Please try again in a moment.',
 };

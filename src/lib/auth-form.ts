@@ -3,6 +3,7 @@
 // answer from Supabase Auth means in calm, plain words. Nothing here says "wrong", "error", "invalid"
 // or "failed", and no message confirms whether an account exists where Supabase doesn't.
 
+import { APP_NAME } from '@/config/brand';
 import { agreementProblems, type Agreement } from '@/lib/consent';
 
 /** Every new password: at least this long. Longer is encouraged, never required. */
@@ -149,7 +150,7 @@ export type AuthReason = 'offline' | 'busy' | 'unconfirmed' | 'credentials' | 'e
 /** The shape of supabase-js's AuthError, and of a thrown network error. */
 export type AuthFailure = { name?: string; code?: string; status?: number; message?: string };
 
-export const OFFLINE = 'We couldn’t reach Evermore. Please check the internet connection and try again.';
+export const OFFLINE = `We couldn’t reach ${APP_NAME}. Please check the internet connection and try again.`;
 export const LOCKED_OUT = 'Let’s take a short break. Please try again in a minute.';
 export const TOO_MANY = 'There have been a lot of tries. Please wait a few minutes, then try again.';
 export const TOO_MANY_EMAILS = 'We’ve sent a few emails already. Please wait a few minutes before asking for another.';
@@ -196,7 +197,7 @@ export function authProblem(failure: AuthFailure, context: AuthContext): { messa
   if (code === 'weak_password') return { message: 'Please choose a longer password that’s harder to guess.', reason: 'weak' };
   if (code === 'same_password') return { message: 'That’s the password you have now. Please choose a new one.', reason: 'weak' };
   if (code === 'email_address_invalid') return { message: 'Please check the email address, or use another one.', reason: 'address' };
-  if (code === 'email_address_not_authorized') return { message: 'Evermore can’t send email to that address yet. Please use another one.', reason: 'address' };
+  if (code === 'email_address_not_authorized') return { message: `${APP_NAME} can’t send email to that address yet. Please use another one.`, reason: 'address' };
   if (code === 'signup_disabled') return { message: 'New accounts can’t be made right now. Please try again later.', reason: 'other' };
   if (code === 'reauthentication_needed') return { message: 'Please sign out, sign in again, then change your password.', reason: 'other' };
   if (context === 'code' || code === 'otp_expired') return { message: CODE_NOT_MATCHED, reason: 'code' };

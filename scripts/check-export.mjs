@@ -503,9 +503,9 @@ await check('photo names are safe on any system and never collide', async () => 
     [],
   );
   assert.deepEqual(entries.map((entry) => entry.file), ['AnnMarie Nana.png', 'annmarie nana.jpg'], 'no illustration or bundled photo, which the caregiver didn’t add');
-  assert.equal(exportFileName('photos', new Date('2026-11-13T12:00:00Z')), 'evermore-photos-2026-11-13.zip');
-  assert.equal(exportFileName('report', new Date('2026-11-13T12:00:00Z')), 'evermore-report-2026-11-13.pdf');
-  assert.equal(exportFileName('data', new Date('2026-11-13T12:00:00Z')), 'evermore-data-2026-11-13.json');
+  assert.equal(exportFileName('photos', new Date('2026-11-13T12:00:00Z')), 'tandem-photos-2026-11-13.zip');
+  assert.equal(exportFileName('report', new Date('2026-11-13T12:00:00Z')), 'tandem-report-2026-11-13.pdf');
+  assert.equal(exportFileName('data', new Date('2026-11-13T12:00:00Z')), 'tandem-data-2026-11-13.json');
 });
 
 // ---------------------------------------------------------------------------------------

@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, View } from 'react-native';
 
+import { APP_NAME } from '@/config/brand';
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { Sheet } from '@/components/sheet';
@@ -130,8 +131,8 @@ export function ReminderSettings() {
         <View testID="reminders-blocked" style={styles.notice}>
           <AppText>
             {Platform.OS === 'ios'
-              ? 'Reminders are turned off in this iPhone’s settings. To turn them on, open Settings, then Notifications, then Evermore.'
-              : 'Reminders are turned off in this phone’s settings. To turn them on, open the settings for Evermore, then Notifications.'}
+              ? `Reminders are turned off in this iPhone’s settings. To turn them on, open Settings, then Notifications, then ${APP_NAME}.`
+              : `Reminders are turned off in this phone’s settings. To turn them on, open the settings for ${APP_NAME}, then Notifications.`}
           </AppText>
           <BigButton testID="reminders-open-settings" label="Open settings" onPress={() => void openNotificationSettings()} />
         </View>

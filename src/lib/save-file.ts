@@ -1,6 +1,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { APP_NAME } from '@/config/brand';
 
 // Hands a file the app made to the phone's share sheet, so the caregiver can save it to Files, mail it
 // or keep it anywhere they like. Nothing is uploaded by the app. Every file is written to the app's
@@ -29,7 +30,7 @@ export function clearExports() {
 
 async function share(file: File, kind: FileKind | 'pdf') {
   try {
-    await Sharing.shareAsync(file.uri, { ...TYPES[kind], dialogTitle: 'Save your Evermore export' });
+    await Sharing.shareAsync(file.uri, { ...TYPES[kind], dialogTitle: `Save your ${APP_NAME} export` });
   } finally {
     if (file.exists) file.delete();
   }

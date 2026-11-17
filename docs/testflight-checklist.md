@@ -29,7 +29,7 @@ Fill in App Store Connect → App Privacy from `docs/app-store-privacy-answers.m
 
 ## 4. Account deletion
 
-Guideline 5.1.1(v): "If your app supports account creation, you must also offer account deletion within the app." Done: Settings → Delete account, which deletes the whole family from the server straight away after "delete" is typed. Apple has rejected apps that only deactivate an account; Evermore deletes. Mention it in the review notes so the reviewer finds it.
+Guideline 5.1.1(v): "If your app supports account creation, you must also offer account deletion within the app." Done: Settings → Delete account, which deletes the whole family from the server straight away after "delete" is typed. Apple has rejected apps that only deactivate an account; Tandem deletes. Mention it in the review notes so the reviewer finds it.
 
 ## 5. A demo account for App Review
 
@@ -43,7 +43,7 @@ Guideline 2.1(a): "include demo account info (and turn on your back-end service!
 
 ## 6. Review notes (draft to adapt)
 
-> Evermore helps a person with early memory loss practice recognizing family and friends with short fill-in-the-blank cards made from a caregiver's own words and photos. It is a practice tool, not a medical device: it doesn't test for, treat or measure any condition, and every chart is labelled "Practice activity, not a medical measure."
+> Tandem helps a person with early memory loss practice recognizing family and friends with short fill-in-the-blank cards made from a caregiver's own words and photos. It is a practice tool, not a medical device: it doesn't test for, treat or measure any condition, and every chart is labelled "Practice activity, not a medical measure."
 >
 > Two roles. The caregiver signs in with the demo caregiver account below: dashboard, people, stories, Settings. The person practicing signs in on their own phone: on the welcome, tap "I am practicing", then Sign in with the User ID below.
 >
@@ -53,7 +53,7 @@ Apple's notes field holds up to 4000 bytes.
 
 ## 7. Things a reviewer may ask about
 
-- **Guideline 1.4.1 (medical apps)** applies to apps "that could be used for diagnosing or treating patients", and asks apps to "remind users to check with a doctor". Evermore makes no medical claim. **[REVIEW]** Whether the store description, category (Health & Fitness, Medical or Lifestyle) and the "Memory score" name invite medical-app scrutiny, and whether to add a "talk to a doctor" line.
+- **Guideline 1.4.1 (medical apps)** applies to apps "that could be used for diagnosing or treating patients", and asks apps to "remind users to check with a doctor". Tandem makes no medical claim. **[REVIEW]** Whether the store description, category (Health & Fitness, Medical or Lifestyle) and the "Memory score" name invite medical-app scrutiny, and whether to add a "talk to a doctor" line.
 - **Guideline 5.1.3 (health data)**, if the Health data type is declared: no use for advertising or marketing, and for any future research, participant consent and an independent ethics review board.
 - **Third-party information.** The caregiver enters information and photos of other people. The sign-up confirmation covers this. **[REVIEW]**
 

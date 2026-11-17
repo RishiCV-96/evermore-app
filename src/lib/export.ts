@@ -1,5 +1,6 @@
 import { strToU8, zipSync, type Zippable } from 'fflate';
 
+import { APP_NAME, APP_NAME_LOWER } from '@/config/brand';
 import type { RevealSetting, SessionLength } from '@/config/schedule';
 import { ATTEMPTS_KEPT_DAYS } from '@/config/insights';
 import { questionFor } from '@/data/questionnaire';
@@ -111,11 +112,11 @@ const ORIGIN_WORDS: Record<ExportOrigin['from'], string> = {
 export const PRIVACY_WORDS =
   'This file holds personal information: names, stories about your family and how practice went. It was made only because you asked. Keep it somewhere safe and share it carefully.';
 
-export const RESTORE_WORDS = 'Evermore can’t read this file back. Restoring from it is done by hand by the app’s developer, not in the app.';
+export const RESTORE_WORDS = `${APP_NAME} can’t read this file back. Restoring from it is done by hand by the app’s developer, not in the app.`;
 
-/** The file's name: evermore-data-2026-11-12.json, evermore-report-2026-11-12.pdf, evermore-photos-2026-11-12.zip. */
+/** The file's name, after the app (src/config/brand.ts): tandem-data-2026-11-12.json, tandem-report-2026-11-12.pdf, tandem-photos-2026-11-12.zip. */
 export const exportFileName = (kind: 'data' | 'report' | 'photos', now: Date) =>
-  `evermore-${kind}-${now.toISOString().slice(0, 10)}.${kind === 'data' ? 'json' : kind === 'report' ? 'pdf' : 'zip'}`;
+  `${APP_NAME_LOWER}-${kind}-${now.toISOString().slice(0, 10)}.${kind === 'data' ? 'json' : kind === 'report' ? 'pdf' : 'zip'}`;
 
 /** The cards and records that are real: never test data, the demo, or a test fact's records. */
 export function realOnly(source: Pick<ExportSource, 'cards' | 'records'>) {
@@ -147,7 +148,7 @@ export function familyExport(source: ExportSource, now: Date, appVersion: string
   const missing = source.origin.from === 'phone-copy' ? source.origin.missing : [];
   return {
     about: {
-      app: 'Evermore',
+      app: APP_NAME,
       format: EXPORT_FORMAT,
       exportedAt: now.toISOString(),
       appVersion,
@@ -340,7 +341,7 @@ export function photoIndex(entries: PhotoEntry[], people: ExportPerson[], cards:
   const words = new Map(cards.map((card) => [card.id, card.text]));
   return {
     about: {
-      app: 'Evermore',
+      app: APP_NAME,
       format: EXPORT_FORMAT,
       exportedAt: now.toISOString(),
       privacy: 'These are photos of your family. Share them only with people you trust.',
@@ -406,7 +407,7 @@ export const settleRead = <T>(run: () => Promise<T>) =>
 export const EXPORT_PROBLEM: Record<ExportProblem, string> = {
   offline: 'Your account couldn’t be reached, so nothing was saved. Please check the internet connection and try again.',
   'signed-out': 'Your sign-in needs renewing, so nothing was saved. Please sign out in Settings, then sign in again.',
-  'server-update': 'This can’t be made until Evermore’s server is updated, so nothing was saved. Please try again later.',
+  'server-update': `This can’t be made until ${APP_NAME}’s server is updated, so nothing was saved. Please try again later.`,
   server: 'Part of your data couldn’t be read just now, so nothing was saved. Please try again in a moment.',
   'caregivers-only': 'Only the caregiver’s account can export the family’s data.',
 };

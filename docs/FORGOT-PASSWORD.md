@@ -29,7 +29,7 @@ What was already right: the same calm words for any address, the minute's wait b
 ## The fix (in the app)
 
 - **Code only, in Expo Go.** The flow stays `verifyOtp` with `type: 'recovery'`, then `updateUser`. No link, no redirect, no deep link.
-- **One calm answer.** After **Send code**, whatever happened (an account or not, sent or held back by Supabase's minute): "**If that email has an account, we have sent a code.** It can take a few minutes. If it isn't there, look in the spam folder." (`RESET_SENT`, `RESET_SENT_MORE` in `src/lib/auth-form.ts`). Supabase's 429 on a reset request is no longer passed on. Only **no connection** reads differently ("We couldn't reach Evermore…"), since that says nothing about any account.
+- **One calm answer.** After **Send code**, whatever happened (an account or not, sent or held back by Supabase's minute): "**If that email has an account, we have sent a code.** It can take a few minutes. If it isn't there, look in the spam folder." (`RESET_SENT`, `RESET_SENT_MORE` in `src/lib/auth-form.ts`). Supabase's 429 on a reset request is no longer passed on. Only **no connection** reads differently ("We couldn't reach Tandem…"), since that says nothing about any account.
 - **The app keeps its own minute.** **Send again** stays disabled for 60 seconds, counting down. Going **Back** and tapping **Send code** again for the same address within that minute sends nothing and goes straight back to the code.
 - **The code.** "6-digit code from the email", the number pad, one-time-code autofill. Spaces and dashes are dropped as typed, and fewer than 6 digits gets "Please type the 6-digit code from the email." (Supabase allows up to 10 if its setting is changed, and the field accepts that.)
 - **Wrong, expired, reused or superseded codes** all read "That code didn't match, or it has expired. Please check the newest email and try again." Nobody is signed in and nothing is kept. Too many tries (Supabase: 30 code checks in five minutes per IP address) reads "There have been a lot of tries. Please wait a few minutes, then try again."
@@ -50,10 +50,10 @@ These are needed before Forgot password can work for anyone. Until they're done,
 3. **Put the code in the Reset password template.** Authentication → Emails → **Templates** → **Reset Password**. Replace the body with something like:
 
    ```html
-   <h2>Reset your Evermore password</h2>
+   <h2>Reset your Tandem password</h2>
    <p>Your code is:</p>
    <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px;">{{ .Token }}</p>
-   <p>Type it in the Evermore app with your new password. It works once, for one hour.</p>
+   <p>Type it in the Tandem app with your new password. It works once, for one hour.</p>
    <p>If you didn't ask for this, you can ignore this email.</p>
    ```
 

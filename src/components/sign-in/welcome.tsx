@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { APP_NAME } from '@/config/brand';
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { CaregiverScreen } from '@/components/caregiver-ui';
@@ -49,9 +50,9 @@ export function CaregiverChoice({ onBack, onSignIn, onCreate }: { onBack: () => 
             <BigButton testID="caregiver-create" label="Create an account" onPress={onCreate} />
           </View>
         }>
-        <AppText>Sign in to your account, or create one to set up Evermore for someone you care for.</AppText>
+        <AppText>Sign in to your account, or create one to set up {APP_NAME} for someone you care for.</AppText>
         <AppText size="caption" muted>
-          Evermore is a practice tool, not a medical device.
+          {APP_NAME} is a practice tool, not a medical device.
         </AppText>
       </CaregiverScreen>
     </CompactType>

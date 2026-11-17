@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { APP_NAME } from '@/config/brand';
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { CaregiverScreen, Field, Notice, QuietLink } from '@/components/caregiver-ui';
@@ -76,7 +77,7 @@ export function CaregiverSignIn({ email, onEmail, onBack, onForgot, onCreate, on
           <QuietLink testID="sign-in-create" label="Create an account" onPress={onCreate} />
         </View>
         <AppText size="caption" muted>
-          Evermore is a practice tool, not a medical device.
+          {APP_NAME} is a practice tool, not a medical device.
         </AppText>
       </CaregiverScreen>
     </CompactType>

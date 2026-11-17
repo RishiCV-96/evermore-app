@@ -22,7 +22,7 @@ export type LocalSession = {
 };
 
 export type LocalPractice = {
-  /** When this phone first opened Evermore, for the 4-week average. */
+  /** When this phone first opened the app, for the 4-week average. */
   since: string;
   /** The caregiver's choices. Missing means the default. */
   sessionLength?: SessionLength;

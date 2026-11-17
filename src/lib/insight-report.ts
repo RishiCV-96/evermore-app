@@ -1,3 +1,4 @@
+import { APP_NAME } from '@/config/brand';
 import { ATTEMPTS_KEPT_DAYS, MEMORY_SCORE, SCORE_BANDS, type BandName } from '@/config/insights';
 import { realOnly, type ExportOrigin, type ExportSource } from '@/lib/export';
 import {
@@ -289,7 +290,7 @@ export function reportHtml(report: Report) {
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Evermore practice report</title>
+<title>${escape(APP_NAME)} practice report</title>
 <style>
   @page { margin: 36px; }
   body { font-family: 'Atkinson Hyperlegible', -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif; color: ${Colors.text}; background: ${Colors.background}; font-size: ${type.caption}px; line-height: 1.4; margin: 0; }
@@ -315,7 +316,7 @@ export function reportHtml(report: Report) {
   footer { margin-top: 18px; padding-top: 6px; border-top: 1px solid ${Colors.divider}; page-break-inside: avoid; }
 </style></head>
 <body>
-  <h1>Evermore practice report</h1>
+  <h1>${escape(APP_NAME)} practice report</h1>
   <p class="muted">Made on ${longDate(report.madeOn)}. Study days: ${escape(range)}.</p>
   <div class="notice">${escape(REPORT_NOTES.personal)}${report.origin === 'phone-copy' ? `<br>${escape(REPORT_NOTES.phoneCopy)}` : ''}</div>
   ${body}

@@ -201,7 +201,7 @@ await check('the strength hint: calm, about length, and never a reason to refuse
   assert.match(form.passwordStrength('').words, /^At least 8 characters\./);
   assert.equal(form.passwordStrength(PASSWORD).words, 'Strong.');
   const component = inRepo('src/components/password-field.tsx');
-  assert.ok(component.includes('Colors.primary') && component.includes('Colors.skySoft') && !/pink|accent|#[0-9a-f]{6}/i.test(component), 'blue fills in on a sky track: no red, no pink, no new color');
+  assert.ok(component.includes('Colors.primary') && component.includes('Colors.skySoft') && !/pink|deepRose|Colors\.accent|#[0-9a-f]{6}/i.test(component), 'Ink fills in on a sky track: no red, no pink, no new color');
 });
 
 await check('every message is calm: no "wrong", "error", "invalid" or "failed", and none says whether an account exists', () => {

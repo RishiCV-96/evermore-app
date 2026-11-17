@@ -1,4 +1,4 @@
-// Story building for Evermore. Kept free of imports so it can be checked in plain Node.
+// Story building for the app. Kept free of imports so it can be checked in plain Node.
 //
 // Every word practice shows comes from the caregiver's fields placed into the fixed sentence
 // shapes below. Nothing here writes new words about a person.

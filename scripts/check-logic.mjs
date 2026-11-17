@@ -877,7 +877,7 @@ const noLongerApproved = families.setStatus(gate, gate.cards.find((c) => c.perso
 assert.equal(profile.deckOf(noLongerApproved.people, noLongerApproved.cards, hasPicture).cards.length, deckNow.cards.length - 1, 'approval still decides each card');
 
 // One capitalization: sentence case, from one place, so it can't drift
-const KEEPS_ITS_CAPITAL = new Set(['ID', 'PDF', 'Me', 'Evermore', 'Caregiver']);
+const KEEPS_ITS_CAPITAL = new Set(['ID', 'PDF', 'Me', 'Tandem', 'Caregiver']);
 function sentenceCase(text, where) {
   const words = text.replace(/[^\p{L}\p{N}\s’'-]/gu, ' ').trim().split(/\s+/).filter(Boolean);
   assert.ok(words.length === 0 || /^[\p{Lu}\p{N}]/u.test(words[0]), `${where}: "${text}" starts with a capital`);
@@ -2037,7 +2037,7 @@ const aiCheck = await import('@/lib/ai-check');
   const consentCode = inRepo('src/components/ai-questions.tsx');
   // Since 2026-11-13 in step with "AI questions" in the privacy policy (src/lib/privacy-policy.ts).
   assert.ok(consentCode.includes('approved facts are sent as text to an AI service') && consentCode.includes('names are replaced first. Photos are never sent'), 'consent says what is sent, in plain words');
-  assert.ok(!/nothing is saved/i.test(consentCode), 'and promises only what Evermore controls');
+  assert.ok(!/nothing is saved/i.test(consentCode), 'and promises only what the app controls');
   assert.ok(!/\bred\b|wrong|score/i.test(consentCode.replace(/\/\/.*/g, '').replace(/Colors\.\w+/g, '')), 'calm words only');
 }
 
@@ -3608,7 +3608,7 @@ assert.ok(TYPE_SCALE.medium.body >= 20, 'body text at the default size stays lar
   const tiny = familyExport({ origin: { from: 'server' }, people: [{ id: 'a', name: 'June', hints: {}, notApplicable: [], includeInPractice: true, revealOk: true }], cards: [], sessionLength: 'standard', revealCards: 'sometimes', sessions: [], records: [], schedule: [], phones: [] }, new Date('2026-11-12T20:00:00Z'), '1.0.0');
   assert.equal(tiny.about.format, EXPORT_FORMAT);
   assert.deepEqual(JSON.parse(exportText(tiny)), JSON.parse(JSON.stringify(tiny)), 'the file is valid JSON');
-  assert.equal(exportFileName('data', new Date('2026-11-12T20:00:00Z')), 'evermore-data-2026-11-12.json');
+  assert.equal(exportFileName('data', new Date('2026-11-12T20:00:00Z')), 'tandem-data-2026-11-12.json');
 }
 
 // Why something couldn't load, told apart (not "check the internet" for everything)

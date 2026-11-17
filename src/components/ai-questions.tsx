@@ -2,6 +2,7 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { APP_NAME } from '@/config/brand';
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { Field, FormCell, FormGroup, Notice, Row } from '@/components/caregiver-ui';
@@ -124,7 +125,7 @@ export function AiConsent({ onAgree, onDecline }: { onAgree: () => void; onDecli
         Their name and any other names are replaced first. Photos are never sent, and neither are facts that may change, such as a job.
       </AppText>
       <AppText size="caption" muted>
-        Evermore keeps none of it. Anthropic may keep it for a short time under its own terms, and says it doesn’t use it to train its models.
+        {APP_NAME} keeps none of it. Anthropic may keep it for a short time under its own terms, and says it doesn’t use it to train its models.
       </AppText>
       <AppText size="caption" muted>
         You approve every sentence before it reaches practice. You can turn this off, or take back this agreement, in Settings at any time, or turn it off for one person on their sheet.

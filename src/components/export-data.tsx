@@ -2,6 +2,7 @@ import Constants from 'expo-constants';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { APP_NAME } from '@/config/brand';
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { Notice, Row } from '@/components/caregiver-ui';
@@ -173,7 +174,7 @@ export function ExportPanel() {
       {phase.at === 'idle' && phase.notice ? <Notice>{phase.notice}</Notice> : null}
 
       <AppText size="caption" muted>
-        Evermore can’t read an export back. Restoring from one is done by hand by the app’s developer.
+        {APP_NAME} can’t read an export back. Restoring from one is done by hand by the app’s developer.
       </AppText>
     </View>
   );

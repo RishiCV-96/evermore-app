@@ -1,8 +1,8 @@
-# Evermore
+# Tandem
 
-Evermore helps a person with early memory loss keep recognizing the important people in their life, through short, personal fill-in-the-blank stories. A caregiver adds people and memories and approves each story. The person practices a few cards a day on their phone.
+Tandem helps a person with early memory loss keep recognizing the important people in their life, through short, personal fill-in-the-blank stories. A caregiver adds people and memories and approves each story. The person practices a few cards a day on their phone.
 
-Evermore is a practice tool, not a medical device. `DESIGN.md` has the design record and `CLAUDE.md` the rules every change follows.
+Tandem is a practice tool, not a medical device. The name is a placeholder pending trademark clearance; it lives in `src/config/brand.ts`, and the logo in `brand-kit/`. `DESIGN.md` has the design record and `CLAUDE.md` the rules every change follows.
 
 ## How it fits together
 
@@ -217,8 +217,8 @@ Testing ran with **Confirm email** off and without custom email, so the email co
 
 ## Privacy
 
-- Evermore has no analytics or ad SDKs and never sells or shares data. It runs no AI or face recognition on photos.
-- AI questions are off by default. Turned on, one person's approved facts go to an AI service (Anthropic) when the caregiver taps Generate, as text, with every name replaced by a placeholder, after a one-time consent. Evermore stores none of it, and the caregiver approves every sentence before it reaches practice. See [AI questions](#ai-questions).
+- Tandem has no analytics or ad SDKs and never sells or shares data. It runs no AI or face recognition on photos.
+- AI questions are off by default. Turned on, one person's approved facts go to an AI service (Anthropic) when the caregiver taps Generate, as text, with every name replaced by a placeholder, after a one-time consent. Tandem stores none of it, and the caregiver approves every sentence before it reaches practice. See [AI questions](#ai-questions).
 - Photos are in a private bucket, shown only through signed links that expire after an hour.
 - The 7 example family photos in `assets/photos/` stay on this computer and your phone. The folder is gitignored. In the local-only mode the app shows them, so Metro bundles them and the dev server sends them to the phone; they are in the bundle with sign-in on too, though never shown. Don't run `eas update` or `eas build` while they are there, and prefer the same Wi-Fi to `--tunnel`.
 - With sign-in on, each card's practice record is uploaded from the person's phone for the caregiver's Insights: ids, how the card was asked, each answer chosen and when, the hints and the time on the card, never a name, a photo or anyone's words. The person's login can send them but never read them; only the caregiver's login reads them. They are kept 120 days, and go with the person or the account when deleted. Test data stays on the phone.
