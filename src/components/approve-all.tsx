@@ -11,7 +11,7 @@ import type { AiSentence } from '@/lib/ai-sentences';
 import { HELD_WORDS, listOpened, planSize, waitingCount, type ApprovalPlan, type HeldReason } from '@/lib/approve-all';
 import type { SavedCard } from '@/lib/facts';
 import { BLANK, sentenceFor } from '@/lib/stories';
-import { Colors } from '@/theme/colors';
+import { useAccent } from '@/theme/accent';
 import { Space } from '@/theme/layout';
 
 // Approve all on a person's sheet, for the caregiver only: the approvals area, the list of everything
@@ -38,6 +38,7 @@ const storyText = (person: SavedPerson, card: SavedCard) => sentenceFor(person, 
 const questionText = (person: SavedPerson, sentence: AiSentence) => sentence.text.replace(NAME_TOKEN, person.name).replace(BLANK_TOKEN, '______');
 
 function StoryItem({ person, card, reason }: { person: SavedPerson; card: SavedCard; reason?: HeldReason }) {
+  const accent = useAccent();
   const question = questionFor(card.type);
   return (
     <FormCell>
@@ -50,7 +51,7 @@ function StoryItem({ person, card, reason }: { person: SavedPerson; card: SavedC
           {card.testData ? <TestTag /> : null}
         </View>
         {reason ? (
-          <AppText size="caption" color={Colors.primaryDark}>
+          <AppText size="caption" color={accent}>
             {HELD_WORDS[reason]}
           </AppText>
         ) : null}
@@ -60,6 +61,7 @@ function StoryItem({ person, card, reason }: { person: SavedPerson; card: SavedC
 }
 
 function QuestionItem({ person, sentence, reason }: { person: SavedPerson; sentence: AiSentence; reason?: HeldReason }) {
+  const accent = useAccent();
   return (
     <FormCell>
       <View testID={reason ? 'held-item' : 'ready-item'} style={styles.item}>
@@ -76,7 +78,7 @@ function QuestionItem({ person, sentence, reason }: { person: SavedPerson; sente
           ))}
         </View>
         {reason ? (
-          <AppText size="caption" color={Colors.primaryDark}>
+          <AppText size="caption" color={accent}>
             {HELD_WORDS[reason]}
           </AppText>
         ) : null}

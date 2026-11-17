@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/app-text';
 import { Field, type FieldProps } from '@/components/caregiver-ui';
 import { passwordStrength } from '@/lib/auth-form';
+import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
 import { COMPACT_TAP, RADIUS, Space, TAP } from '@/theme/layout';
 import { useCompact } from '@/theme/type';
@@ -19,6 +20,7 @@ type PasswordFieldProps = Omit<FieldProps, 'secureTextEntry' | 'action'> & {
  * filled in from anything saved, and nothing it holds is logged or kept.
  */
 export function PasswordField({ strength, label, testID, ...field }: PasswordFieldProps) {
+  const accent = useAccent();
   const [shown, setShown] = useState(false);
   const compact = useCompact();
   const toggle = (
@@ -31,8 +33,8 @@ export function PasswordField({ strength, label, testID, ...field }: PasswordFie
       // The full target, overlapping the space around the label rather than making its line taller,
       // so a password's label sits as close to its box as any other field's.
       style={({ pressed }) => [styles.toggle, compact ? styles.toggleCompact : styles.toggleLarge, pressed && styles.pressed]}>
-      <Ionicons name={shown ? 'eye-off-outline' : 'eye-outline'} size={compact ? Space.l : 22} color={Colors.primaryDark} aria-hidden />
-      <AppText size={compact ? 'caption' : 'body'} color={Colors.primaryDark}>
+      <Ionicons name={shown ? 'eye-off-outline' : 'eye-outline'} size={compact ? Space.l : 22} color={accent} aria-hidden />
+      <AppText size={compact ? 'caption' : 'body'} color={accent}>
         {shown ? 'Hide' : 'Show'}
       </AppText>
     </Pressable>

@@ -15,6 +15,7 @@ import { TextSizeSetting } from '@/components/text-size';
 import { LOCAL_ONLY, closeCaregiver, deleteFamilyHere, signOutCaregiver } from '@/data/app-data';
 import type { Family } from '@/data/family-store';
 import { confirm } from '@/lib/confirm';
+import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
 import { Space } from '@/theme/layout';
 
@@ -108,9 +109,10 @@ export function SettingsPage({ family, failed }: SettingsPageProps) {
 
 /** A titled group of rows. */
 function Section({ title, children }: { title: string; children: ReactNode }) {
+  const accent = useAccent();
   return (
     <View style={styles.section}>
-      <AppText accessibilityRole="header" fit bold size="caption" color={Colors.primaryDark}>
+      <AppText accessibilityRole="header" fit bold size="caption" color={accent}>
         {title}
       </AppText>
       <View>{children}</View>

@@ -2079,9 +2079,13 @@ for (const hex of ['#FF0000', '#D32F2F', '#E53935', '#C62828']) assert.ok(isRed(
   // Light to deep: each band's pink is darker than the one below it.
   const ladder = ['pinkTint', 'pink1', 'pink2', 'pink3', 'pink4', 'pinkDeep', 'pinkInk'].map((name) => luminance(Colors[name]));
   assert.ok(ladder.every((value, index) => index === 0 || value < ladder[index - 1]), 'the pinks go from light to deep');
-  // The brain's own pinks, sampled from the logo, are in the family.
-  assert.equal(Colors.pink2, '#FFB8D2', 'the brain’s outline');
-  assert.equal(Colors.pink3, '#F192B6', 'the brain’s folds');
+  // The brand's pinks: Rose is the arc pink, and Deep Rose the caregiver's link color, apart from the family.
+  const { Brand } = await import('@/theme/colors');
+  assert.equal(Colors.pinkDeep, Brand.rose, 'Rose is in the family');
+  assert.equal(Colors.deepRose, Brand.deepRose, 'Deep Rose is the caregiver’s link color');
+  assert.ok(contrast(Brand.rose, '#FFFFFF') < 4.5, 'Rose is too light for small text, so it is never a text color');
+  assert.ok(!TEXT_PAIRS.some(([text]) => ['sky', 'accent', 'surface', 'skySoft', 'accentSoft'].includes(text)), 'Sky, Mist and Sun are never text');
+  for (const path of walkFiles('src')) assert.ok(!/color[=:]\s*\{?\s*Colors\.(sky|accent|surface|skySoft|accentSoft|softSuccess|pinkDeep)\b/.test(inRepo(path)), `${path} draws text or an icon in Sky, Mist, Sun or Rose`);
   for (const [mark, on] of MARK_PAIRS) {
     const ratio = contrast(Colors[mark], Colors[on]);
     assert.ok(ratio >= 3, `${mark} marks on ${on} are ${ratio.toFixed(2)}:1, under 3:1`);
@@ -2089,11 +2093,17 @@ for (const hex of ['#FF0000', '#D32F2F', '#E53935', '#C62828']) assert.ok(isRed(
   for (const name of pinks.slice(1, 5)) assert.ok(TEXT_PAIRS.some(([text, on]) => text === 'text' && on === name), `${name} carries text, checked at 4.5:1`);
   // Pink is the Insights accent and the Memory score's color (since 2026-11-10): only the Insights files
   // and the caregiver dashboard that hosts their tab may use it, and nothing a person's screen imports.
-  const PINK = /\bColors\.pink(Tint|Ink|Deep|[1-4])\b/;
+  // Deep Rose (Colors.deepRose) and the brand's own Rose and Deep Rose count as pink too (since 2026-11-16).
+  const PINK = /\bColors\.(pink(Tint|Ink|Deep|[1-4])|deepRose)\b|\bBrand\.(rose|deepRose)\b/;
   // The report (Export my data → Report (PDF)) carries the Memory score's pinks too, since 2026-11-13.
   const insightsFamily = (path) => /^src\/components\/(insight|score-|day-sheet)/.test(path) || ['src/theme/colors.ts', 'src/app/caregiver/index.tsx', 'src/lib/insight-report.ts'].includes(path);
+  // Deep Rose links and accents on every caregiver screen (since 2026-11-16): the caregiver layout gives the
+  // color through src/theme/accent.tsx, so the shared components a person's screen also reaches never name it.
+  const caregiverAccent = (path) => path === 'src/app/caregiver/_layout.tsx';
   const users = walkFiles('src').filter((path) => PINK.test(inRepo(path)));
-  for (const path of users) assert.ok(insightsFamily(path), `${path} uses the Insights pinks`);
+  for (const path of users) assert.ok(insightsFamily(path) || caregiverAccent(path), `${path} uses the Insights pinks`);
+  assert.ok(/<AccentProvider color=\{Colors\.deepRose\}>/.test(inRepo('src/app/caregiver/_layout.tsx')), 'the caregiver layout gives Deep Rose to its screens');
+  assert.ok(!PINK.test(inRepo('src/theme/accent.tsx')) && /createContext<string>\(Colors\.primaryDark\)/.test(inRepo('src/theme/accent.tsx')), 'without the caregiver layout, the accent is the person’s ink-blue');
   assert.ok(users.includes('src/app/caregiver/index.tsx') && users.includes('src/components/insight-ring.tsx'), 'the check sees the files that do use them');
   // Every file a person-facing screen reaches, through every import, is free of pink.
   const resolveImport = (from, spec) => {

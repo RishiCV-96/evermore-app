@@ -4,6 +4,7 @@ import { AppText } from '@/components/app-text';
 import { Notice } from '@/components/caregiver-ui';
 import { Sheet } from '@/components/sheet';
 import { CONTACT, DRAFT_LINE, EFFECTIVE_DATE, POLICY, POLICY_VERSION, WHAT_WE_STORE } from '@/lib/privacy-policy';
+import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
 import { RADIUS, Space, TAP } from '@/theme/layout';
 import { CompactType } from '@/theme/type';
@@ -50,6 +51,7 @@ export function PolicySheet({ visible, onClose }: { visible: boolean; onClose: (
 
 /** "What the app stores": the plain version of the data inventory, for Settings. */
 export function StoresSheet({ visible, onClose, onPolicy }: { visible: boolean; onClose: () => void; onPolicy: () => void }) {
+  const accent = useAccent();
   return (
     <Sheet visible={visible} title="What the app stores" onClose={onClose}>
       <CompactType value={true}>
@@ -65,7 +67,7 @@ export function StoresSheet({ visible, onClose, onPolicy }: { visible: boolean; 
             </View>
           ))}
           <Pressable testID="stores-policy" accessibilityRole="button" onPress={onPolicy} style={({ pressed }) => [styles.more, pressed && styles.pressed]}>
-            <AppText size="caption" color={Colors.primaryDark}>
+            <AppText size="caption" color={accent}>
               The privacy policy has the details.
             </AppText>
           </Pressable>
@@ -91,10 +93,11 @@ function Bullet({ children }: { children: string }) {
  * large type, so it never competes with their one action, but with their full 48pt target.
  */
 export function PolicyLink({ onPress, testID }: { onPress: () => void; testID: string }) {
+  const accent = useAccent();
   return (
     <Pressable testID={testID} accessibilityRole="button" accessibilityLabel="Read the privacy policy" onPress={onPress} style={({ pressed }) => [styles.link, pressed && styles.pressed]}>
       <CompactType value={true}>
-        <AppText color={Colors.primaryDark} style={styles.underline}>
+        <AppText color={accent} style={styles.underline}>
           Privacy policy
         </AppText>
       </CompactType>

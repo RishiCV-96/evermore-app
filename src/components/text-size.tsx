@@ -9,6 +9,7 @@ import { ReminderRow, ReminderSettings } from '@/components/reminders';
 import { Sheet } from '@/components/sheet';
 import { REMINDERS_AVAILABLE } from '@/data/reminders';
 import { setTextSize, TEXT_SIZES, textSizeLabel, useTextSize } from '@/data/text-size';
+import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
 import { ICON, RADIUS, Space, TAP } from '@/theme/layout';
 import { Fonts, MIN_FONT_SCALE, typeFor } from '@/theme/type';
@@ -20,6 +21,7 @@ import { Fonts, MIN_FONT_SCALE, typeFor } from '@/theme/type';
  * has no Reminders: they live on the person's phone only.
  */
 export function TextSizeSheet({ visible, onClose, reminders = false }: { visible: boolean; onClose: () => void; reminders?: boolean }) {
+  const accent = useAccent();
   const current = useTextSize();
   const [view, setView] = useState<'size' | 'reminders'>('size');
   const close = () => {
@@ -54,7 +56,7 @@ export function TextSizeSheet({ visible, onClose, reminders = false }: { visible
                 style={[styles.optionText, typeFor(size).body, chosen && styles.chosenText]}>
                 {label}
               </Text>
-              {chosen ? <Ionicons name="checkmark-circle-outline" size={ICON} color={Colors.primaryDark} aria-hidden /> : null}
+              {chosen ? <Ionicons name="checkmark-circle-outline" size={ICON} color={accent} aria-hidden /> : null}
             </Pressable>
           );
         })}

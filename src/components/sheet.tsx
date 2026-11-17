@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/app-text';
 import { RevealContext } from '@/components/caregiver-ui';
+import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
 import { COMPACT_TAP, GUTTER, ICON, RADIUS, Space, TAP } from '@/theme/layout';
 import { useCompact } from '@/theme/type';
@@ -23,6 +24,7 @@ type SheetProps = {
 
 /** A full-height sheet over the current screen, used instead of adding screens. */
 export function Sheet({ visible, title, onClose, children, overlay, header }: SheetProps) {
+  const accent = useAccent();
   const insets = useSafeAreaInsets();
   const compact = useCompact();
 
@@ -54,7 +56,7 @@ export function Sheet({ visible, title, onClose, children, overlay, header }: Sh
                 accessibilityLabel="Close"
                 onPress={onClose}
                 style={({ pressed }) => [styles.close, compact && styles.closeCompact, pressed && styles.pressed]}>
-                <AppText fit bold color={Colors.primaryDark}>
+                <AppText fit bold color={accent}>
                   Close
                 </AppText>
               </Pressable>

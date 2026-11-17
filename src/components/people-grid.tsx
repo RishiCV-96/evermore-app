@@ -12,6 +12,7 @@ import type { SavedCard, SavedPerson } from '@/data/family-store';
 import { placeholderPhoto } from '@/data/portraits';
 import { displayValue } from '@/data/questionnaire';
 import { outOfDeckLabel, profileCompletion } from '@/lib/profile';
+import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
 import { COMPACT_TAP, RADIUS, Space } from '@/theme/layout';
 
@@ -96,6 +97,7 @@ function lightTap() {
 }
 
 function PersonCard({ person, size, waiting, outOfDeck, onPress, openHint, edit, onRestore }: PersonCardProps) {
+  const accent = useAccent();
   const reduced = useReducedMotion();
   const body = (
     <>
@@ -114,7 +116,7 @@ function PersonCard({ person, size, waiting, outOfDeck, onPress, openHint, edit,
           {outOfDeck}
         </AppText>
       ) : waiting ? (
-        <AppText fit bold size="caption" color={Colors.primaryDark}>
+        <AppText fit bold size="caption" color={accent}>
           {waiting} to approve
         </AppText>
       ) : person.relationship ? (

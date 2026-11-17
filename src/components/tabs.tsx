@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TAB_BAR } from '@/lib/caregiver-tabs';
+import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
 import { COMPACT_MAX_SCALE, Fonts, MIN_FONT_SCALE } from '@/theme/type';
 import { COMPACT_TAP, RADIUS, Space } from '@/theme/layout';
@@ -29,12 +30,13 @@ type TabsProps<T extends string> = {
  * color. Labels stay on one line (src/lib/caregiver-tabs.ts checks they fit at every width).
  */
 export function Tabs<T extends string>({ tabs, active, onChange, onLayout }: TabsProps<T>) {
+  const accent = useAccent();
   const insets = useSafeAreaInsets();
   return (
     <View accessibilityRole="tablist" onLayout={onLayout} style={[styles.bar, { paddingBottom: Math.max(insets.bottom, Space.s) }]}>
       {tabs.map((tab) => {
         const selected = tab.id === active;
-        const color = selected ? (tab.accent?.color ?? Colors.primaryDark) : Colors.textMuted;
+        const color = selected ? (tab.accent?.color ?? accent) : Colors.textMuted;
         return (
           <Pressable
             key={tab.id}

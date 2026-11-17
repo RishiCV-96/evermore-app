@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   track: {
     height: 10,
     borderRadius: RADIUS,
-    backgroundColor: Colors.skySoft,
+    backgroundColor: Colors.surface,
     overflow: 'hidden',
   },
   trackCompact: {
@@ -65,6 +65,7 @@ const styles = StyleSheet.create({
   fill: {
     height: '100%',
     borderRadius: RADIUS,
-    backgroundColor: Colors.primary,
+    // Sky on a Mist track, from the brand: soft on purpose (about 1.6:1). The home and Today also say the count in words.
+    backgroundColor: Colors.sky,
   },
 });

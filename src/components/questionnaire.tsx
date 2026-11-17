@@ -66,6 +66,7 @@ import {
   type ProfilePerson,
 } from '@/lib/profile';
 import { tidyName, tidyRelationship, type BestClue } from '@/lib/stories';
+import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
 import { COMPACT_TAP, ICON, RADIUS, Space } from '@/theme/layout';
 import { warnKind } from '@/lib/log';
@@ -169,6 +170,7 @@ type StepLayoutProps = {
  * full on the first step, behind a small link after it). The way on is pinned below.
  */
 function StepLayout({ section, percent, forward, busy = false, onLater, footer, children }: StepLayoutProps) {
+  const accent = useAccent();
   const reduced = useReducedMotion();
   const [factsOpen, setFactsOpen] = useState(false);
   const first = section.step === 0;
@@ -193,7 +195,7 @@ function StepLayout({ section, percent, forward, busy = false, onLater, footer, 
               disabled={busy}
               onPress={onLater}
               style={({ pressed }) => [styles.later, pressed && styles.linkPressed]}>
-              <AppText fit size="caption" color={Colors.primaryDark}>
+              <AppText fit size="caption" color={accent}>
                 Finish later
               </AppText>
             </Pressable>
@@ -628,6 +630,7 @@ type PhotoFieldProps = {
 
 /** The person's photo: a large preview that is itself the button, one clear action beside it, and "Not applicable" on the label line. */
 function PhotoField({ question, shown, mark, note, onChoose, onRemove }: PhotoFieldProps) {
+  const accent = useAccent();
   const marked = mark.marked && !shown;
   return (
     <View style={styles.photoCell}>
@@ -653,7 +656,7 @@ function PhotoField({ question, shown, mark, note, onChoose, onRemove }: PhotoFi
               accessibilityRole="button"
               onPress={onChoose}
               style={({ pressed }) => [styles.photoButton, pressed && styles.previewPressed]}>
-              <AppText fit color={Colors.primaryDark}>
+              <AppText fit color={accent}>
                 {shown ? 'Change photo' : 'Choose a photo'}
               </AppText>
             </Pressable>

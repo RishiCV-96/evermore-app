@@ -7,6 +7,7 @@ import { BigButton } from '@/components/big-button';
 import { Field, FieldNote, FormCell, FormGroup, LabelLine, MarkLink, Row, type NotApplicable } from '@/components/caregiver-ui';
 import { Sheet } from '@/components/sheet';
 import { NOT_APPLICABLE, displayValue, type Option } from '@/data/questionnaire';
+import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
 import { COMPACT_TAP, ICON, RADIUS, Space } from '@/theme/layout';
 
@@ -152,6 +153,7 @@ type PickerOptionProps = { label: string; hint?: string; chosen: boolean; onPres
 
 /** One line of a Picker's list, with a check on the chosen one, as a phone's own lists have. */
 function PickerOption({ label, hint, chosen, onPress, testID }: PickerOptionProps) {
+  const accent = useAccent();
   return (
     <Pressable testID={testID} accessibilityRole="radio" aria-checked={chosen} onPress={onPress} style={({ pressed }) => pressed && styles.optionPressed}>
       <FormCell flush>
@@ -166,7 +168,7 @@ function PickerOption({ label, hint, chosen, onPress, testID }: PickerOptionProp
               </AppText>
             ) : null}
           </View>
-          {chosen ? <Ionicons name="checkmark" size={ICON} color={Colors.primaryDark} aria-hidden /> : null}
+          {chosen ? <Ionicons name="checkmark" size={ICON} color={accent} aria-hidden /> : null}
         </View>
       </FormCell>
     </Pressable>

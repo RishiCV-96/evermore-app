@@ -12,7 +12,7 @@ import { questionFor } from '@/data/questionnaire';
 import { BLANK_TOKEN, NAME_TOKEN } from '@/lib/ai-check';
 import { sendableFacts } from '@/lib/ai-request';
 import { queueOf, queueRoom, type AiSentence } from '@/lib/ai-sentences';
-import { Colors } from '@/theme/colors';
+import { useAccent } from '@/theme/accent';
 import { Space } from '@/theme/layout';
 
 // AI questions on the person's sheet: the Generate action, the one-time consent, and the queue
@@ -171,6 +171,7 @@ export function AiQueue({ person, sentences, onBack }: AiQueueProps) {
 const shownText = (sentence: AiSentence, name: string) => sentence.text.replace(NAME_TOKEN, name);
 
 function QueueItem({ sentence, name }: { sentence: AiSentence; name: string }) {
+  const accent = useAccent();
   const [draft, setDraft] = useState<string>();
   const [notice, setNotice] = useState<string>();
 
@@ -207,7 +208,7 @@ function QueueItem({ sentence, name }: { sentence: AiSentence; name: string }) {
             />
           )}
           {sentence.status === 'flagged' ? (
-            <AppText testID="sentence-flagged" size="caption" color={Colors.primaryDark}>
+            <AppText testID="sentence-flagged" size="caption" color={accent}>
               A fact this used has changed, so it’s out of practice until you review it.
             </AppText>
           ) : null}

@@ -26,6 +26,7 @@ import { useKeyboardOpen } from '@/components/use-keyboard-open';
 import { NOT_APPLICABLE, REQUIRED_LEGEND, REQUIRED_MARK } from '@/data/questionnaire';
 import { addMonths, monthOf } from '@/lib/facts';
 import { asOfLabel } from '@/lib/stories';
+import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
 import { COMPACT_TAP, GUTTER, ICON, RADIUS, Space } from '@/theme/layout';
 import { COMPACT_MAX_SCALE, Fonts, useCompact, useType } from '@/theme/type';
@@ -88,6 +89,7 @@ type CaregiverScreenProps = {
  * the bar rides above it, and the focused field is scrolled into the space left.
  */
 export function CaregiverScreen({ title, backLabel, backTo, onBack, header, footer, logo, narrow = false, children }: CaregiverScreenProps) {
+  const accent = useAccent();
   const insets = useSafeAreaInsets();
   const scroll = useRef<ScrollViewInstance>(null);
   const viewport = useRef<ViewInstance>(null);
@@ -140,8 +142,8 @@ export function CaregiverScreen({ title, backLabel, backTo, onBack, header, foot
                 accessibilityRole="button"
                 onPress={() => (onBack ? onBack() : router.canGoBack() ? router.back() : router.replace(backTo!))}
                 style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
-                <Ionicons name="chevron-back" size={ICON} color={Colors.primaryDark} aria-hidden />
-                <AppText fit color={Colors.primaryDark}>
+                <Ionicons name="chevron-back" size={ICON} color={accent} aria-hidden />
+                <AppText fit color={accent}>
                   {backLabel}
                 </AppText>
               </Pressable>
@@ -311,6 +313,7 @@ type FormRowProps = TextInputProps & {
  * the whole row, so a tap anywhere on it focuses, and the row is the tap target.
  */
 export function FormRow({ label, required = false, value, trailing, notApplicable, note, placeholder, chain, joined = false, focusAfter, onFocus, onBlur, onSubmitEditing, ...input }: FormRowProps) {
+  const accent = useAccent();
   const type = useType();
   const reveal = useContext(RevealContext);
   const fields = useContext(FieldChain);
@@ -378,7 +381,7 @@ export function FormRow({ label, required = false, value, trailing, notApplicabl
         {trailing}
       </View>
       <View pointerEvents="box-none" style={styles.formLabel}>
-        <LabelLine label={label} required={required} color={focused ? Colors.primaryDark : undefined} notApplicable={offered ? notApplicable : undefined} />
+        <LabelLine label={label} required={required} color={focused ? accent : undefined} notApplicable={offered ? notApplicable : undefined} />
       </View>
       {note ? <FieldNote>{note}</FieldNote> : null}
     </View>
@@ -399,8 +402,9 @@ export function QuestionLabel({ label, required = false, color, style }: Questio
 
 /** Small and in the accent used for text: the logo's yellow is for fills only, and can't be read on white. */
 function Asterisk() {
+  const accent = useAccent();
   return (
-    <AppText testID="required-mark" bold size="caption" color={Colors.primaryDark}>
+    <AppText testID="required-mark" bold size="caption" color={accent}>
       {` ${REQUIRED_MARK}`}
     </AppText>
   );
@@ -408,9 +412,10 @@ function Asterisk() {
 
 /** One line at the top of each step, saying what the asterisk means. */
 export function RequiredLegend() {
+  const accent = useAccent();
   return (
     <AppText testID="required-legend" fit size="caption" muted>
-      <AppText bold size="caption" color={Colors.primaryDark}>
+      <AppText bold size="caption" color={accent}>
         {REQUIRED_MARK}
       </AppText>
       {` ${REQUIRED_LEGEND}`}
@@ -440,10 +445,11 @@ export function FormCell({ flush = false, joined = false, children }: { flush?: 
 
 /** One more answer, or questions waiting behind a tap: a row inside the card, a ⊕ and the words. The one pattern for adding. */
 export function AddRow({ label, onPress, testID }: { label: string; onPress: () => void; testID?: string }) {
+  const accent = useAccent();
   return (
     <Pressable testID={testID} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.addRow, pressed && styles.addRowPressed]}>
-      <Ionicons name="add-circle-outline" size={ICON} color={Colors.primaryDark} aria-hidden />
-      <AppText fit color={Colors.primaryDark} style={styles.labelText}>
+      <Ionicons name="add-circle-outline" size={ICON} color={accent} aria-hidden />
+      <AppText fit color={accent} style={styles.labelText}>
         {label}
       </AppText>
     </Pressable>
@@ -478,8 +484,9 @@ export function TestTag() {
 
 /** Small words at the top of a group of questions. */
 export function GroupHeading({ children }: { children: string }) {
+  const accent = useAccent();
   return (
-    <AppText accessibilityRole="header" fit bold size="caption" color={Colors.primaryDark} style={styles.groupHeading}>
+    <AppText accessibilityRole="header" fit bold size="caption" color={accent} style={styles.groupHeading}>
       {children}
     </AppText>
   );
@@ -502,6 +509,7 @@ type QuietLinkProps = {
 
 /** A small action in a row: words only, so it never competes with the screen's one button. */
 export function QuietLink({ label, onPress, icon, inline = false, accessibilityLabel, expanded, disabled = false, testID }: QuietLinkProps) {
+  const accent = useAccent();
   return (
     <Pressable
       testID={testID}
@@ -512,8 +520,8 @@ export function QuietLink({ label, onPress, icon, inline = false, accessibilityL
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [styles.link, icon && styles.linkWithIcon, inline && styles.linkInline, pressed && styles.pressed]}>
-      {icon ? <Ionicons name={icon} size={Space.l + Space.xs} color={Colors.primaryDark} aria-hidden /> : null}
-      <AppText fit size="caption" color={disabled ? Colors.textMuted : Colors.primaryDark}>
+      {icon ? <Ionicons name={icon} size={Space.l + Space.xs} color={accent} aria-hidden /> : null}
+      <AppText fit size="caption" color={disabled ? Colors.textMuted : accent}>
         {label}
       </AppText>
     </Pressable>
@@ -564,10 +572,11 @@ export function MonthStepper({ value, onChange, testID }: { value: string; onCha
 
 /** A calm note, such as what is still needed. Never red. */
 export function Notice({ children }: { children: ReactNode }) {
+  const accent = useAccent();
   const compact = useCompact();
   return (
     <View accessibilityLiveRegion="polite" style={[styles.notice, compact && styles.noticeCompact]}>
-      <Ionicons name="information-circle-outline" size={ICON} color={Colors.primaryDark} aria-hidden />
+      <Ionicons name="information-circle-outline" size={ICON} color={accent} aria-hidden />
       <AppText style={styles.noticeText}>{children}</AppText>
     </View>
   );

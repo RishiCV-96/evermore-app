@@ -34,7 +34,7 @@ export const CHART = {
   /** The main series in the Insights pink, its lighter partner, and blue for a second series beside it. */
   primary: Colors.pinkInk,
   secondary: Colors.pink2,
-  blue: Colors.primary,
+  blue: Colors.primaryDark,
 };
 
 export type Tick = { value: number; label: string };

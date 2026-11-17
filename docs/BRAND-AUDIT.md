@@ -148,6 +148,79 @@ None of these is shown to anyone. Each is left as it is, and listed in the guard
 5. **Dark mode.** `app.json` sets `"userInterfaceStyle": "light"`, so the app has no dark mode, and a dark splash only shows if that becomes `"automatic"`, which also turns system alerts, pickers and the status bar dark. The brief asks for a dark splash: add its config anyway, knowing it won't show while the app stays light, or switch to `"automatic"` (a behavior change, out of scope for branding)?
 6. **Developer docs.** Rename the product in `CLAUDE.md`, `DESIGN.md`, `DESIGN-UI.md` and `HANDOFF.md` now, or wait for trademark clearance?
 
-## Contrast ratios
+## Colors and contrast ratios
 
-To be filled in at step 2, for every changed text and background pair.
+`src/theme/colors.ts` now has the six brand colors as `Brand`, and every existing token maps to the nearest of them or a tint derived from them:
+
+| Token | Before | Now | Role |
+|---|---|---|---|
+| `text` | `#1C2F4D` | Ink `#1F2B4D` | Headlines and body text |
+| `primary` | `#3E6FB0` | Ink `#1F2B4D` | Filled buttons (white text), selected fills, chart bars |
+| `primaryDark` | `#2B5791` | `#2F4A7A` (Ink lifted toward Sky) | Pressed buttons; links and figures on the person's side |
+| `surface` | `#EAF5FC` | Mist `#EAF3FB` | Answer buttons, fields, notices |
+| `accent` | `#FFD93B` | Sun `#F7C948` | Behind the filled-in name; never text |
+| `sky` | `#A9D8F5` | Sky `#8EC5F2` | Progress fill, "some practice" days; never text |
+| `skySoft` | `#D3E9F8` | `#C6E2F9` (Sky at half) | Pressed surfaces |
+| `accentSoft` | `#FFEEA7` | `#FCE9B6` (Sun at 40%) | The hint panel |
+| `softSuccess` / `onSoftSuccess` | sage `#D8E6CA` / `#2F5A2A` | `#D2E8FA` / Ink | The success banner (the brand has no green) |
+| `deepRose` | (new) | Deep Rose `#B0467F` | Links and small accents on caregiver screens only |
+| `pinkDeep` | `#C4578A` | Rose `#E8629C` | The score ring's arc (a shape, never under text) |
+| `pink4`, `pinkInk`, `pinkTint`, `pink1`–`pink3`, `textMuted`, `divider`, `blueGray` | | unchanged | `pink4` stays lighter than Rose (Ink on Rose is 4.41:1) and `pinkInk` deeper than Deep Rose (Deep Rose on `pink1` is 4.28:1), so both keep 4.5:1 |
+
+**How Deep Rose stays off the person's screens.** Shared components (Sheet, the form rows, the policy link, password Show) read `useAccent()` (`src/theme/accent.tsx`). Its default is the ink-blue `primaryDark`, and only `src/app/caregiver/_layout.tsx` gives it Deep Rose. No file a person's screen reaches names a pink, and `scripts/check-logic.mjs` now counts `Colors.deepRose` and `Brand.rose`/`Brand.deepRose` as pinks in that check. The sign-in screen is shared by both roles, so its caregiver forms keep the ink-blue. Big figures on Today and Trends stay ink-blue too, so completion never shares the Memory score's pink.
+
+Every text and mark pair the app draws (`TEXT_PAIRS`, `MARK_PAIRS`), before and after, checked by `scripts/check-logic.mjs`:
+
+| Kind | Text or mark | On | Before | Now | Pair | AA |
+|---|---|---|---|---|---|---|
+| Text | `text` #1F2B4D | `background` #FFFFFF | 13.43:1 | **13.90:1** | changed | pass (4.5:1) |
+| Text | `text` #1F2B4D | `surface` #EAF3FB | 12.13:1 | **12.38:1** | changed | pass (4.5:1) |
+| Text | `text` #1F2B4D | `skySoft` #C6E2F9 | 10.74:1 | **10.36:1** | changed | pass (4.5:1) |
+| Text | `text` #1F2B4D | `sky` #8EC5F2 | 8.85:1 | **7.56:1** | changed | pass (4.5:1) |
+| Text | `text` #1F2B4D | `accent` #F7C948 | 9.75:1 | **8.87:1** | changed | pass (4.5:1) |
+| Text | `text` #1F2B4D | `accentSoft` #FCE9B6 | 11.54:1 | **11.56:1** | changed | pass (4.5:1) |
+| Text | `text` #1F2B4D | `softSuccess` #D2E8FA | 10.29:1 | **11.03:1** | changed | pass (4.5:1) |
+| Text | `textMuted` #4D5D76 | `background` #FFFFFF | 6.68:1 | **6.68:1** | same | pass (4.5:1) |
+| Text | `textMuted` #4D5D76 | `surface` #EAF3FB | 6.03:1 | **5.95:1** | changed | pass (4.5:1) |
+| Text | `textMuted` #4D5D76 | `skySoft` #C6E2F9 | 5.34:1 | **4.98:1** | changed | pass (4.5:1) |
+| Text | `textMuted` #4D5D76 | `divider` #D3E0EC | 4.98:1 | **4.98:1** | same | pass (4.5:1) |
+| Text | `primaryDark` #2F4A7A | `background` #FFFFFF | 7.30:1 | **8.82:1** | changed | pass (4.5:1) |
+| Text | `primaryDark` #2F4A7A | `surface` #EAF3FB | 6.60:1 | **7.86:1** | changed | pass (4.5:1) |
+| Text | `primaryDark` #2F4A7A | `skySoft` #C6E2F9 | 5.84:1 | **6.57:1** | changed | pass (4.5:1) |
+| Text | `onPrimary` #FFFFFF | `primary` #1F2B4D | 5.12:1 | **13.90:1** | changed | pass (4.5:1) |
+| Text | `onPrimary` #FFFFFF | `primaryDark` #2F4A7A | 7.30:1 | **8.82:1** | changed | pass (4.5:1) |
+| Text | `onSoftSuccess` #1F2B4D | `softSuccess` #D2E8FA | 6.15:1 | **11.03:1** | changed | pass (4.5:1) |
+| Text | `text` #1F2B4D | `pinkTint` #FFF0F5 | 12.18:1 | **12.60:1** | changed | pass (4.5:1) |
+| Text | `text` #1F2B4D | `pink1` #FFE1EC | 11.02:1 | **11.41:1** | changed | pass (4.5:1) |
+| Text | `text` #1F2B4D | `pink2` #FFB8D2 | 8.34:1 | **8.63:1** | changed | pass (4.5:1) |
+| Text | `text` #1F2B4D | `pink3` #F192B6 | 6.09:1 | **6.31:1** | changed | pass (4.5:1) |
+| Text | `text` #1F2B4D | `pink4` #E07AA5 | 4.80:1 | **4.96:1** | changed | pass (4.5:1) |
+| Text | `textMuted` #4D5D76 | `pinkTint` #FFF0F5 | 6.06:1 | **6.06:1** | same | pass (4.5:1) |
+| Text | `textMuted` #4D5D76 | `pink1` #FFE1EC | 5.48:1 | **5.48:1** | same | pass (4.5:1) |
+| Text | `pinkInk` #A3416F | `background` #FFFFFF | 5.93:1 | **5.93:1** | same | pass (4.5:1) |
+| Text | `pinkInk` #A3416F | `surface` #EAF3FB | 5.35:1 | **5.28:1** | changed | pass (4.5:1) |
+| Text | `pinkInk` #A3416F | `pinkTint` #FFF0F5 | 5.37:1 | **5.37:1** | same | pass (4.5:1) |
+| Text | `pinkInk` #A3416F | `pink1` #FFE1EC | 4.86:1 | **4.86:1** | same | pass (4.5:1) |
+| Text | `onPrimary` #FFFFFF | `pinkInk` #A3416F | 5.93:1 | **5.93:1** | same | pass (4.5:1) |
+| Text | `deepRose` #B0467F | `background` #FFFFFF | new | **5.21:1** | changed | pass (4.5:1) |
+| Text | `deepRose` #B0467F | `surface` #EAF3FB | new | **4.64:1** | changed | pass (4.5:1) |
+| Mark | `pinkInk` #A3416F | `background` #FFFFFF | 5.93:1 | **5.93:1** | same | pass (3:1) |
+| Mark | `pinkInk` #A3416F | `pinkTint` #FFF0F5 | 5.37:1 | **5.37:1** | same | pass (3:1) |
+| Mark | `pinkInk` #A3416F | `pink1` #FFE1EC | 4.86:1 | **4.86:1** | same | pass (3:1) |
+| Mark | `pinkInk` #A3416F | `pink2` #FFB8D2 | 3.68:1 | **3.68:1** | same | pass (3:1) |
+| Mark | `text` #1F2B4D | `pink1` #FFE1EC | 11.02:1 | **11.41:1** | changed | pass (3:1) |
+| Mark | `text` #1F2B4D | `pink2` #FFB8D2 | 8.34:1 | **8.63:1** | changed | pass (3:1) |
+| Mark | `text` #1F2B4D | `pink3` #F192B6 | 6.09:1 | **6.31:1** | changed | pass (3:1) |
+| Mark | `text` #1F2B4D | `pink4` #E07AA5 | 4.80:1 | **4.96:1** | changed | pass (3:1) |
+
+Other pairs worth knowing:
+
+| Pair | Colors | Ratio |
+|---|---|---|
+| Progress fill Sky on its Mist track | `#8EC5F2` on `#EAF3FB` | **1.64:1**: soft on purpose (agreed 2026-11-16); the home and Today also say the count in words. Ink fill would be 12.4:1 |
+| Rose on white | `#E8629C` on white | 3.15:1: shapes only, never text |
+| Ink on Rose | `#1F2B4D` on `#E8629C` | 4.41:1: why `pink4` isn't Rose |
+| Deep Rose on `pink1` | `#B0467F` on `#FFE1EC` | 4.28:1: why `pinkInk` isn't Deep Rose |
+| Deep Rose checkmark on pressed `skySoft` | `#B0467F` on `#C6E2F9` | 3.88:1: an icon, over 3:1 |
+| Logo wordmark on the splash | Ink on Mist | 12.38:1 |
+| Reversed wordmark on the dark splash | white on Ink | 13.90:1 |
