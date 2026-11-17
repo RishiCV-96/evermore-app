@@ -1,3 +1,4 @@
+import { APP_NAME, POLICY_CONTACT } from '@/config/brand';
 import { POLICY_VERSION } from '@/lib/consent';
 
 // The privacy policy, in one place: the app shows it (src/components/privacy-policy.tsx), and
@@ -12,10 +13,10 @@ import { POLICY_VERSION } from '@/lib/consent';
 
 export { POLICY_VERSION };
 
-export const POLICY_TITLE = 'Evermore privacy policy';
+export const POLICY_TITLE = `${APP_NAME} privacy policy`;
 export const DRAFT_LINE = 'Draft for review by a lawyer or privacy professional';
 export const EFFECTIVE_DATE = '[Effective date to be added]';
-export const CONTACT = '[Contact email to be added]';
+export const CONTACT = POLICY_CONTACT;
 export const REGION = '[Hosting region to be added]';
 
 /** One statement. `review` is the lawyer's note: shown in the Markdown draft only, never in the app. */
@@ -25,13 +26,13 @@ export type PolicySection = { id: string; heading: string; points: PolicyPoint[]
 export const POLICY: PolicySection[] = [
   {
     id: 'about',
-    heading: 'What Evermore is, and is not',
+    heading: `What ${APP_NAME} is, and is not`,
     points: [
       {
-        text: 'Evermore helps a person with early memory loss keep recognizing the important people in their life. A caregiver adds those people, with photos and short stories, and the person practices with short fill-in-the-blank cards on their own phone.',
+        text: `${APP_NAME} helps a person with early memory loss keep recognizing the important people in their life. A caregiver adds those people, with photos and short stories, and the person practices with short fill-in-the-blank cards on their own phone.`,
       },
       {
-        text: 'Evermore is a practice tool. It is not a medical device. It does not test for, treat or measure any health condition. What the caregiver sees under Insights is practice activity, not a medical measure.',
+        text: `${APP_NAME} is a practice tool. It is not a medical device. It does not test for, treat or measure any health condition. What the caregiver sees under Insights is practice activity, not a medical measure.`,
         review: 'Whether the app’s purpose and its Insights (including the “Memory score”) could make it a medical device or a regulated health app in any market where it is offered, and whether this statement may be made.',
       },
       {
@@ -72,7 +73,7 @@ export const POLICY: PolicySection[] = [
       },
       { text: 'Nobody else in the app. One family can never see another family’s information. The database itself enforces this, not only the app.' },
       {
-        text: 'The developer of Evermore can technically reach the stored information, including photos, through the hosting provider’s tools. It is not end-to-end encrypted. We only look at it to keep the service working, to fix a problem you report, to restore your data when you ask, or when the law requires it.',
+        text: `The developer of ${APP_NAME} can technically reach the stored information, including photos, through the hosting provider’s tools. It is not end-to-end encrypted. We only look at it to keep the service working, to fix a problem you report, to restore your data when you ask, or when the law requires it.`,
         review: 'This statement of developer access and its limits; who “we” is (an individual or a company), and whether written access rules are needed.',
       },
       {
@@ -91,7 +92,7 @@ export const POLICY: PolicySection[] = [
         review: 'If a separate email provider is set up later (custom SMTP), it must be named here.',
       },
       { text: 'AI questions, only if you turn them on (see “AI questions” below).' },
-      { text: 'Nothing else. Evermore has no analytics, advertising or crash-reporting tools.' },
+      { text: `Nothing else. ${APP_NAME} has no analytics, advertising or crash-reporting tools.` },
       {
         text: 'When a card is answered, the phone reads the sentence aloud with its own speech feature.',
         review: 'On some Android phones the speech engine is a separate app from the phone maker or Google; whether it sends text off the phone depends on that engine.',
@@ -129,7 +130,7 @@ export const POLICY: PolicySection[] = [
         review: 'AI questions are not available in the current version when signed in. If they are offered, confirm this description still matches.',
       },
       {
-        text: 'Evermore keeps none of what is sent, only a count of requests to limit cost. Anthropic may keep the data for a short time under its own terms, and says it does not use it to train its models.',
+        text: `${APP_NAME} keeps none of what is sent, only a count of requests to limit cost. Anthropic may keep the data for a short time under its own terms, and says it does not use it to train its models.`,
         review: 'Confirm Anthropic’s current API data retention and training terms, and whether a data processing agreement is needed.',
       },
       { text: 'Every AI sentence waits for your approval before the person sees it. You can turn AI questions off at any time in Settings, or for one person.' },
@@ -143,7 +144,7 @@ export const POLICY: PolicySection[] = [
     heading: 'Research (your choice)',
     points: [
       {
-        text: 'When you create an account, and at any time in Settings, you can choose whether de-identified information may be used for research to improve Evermore. De-identified means names, photos, your words and account details are removed.',
+        text: `When you create an account, and at any time in Settings, you can choose whether de-identified information may be used for research to improve ${APP_NAME}. De-identified means names, photos, your words and account details are removed.`,
       },
       { text: 'It is off unless you turn it on. Saying no changes nothing in the app. You can change your choice at any time.' },
       {
@@ -235,7 +236,7 @@ export const POLICY: PolicySection[] = [
     heading: 'Children',
     points: [
       {
-        text: 'Evermore is for adults. A caregiver may add family members of any age, such as a grandchild, with their photo and stories. Please only add people you have the right to add.',
+        text: `${APP_NAME} is for adults. A caregiver may add family members of any age, such as a grandchild, with their photo and stories. Please only add people you have the right to add.`,
         review: 'Information about children entered by an adult caregiver, and whether any age rules apply to it.',
       },
     ],

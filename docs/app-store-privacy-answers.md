@@ -16,7 +16,7 @@ These answers describe the **shipped app**: sign-in on, AI questions off. If AI 
 
 For every type below: **Linked to the user: Yes** (it is stored in the caregiver's account). **Used for tracking: No.** **Purpose: App Functionality** only, unless stated otherwise.
 
-| Apple data type | Collected? | What it is in Evermore | Notes |
+| Apple data type | Collected? | What it is in Tandem | Notes |
 | --- | --- | --- | --- |
 | Contact Info → **Email Address** | Yes | The caregiver's sign-in email | Also used to send the confirmation and reset emails (App Functionality) |
 | Contact Info → **Name** | Yes | Names of the people the caregiver adds, and the person's first name | **[REVIEW]** These are names of people other than the user. Apple says to disclose a data type when the app asks the user to enter it, so the conservative answer is Yes |
@@ -42,4 +42,4 @@ For every type below: **Linked to the user: Yes** (it is stored in the caregiver
 1. **The research choice is a stored preference, not research.** Nothing is used for research, so no research purpose applies today. If research starts, the answers change. Apple's guideline 5.1.3(iii) and (iv) require participant consent with specific contents, and approval from an independent ethics review board, for health-related human subject research. **[REVIEW]**
 2. **Supabase is your service provider**, not a third party you "share" data with for its own purposes. The answers above still count the data as collected. **[REVIEW]**
 3. **Email delivery** goes through Supabase's built-in email. If you switch to a custom SMTP provider, nothing changes in these answers (it is still App Functionality), but the privacy policy must name it.
-4. **Optional disclosure doesn't apply.** Apple's exemption requires collection that is infrequent, optional and not part of the app's main purpose. Evermore's data is its main purpose.
+4. **Optional disclosure doesn't apply.** Apple's exemption requires collection that is infrequent, optional and not part of the app's main purpose. Tandem's data is its main purpose.

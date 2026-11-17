@@ -99,11 +99,11 @@ ${section.points.map((point) => `        <li>${escape(point.text)}</li>`).join('
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <title>Evermore privacy policy</title>
+  <title>${escape(policy.POLICY_TITLE)}</title>
   <!-- Written from src/lib/privacy-policy.ts by node scripts/build-policy.mjs. No scripts, no tracking, nothing loaded from elsewhere. -->
   <style>
-    :root { --bg: #ffffff; --text: #1f2a37; --muted: #4b5563; --accent: #1f5f8b; --tint: #eef6fc; --line: #d6e4ee; }
-    @media (prefers-color-scheme: dark) { :root { --bg: #111820; --text: #e7edf3; --muted: #aab6c2; --accent: #8cc8f0; --tint: #1a2733; --line: #2b3b4a; } }
+    :root { --bg: #ffffff; --text: #1f2b4d; --muted: #4d5d76; --accent: #b0467f; --tint: #eaf3fb; --line: #d3e0ec; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #1f2b4d; --text: #f3f6fa; --muted: #c3cddb; --accent: #f27bb0; --tint: #2a3961; --line: #3b4b78; } }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--bg); color: var(--text); font: 18px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     main { max-width: 42rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
@@ -117,7 +117,7 @@ ${section.points.map((point) => `        <li>${escape(point.text)}</li>`).join('
 </head>
 <body>
   <main>
-    <h1>Evermore privacy policy</h1>
+    <h1>${escape(policy.POLICY_TITLE)}</h1>
     <p class="draft">${escape(policy.DRAFT_LINE)}.</p>
     <p class="meta">Version ${escape(policy.POLICY_VERSION)}. Effective date: ${escape(policy.EFFECTIVE_DATE)}.</p>
 ${sections}

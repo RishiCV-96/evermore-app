@@ -77,7 +77,7 @@ await check('the hosted page is one file: no scripts, no tracking, nothing loade
   const page = html();
   assert.ok(!/<script|<iframe|<img|<link|@import|url\(/i.test(page), 'nothing that runs or fetches');
   assert.ok(!/https?:\/\//i.test(page), 'no address anywhere in it');
-  assert.ok(/<meta name="viewport"/.test(page) && /prefers-color-scheme: dark/.test(page) && /<title>Evermore privacy policy<\/title>/.test(page), 'readable on a phone, in both themes');
+  assert.ok(/<meta name="viewport"/.test(page) && /prefers-color-scheme: dark/.test(page) && /<title>Tandem privacy policy<\/title>/.test(page), 'readable on a phone, in both themes');
 });
 
 // ---------------------------------------------------------------------------------------

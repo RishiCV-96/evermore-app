@@ -1,16 +1,18 @@
-// The caregiver's agreements (pure, import-free): the words they agree to, what a sign-up must carry,
+// The caregiver's agreements (pure; its one import is the app's name, src/config/brand.ts): the words they agree to, what a sign-up must carry,
 // and whether the caregiver has agreed to the policy in force. Kept as versioned records in
 // public.consents (supabase/schema.sql): one row per agreement or choice, never changed, never
 // removed except with the whole account. The person practicing is never asked anything here.
 //
 // DRAFT: every word below needs review by a lawyer or privacy professional (docs/privacy-policy-draft.md).
 
+import { APP_NAME } from '@/config/brand';
+
 /**
  * The version of the privacy policy and the agreements in force: the date it was written. Changing the
  * policy's text means a new version (scripts/check-privacy.mjs refuses a changed text under an old
  * version), and every caregiver is asked to read and agree again before continuing.
  */
-export const POLICY_VERSION = '2026-11-16';
+export const POLICY_VERSION = '2026-11-17';
 
 /** The version recorded for caregivers who signed up before agreements were versioned. */
 export const LEGACY_VERSION = 'legacy';
@@ -21,11 +23,11 @@ export type ConsentKind = (typeof CONSENT_KINDS)[number];
 
 /** The short summary on Create an account, before anything is sent. */
 export const SIGN_UP_SUMMARY = [
-  'Evermore keeps your email, the people you add with their photos and stories, and how practice goes.',
+  `${APP_NAME} keeps your email, the people you add with their photos and stories, and how practice goes.`,
   'You can see all of it. The person practicing sees only the stories you approve.',
-  'It is stored with our hosting provider, Supabase. Evermore’s developer can technically reach it to keep the service running.',
+  `It is stored with our hosting provider, Supabase. ${APP_NAME}’s developer can technically reach it to keep the service running.`,
   'No ads, no tracking, and nothing is sold.',
-  'Evermore is a practice tool, not a medical device.',
+  `${APP_NAME} is a practice tool, not a medical device.`,
 ];
 
 /** Required: the privacy policy. */
@@ -33,11 +35,11 @@ export const AGREE_POLICY = 'I have read and agree to the privacy policy.';
 
 /** Required: the caregiver is entering information about other people, and may. */
 export const AGREE_RESPONSIBILITY =
-  'I’m adding photos and details about other people. I have the right to do this, and the person I’m helping (or whoever is legally responsible for them) knows I’m using Evermore.';
+  `I’m adding photos and details about other people. I have the right to do this, and the person I’m helping (or whoever is legally responsible for them) knows I’m using ${APP_NAME}.`;
 
 /** Optional, and off unless chosen. */
 export const RESEARCH_CHOICE =
-  'Optional: Evermore may use de-identified information (no names, photos, words or account details) for research to improve the app.';
+  `Optional: ${APP_NAME} may use de-identified information (no names, photos, words or account details) for research to improve the app.`;
 export const RESEARCH_NOTE = 'You can change this at any time in Settings. Saying no changes nothing in the app.';
 
 /** Calm notes when a required box isn't ticked. */
@@ -47,7 +49,7 @@ export const NEED_RESPONSIBILITY = 'Please confirm this to create an account.';
 /** Asking again after the policy changed. */
 export const POLICY_CHANGED_TITLE = 'Before you continue';
 export const POLICY_CHANGED =
-  'Evermore’s privacy policy has changed. Please read it and agree to keep using Evermore. Everything you added is still here.';
+  `${APP_NAME}’s privacy policy has changed. Please read it and agree to keep using ${APP_NAME}. Everything you added is still here.`;
 export const NEED_BOTH = 'Please tick both boxes to continue.';
 export const NOT_SAVED = 'That didn’t save. Please check the internet connection and try again.';
 

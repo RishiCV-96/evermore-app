@@ -1,15 +1,15 @@
-# Evermore privacy policy
+# Tandem privacy policy
 
 > **Draft for review by a lawyer or privacy professional.** This is not legal advice, and it has not been reviewed. Every statement marked **[REVIEW n]** needs a lawyer's decision; the numbered notes are at the end. It must not claim compliance with any law or certification.
 >
 > Written from `src/lib/privacy-policy.ts` and `src/lib/consent.ts` by `node scripts/build-policy.mjs`: edit those, never this file. The facts behind it are in `docs/DATA-INVENTORY.md`.
 
-**Version:** 2026-11-16 · **Effective date:** [Effective date to be added] · **Contact:** [Contact email to be added]
+**Version:** 2026-11-17 · **Effective date:** [Effective date to be added] · **Contact:** [Contact email to be added]
 
-## What Evermore is, and is not
+## What Tandem is, and is not
 
-- Evermore helps a person with early memory loss keep recognizing the important people in their life. A caregiver adds those people, with photos and short stories, and the person practices with short fill-in-the-blank cards on their own phone.
-- Evermore is a practice tool. It is not a medical device. It does not test for, treat or measure any health condition. What the caregiver sees under Insights is practice activity, not a medical measure. **[REVIEW 1]**
+- Tandem helps a person with early memory loss keep recognizing the important people in their life. A caregiver adds those people, with photos and short stories, and the person practices with short fill-in-the-blank cards on their own phone.
+- Tandem is a practice tool. It is not a medical device. It does not test for, treat or measure any health condition. What the caregiver sees under Insights is practice activity, not a medical measure. **[REVIEW 1]**
 - There are two kinds of users. The caregiver makes the account, adds the people and agrees to this policy. The person practicing uses a phone the caregiver sets up for them, and is never asked to read legal text. **[REVIEW 2]**
 
 ## What we store
@@ -26,7 +26,7 @@
 - You, the caregiver, can see everything about your family in the app.
 - The person practicing sees only the people and stories you approved, with their photos. They never see Insights, scores or how their answers went, and they can’t see your agreements or your settings.
 - Nobody else in the app. One family can never see another family’s information. The database itself enforces this, not only the app.
-- The developer of Evermore can technically reach the stored information, including photos, through the hosting provider’s tools. It is not end-to-end encrypted. We only look at it to keep the service working, to fix a problem you report, to restore your data when you ask, or when the law requires it. **[REVIEW 5]**
+- The developer of Tandem can technically reach the stored information, including photos, through the hosting provider’s tools. It is not end-to-end encrypted. We only look at it to keep the service working, to fix a problem you report, to restore your data when you ask, or when the law requires it. **[REVIEW 5]**
 - Our hosting provider, Supabase, stores and processes the information for us under its own terms. **[REVIEW 6]**
 
 ## What leaves your phone
@@ -34,7 +34,7 @@
 - What you enter, and the person’s practice, is sent over an encrypted connection to Supabase, so it is the same on every phone and safe if a phone is lost.
 - Emails about your account, such as confirming your address or resetting your password, are sent to you through Supabase’s email service. **[REVIEW 7]**
 - AI questions, only if you turn them on (see “AI questions” below).
-- Nothing else. Evermore has no analytics, advertising or crash-reporting tools.
+- Nothing else. Tandem has no analytics, advertising or crash-reporting tools.
 - When a card is answered, the phone reads the sentence aloud with its own speech feature. **[REVIEW 8]**
 
 ## What we never do
@@ -56,13 +56,13 @@
 
 - AI questions are off unless the caregiver turns them on, and the app asks for your agreement before anything is sent.
 - When they are on, and only when you tap Generate, one person’s approved facts are sent as text to an AI service, Anthropic, to write new practice sentences. Their name and any other names are replaced with placeholders first. Photos are never sent, and facts that may change, such as a job, are never sent. **[REVIEW 9]**
-- Evermore keeps none of what is sent, only a count of requests to limit cost. Anthropic may keep the data for a short time under its own terms, and says it does not use it to train its models. **[REVIEW 10]**
+- Tandem keeps none of what is sent, only a count of requests to limit cost. Anthropic may keep the data for a short time under its own terms, and says it does not use it to train its models. **[REVIEW 10]**
 - Every AI sentence waits for your approval before the person sees it. You can turn AI questions off at any time in Settings, or for one person.
 - To limit cost and misuse, the phone makes a random code that is not linked to your account. Our server keeps only a scrambled form of it, with a count of requests, for about a day and a half.
 
 ## Research (your choice)
 
-- When you create an account, and at any time in Settings, you can choose whether de-identified information may be used for research to improve Evermore. De-identified means names, photos, your words and account details are removed.
+- When you create an account, and at any time in Settings, you can choose whether de-identified information may be used for research to improve Tandem. De-identified means names, photos, your words and account details are removed.
 - It is off unless you turn it on. Saying no changes nothing in the app. You can change your choice at any time.
 - Today, no information is used for research. Before any research use begins, we will update this policy to say what is used, by whom and how. **[REVIEW 11]**
 
@@ -105,7 +105,7 @@
 
 ## Children
 
-- Evermore is for adults. A caregiver may add family members of any age, such as a grandchild, with their photo and stories. Please only add people you have the right to add. **[REVIEW 19]**
+- Tandem is for adults. A caregiver may add family members of any age, such as a grandchild, with their photo and stories. Please only add people you have the right to add. **[REVIEW 19]**
 
 ## Changes to this policy
 
@@ -119,17 +119,17 @@
 
 Shown to the caregiver only. Nothing is ticked for them, and no account is made without both required boxes.
 
-- **Summary shown on Create an account:** “Evermore keeps your email, the people you add with their photos and stories, and how practice goes. You can see all of it. The person practicing sees only the stories you approve. It is stored with our hosting provider, Supabase. Evermore’s developer can technically reach it to keep the service running. No ads, no tracking, and nothing is sold. Evermore is a practice tool, not a medical device.” **[REVIEW 21]**
+- **Summary shown on Create an account:** “Tandem keeps your email, the people you add with their photos and stories, and how practice goes. You can see all of it. The person practicing sees only the stories you approve. It is stored with our hosting provider, Supabase. Tandem’s developer can technically reach it to keep the service running. No ads, no tracking, and nothing is sold. Tandem is a practice tool, not a medical device.” **[REVIEW 21]**
 - **Required box 1:** “I have read and agree to the privacy policy.”
-- **Required box 2:** “I’m adding photos and details about other people. I have the right to do this, and the person I’m helping (or whoever is legally responsible for them) knows I’m using Evermore.” **[REVIEW 22]**
-- **Optional box (unticked):** “Optional: Evermore may use de-identified information (no names, photos, words or account details) for research to improve the app. You can change this at any time in Settings. Saying no changes nothing in the app.” **[REVIEW 23]**
-- **Asked again when the policy changes:** “Evermore’s privacy policy has changed. Please read it and agree to keep using Evermore. Everything you added is still here.”
+- **Required box 2:** “I’m adding photos and details about other people. I have the right to do this, and the person I’m helping (or whoever is legally responsible for them) knows I’m using Tandem.” **[REVIEW 22]**
+- **Optional box (unticked):** “Optional: Tandem may use de-identified information (no names, photos, words or account details) for research to improve the app. You can change this at any time in Settings. Saying no changes nothing in the app.” **[REVIEW 23]**
+- **Asked again when the policy changes:** “Tandem’s privacy policy has changed. Please read it and agree to keep using Tandem. Everything you added is still here.”
 - **The one sentence on the person’s phone:** “Your caregiver set this up for you.” **[REVIEW 24]**
 
 ## Notes for the reviewer
 
-1. **What Evermore is, and is not.** Whether the app’s purpose and its Insights (including the “Memory score”) could make it a medical device or a regulated health app in any market where it is offered, and whether this statement may be made.
-2. **What Evermore is, and is not.** Consent on behalf of a person with memory loss: whether the caregiver’s confirmation is enough, what wording is right, and whether the person (or a legal representative) must agree separately in some places.
+1. **What Tandem is, and is not.** Whether the app’s purpose and its Insights (including the “Memory score”) could make it a medical device or a regulated health app in any market where it is offered, and whether this statement may be made.
+2. **What Tandem is, and is not.** Consent on behalf of a person with memory loss: whether the caregiver’s confirmation is enough, what wording is right, and whether the person (or a legal representative) must agree separately in some places.
 3. **What we store.** These answers are about third parties and can be sensitive (family situation, relationships, places). Whether any of it is sensitive or special-category information under laws that may apply.
 4. **What we store.** Practice records describe one person’s memory practice. Whether they are health information under laws that may apply, and what that requires.
 5. **Who can see it.** This statement of developer access and its limits; who “we” is (an individual or a company), and whether written access rules are needed.
