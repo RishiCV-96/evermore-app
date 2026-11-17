@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Evermore",
+    "name": "Tandem",
     "slug": "evermore",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +9,7 @@
     "userInterfaceStyle": "light",
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#A9D8F5",
+        "backgroundColor": "#1F2B4D",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false
@@ -23,9 +23,13 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFFFFF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 120
+          "backgroundColor": "#EAF3FB",
+          "image": "./assets/images/splash-logo.png",
+          "imageWidth": 200,
+          "dark": {
+            "backgroundColor": "#1F2B4D",
+            "image": "./assets/images/splash-logo-dark.png"
+          }
         }
       ],
       "expo-secure-store",

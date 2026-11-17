@@ -827,6 +827,7 @@ assert.equal(family.people.find((p) => p.id === 'nia').bestClue, undefined);
 
 const { readFileSync, readdirSync, statSync } = await import('node:fs');
 const inRepo = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+const LOGO_HEADER_IS_MARK = () => /^  header: \{ variant: 'mark',/m.test(inRepo('src/components/tandem-logo.tsx'));
 // Without the gitignored local deck, the example deck is the sample people alone, with no error.
 const exampleDeckCode = inRepo('src/data/example-deck.ts');
 assert.ok(/if \(!localFiles \|\| !localFiles\.keys\(\)\.length\) return \[\];/.test(exampleDeckCode) && /Array\.isArray\(people\) \? \(people as Person\[\]\) : \[\]/.test(exampleDeckCode), 'a missing or malformed local deck falls back to the sample deck');
@@ -2923,7 +2924,7 @@ assert.ok(TYPE_SCALE.medium.body >= 20, 'body text at the default size stays lar
   assert.equal(TAB_BAR.label, 12);
   const dashboard = inRepo('src/app/caregiver/index.tsx');
   assert.ok(/<BrainIcon\b/.test(dashboard) && /tab\.id === 'insights'/.test(dashboard) && /Colors\.pinkInk/.test(dashboard), 'Insights has the pink brain');
-  assert.ok(!/logo-wordmark/.test(dashboard) && /logo-mark\.png/.test(dashboard), 'a compact header: the mark, not the large wordmark');
+  assert.ok(/<TandemLogo size="header"/.test(dashboard) && LOGO_HEADER_IS_MARK(), 'a compact header: the mark, not the large lockup');
   assert.ok(!/Segmented[^]*trends-view|TRENDS_VIEWS/.test(dashboard) && /tab === 'trends' \? <TrendsTab/.test(dashboard) && /tab === 'insights' \? <InsightsPanel/.test(dashboard), 'Trends is Activity, as it was; Insights is its own tab');
   const tabs = inRepo('src/components/tabs.tsx');
   assert.ok(/minHeight: COMPACT_TAP/.test(tabs) && /numberOfLines=\{1\}/.test(tabs) && /adjustsFontSizeToFit/.test(tabs) && /aria-selected/.test(tabs), '44pt tabs, one-line labels, the chosen one announced');
@@ -3302,17 +3303,27 @@ assert.ok(TYPE_SCALE.medium.body >= 20, 'body text at the default size stays lar
   assert.ok(!aiCheck.canReverse({ id: 'f1', type: 'lives_with', text: 'two cats' }) && aiCheck.canReverse({ id: 'f1', type: 'pet', text: 'two cats' }));
 }
 
-// The landscape logo: one component, the file as it is, on every sign-in step and the person's home
+// The logo: one component drawn from the brand kit (scripts/check-brand.mjs checks the data against the
+// kit), on every sign-in step, the person's home, the dashboard header, the wrap-up and About. Never on a card.
 {
-  const logo = inRepo('src/components/logo.tsx');
-  const png = readFileSync(new URL('../assets/images/logo-wordmark.png', import.meta.url));
-  const [width, height] = [png.readUInt32BE(16), png.readUInt32BE(20)];
-  const aspect = logo.match(/LOGO_ASPECT = (\d+) \/ (\d+);/);
-  assert.ok(aspect && Number(aspect[1]) === width && Number(aspect[2]) === height, `LOGO_ASPECT matches the file's ${width} x ${height}`);
-  assert.ok(/contentFit="contain"/.test(logo) && /accessibilityLabel="Evermore"/.test(logo), 'contained, never stretched or cropped, and read as "Evermore"');
-  assert.ok(/height: shown \/ LOGO_ASPECT/.test(logo) && !/tintColor|blurRadius|contentFit="(cover|fill)"/.test(logo), 'its own shape, no recolor or effects');
-  for (const path of walkFiles('src').filter((one) => one !== 'src/components/logo.tsx')) {
-    assert.ok(!/require\([^)]*logo-wordmark\.png/.test(inRepo(path)), `${path} shows the logo through <Logo />, not its own markup`);
+  const logo = inRepo('src/components/tandem-logo.tsx');
+  const { LAYOUTS, LOBE_RADIUS } = await import('@/components/tandem-logo-data');
+  assert.ok(/accessibilityLabel=\{decorative \? undefined : APP_NAME\}/.test(logo) && /from '@\/config\/brand'/.test(logo), 'read as the brand name from src/config/brand.ts');
+  assert.ok(/preserveAspectRatio="xMidYMid meet"/.test(logo) && /height: \(shown \* boxHeight\) \/ boxWidth/.test(logo), 'its own proportions: never stretched or cropped');
+  assert.ok(!/\b(opacity|shadow\w*|stroke\w*|tintColor|filter)[=:]|require\(/i.test(logo), 'no recolor, outline, shadow or effects, and no image file');
+  assert.ok(/fill=\{palette\.(rose|sky|sun|word)\}/.test(logo) && !/fill=\{Colors/.test(logo), 'only the kit’s own colors');
+  // Every place keeps the guide's minimums: the mark 24 points wide, the lockup 140, clear space not counted.
+  const places = [...logo.matchAll(/^  (\w+): \{ variant: '(\w+)', width: (\d+), short: (\d+) \},$/gm)];
+  assert.ok(places.length === 6, 'six places');
+  for (const [, place, variant, width, short] of places) {
+    const [, , boxWidth] = LAYOUTS[variant].viewBox;
+    const drawing = (Math.min(Number(width), Number(short)) * (boxWidth - 2 * LOBE_RADIUS)) / boxWidth;
+    assert.ok(drawing >= (variant === 'mark' ? 24 : 140), `${place}: the ${variant} drawing is ${drawing.toFixed(0)} points wide, under the minimum`);
+  }
+  for (const layout of Object.values(LAYOUTS)) assert.ok(layout.viewBox[2] > 2 * LOBE_RADIUS, 'each frame holds one lobe radius of clear space');
+  for (const name of ['logo-wordmark.png', 'logo-mark.png', 'splash-icon.png']) assert.ok(!existsSync(new URL(`../assets/images/${name}`, import.meta.url)), `the old ${name} is gone`);
+  for (const path of walkFiles('src').filter((one) => one !== 'src/components/tandem-logo.tsx')) {
+    assert.ok(!/require\([^)]*logo[-\w]*\.png/.test(inRepo(path)) && !/tandem-logo-data/.test(inRepo(path)), `${path} shows the logo through <TandemLogo />, not its own markup`);
   }
   const placed = {
     'src/components/sign-in/welcome.tsx': ['logo-welcome'],
@@ -3320,16 +3331,22 @@ assert.ok(TYPE_SCALE.medium.body >= 20, 'body text at the default size stays lar
     'src/components/sign-in/caregiver-sign-in.tsx': ['logo-sign-in'],
     'src/components/sign-in/caregiver-sign-up.tsx': ['logo-create-account'],
     'src/components/sign-in/person-sign-in.tsx': ['logo-person-sign-in'],
+    'src/app/caregiver/index.tsx': ['logo-header'],
+    'src/components/settings-page.tsx': ['logo-about'],
+    'src/components/practice-screen.tsx': ['logo-wrap-up'],
   };
   for (const [path, testIDs] of Object.entries(placed)) {
     for (const testID of testIDs) assert.ok(inRepo(path).includes(`"${testID}"`), `${path} shows the logo as ${testID}`);
   }
+  // Practice cards stay uncluttered: the practice screen shows the logo only on the wrap-up.
+  const practice = inRepo('src/components/practice-screen.tsx');
+  assert.ok(practice.match(/<TandemLogo\b/g).length === 1 && practice.indexOf('function WrapUp(') < practice.indexOf('<TandemLogo'), 'no logo on a practice card, only on the wrap-up');
   // Steps with a field fold the logo while the keyboard is up, so it never takes their room.
   for (const testID of ['logo-person-sign-in']) {
     const path = Object.keys(placed).find((one) => placed[one].includes(testID));
     assert.ok(new RegExp(`testID="${testID}" foldWithKeyboard`).test(inRepo(path)), `${testID} folds with the keyboard`);
   }
-  assert.ok(/logo \? <Logo size="form" testID=\{logo\} foldWithKeyboard \/>/.test(inRepo('src/components/caregiver-ui.tsx')), 'the caregiver forms’ logo folds with the keyboard');
+  assert.ok(/logo \? <TandemLogo size="form" testID=\{logo\} foldWithKeyboard \/>/.test(inRepo('src/components/caregiver-ui.tsx')), 'the caregiver forms’ logo folds with the keyboard');
   // On the person's home the logo is above Start, and the middle scrolls, so Start is never pushed off.
   const home = inRepo('src/app/index.tsx');
   assert.ok(home.indexOf('logo-home') < home.indexOf('testID="start"') && /<ScrollView style=\{styles\.middle\}/.test(home), 'home: the logo above Start, in a middle that can scroll');
