@@ -132,7 +132,7 @@ export function InsightsPanel({ segment, family, data, sync, activity, onStep }:
           {updatedText(sync.updatedAt, new Date())}
         </AppText>
       ) : null}
-      {data.demo ? <Notice>Demo data is on: made-up practice for the sample people. Clear test data removes it.</Notice> : null}
+      {data.demo ? <Notice>Demo data is on: made-up practice for the sample people. Clearing test data removes it.</Notice> : null}
       {family.people.some((person) => person.archivedAt) ? (
         <Checkbox testID="include-archived" checked={includeArchived} onChange={setIncludeArchived}>
           Include archived people

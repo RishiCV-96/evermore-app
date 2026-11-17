@@ -37,15 +37,15 @@ Guideline 2.1(a): "include demo account info (and turn on your back-end service!
 
 - Make a **caregiver test account** on the real project for the reviewer: an email you control (not a `.invalid` address, since Confirm email may be on), a password you don't use elsewhere, and only the **fictional sample people** the server seeds (June, Leo, Ruth, Omar, Mae). Never the real family.
 - Make two or three sample people complete, so practice works (two people is the minimum), and approve their stories.
-- For the person's side, make a **User ID login** under Settings → The person's phone → Their login, and give the reviewer the User ID and password in the notes ("I am practicing", then Sign in). Pairing needs a live PIN, so the User ID is simpler for review.
-- Leave AI questions off. Keep `pairing_settings.enabled` on. Don't change the account during review, and keep the Supabase project awake: a paused free-tier project fails sign-in. **[Check]** Supabase's current pausing rules for your plan.
+- For the person's side, make a **User ID login** under Settings → The person's phone → Their login, and give the reviewer the User ID and password in the notes ("I am practicing", then the User ID and password, then Continue).
+- Leave AI questions off. Don't change the account during review, and keep the Supabase project awake: a paused free-tier project fails sign-in. **[Check]** Supabase's current pausing rules for your plan.
 - Agree to the current policy once on the demo account before you submit, so the reviewer isn't asked again (they may still see the sign-up agreements if they make their own account).
 
 ## 6. Review notes (draft to adapt)
 
 > Tandem helps a person with early memory loss practice recognizing family and friends with short fill-in-the-blank cards made from a caregiver's own words and photos. It is a practice tool, not a medical device: it doesn't test for, treat or measure any condition, and every chart is labelled "Practice activity, not a medical measure."
 >
-> Two roles. The caregiver signs in with the demo caregiver account below: dashboard, people, stories, Settings. The person practicing signs in on their own phone: on the welcome, tap "I am practicing", then Sign in with the User ID below.
+> Two roles. The caregiver signs in with the demo caregiver account below: dashboard, people, stories, Settings. The person practicing signs in on their own phone: on the welcome, tap "I am practicing", type the User ID and password below, then tap Continue.
 >
 > Privacy: sign-up asks for agreement to the privacy policy and a confirmation that the caregiver may add the people they include (no account without both); research use is optional and off. The privacy policy is in Settings → Privacy and data. Account deletion: Settings → Delete account (type "delete"). Photos are stored privately and never analyzed. No ads, analytics or tracking. AI features are off in this version.
 

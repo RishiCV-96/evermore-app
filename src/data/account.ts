@@ -389,7 +389,7 @@ const FUNCTION_ERRORS: Record<string, string> = {
   'username-taken': 'That User ID is taken. Please choose another.',
   'bad-username': 'Use 3 to 30 lowercase letters, numbers, dots, dashes or underscores.',
   'short-password': `The password needs at least ${MIN_PASSWORD} characters.`,
-  'already-has-person': 'There is already a login for the person. Use Reset instead.',
+  'already-has-person': 'There is already a login for the person. Open Their login to give it a new password.',
   'no-person': 'There is no login for the person yet.',
 };
 
