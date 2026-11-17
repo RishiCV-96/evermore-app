@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
-import { Logo } from '@/components/logo';
+import { TandemLogo } from '@/components/tandem-logo';
 import { useKeyboardOpen } from '@/components/use-keyboard-open';
 import { NOT_APPLICABLE, REQUIRED_LEGEND, REQUIRED_MARK } from '@/data/questionnaire';
 import { addMonths, monthOf } from '@/lib/facts';
@@ -148,7 +148,7 @@ export function CaregiverScreen({ title, backLabel, backTo, onBack, header, foot
                 </AppText>
               </Pressable>
             ) : null}
-            {logo ? <Logo size="form" testID={logo} foldWithKeyboard /> : null}
+            {logo ? <TandemLogo size="form" testID={logo} foldWithKeyboard /> : null}
             {title ? (
               <AppText accessibilityRole="header" fit bold size="title">
                 {title}

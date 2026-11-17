@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { CaregiverButton } from '@/components/caregiver-button';
-import { Logo } from '@/components/logo';
+import { TandemLogo } from '@/components/tandem-logo';
 import { PracticeMore } from '@/components/practice-more';
 import { ProgressBar } from '@/components/progress-bar';
 import { ReminderQuestion, useReminderSync } from '@/components/reminders';
@@ -70,7 +70,7 @@ export default function Home() {
       </View>
       {/* Scrolls only if very large text on a small phone needs it, so Start is never pushed off the screen. */}
       <ScrollView style={styles.middle} contentContainerStyle={styles.middleContent}>
-        <Logo size="home" testID="logo-home" />
+        <TandemLogo size="home" testID="logo-home" />
         <AppText accessibilityRole="header" fit center bold size="display">
           {who.name ? `Hello, ${who.name}.` : 'Hello.'}
         </AppText>

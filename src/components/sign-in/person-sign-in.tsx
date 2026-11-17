@@ -5,7 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { CaregiverScreen, Field, Notice } from '@/components/caregiver-ui';
-import { Logo } from '@/components/logo';
+import { TandemLogo } from '@/components/tandem-logo';
 import { PasswordField } from '@/components/password-field';
 import { PolicyLink, PolicySheet } from '@/components/privacy-policy';
 import { signIn } from '@/data/account';
@@ -54,7 +54,7 @@ export function PersonSignIn({ onBack }: { onBack: () => void }) {
               Back
             </AppText>
           </Pressable>
-          <Logo size="form" testID="logo-person-sign-in" foldWithKeyboard />
+          <TandemLogo size="form" testID="logo-person-sign-in" foldWithKeyboard />
           <AppText accessibilityRole="header" fit bold size="display">
             Hello
           </AppText>

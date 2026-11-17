@@ -11,6 +11,7 @@ import { ExportPanel, ExportSetting } from '@/components/export-data';
 import { AiConsentSetting, ResearchSetting } from '@/components/consent';
 import { PolicySheet, StoresSheet } from '@/components/privacy-policy';
 import { Sheet } from '@/components/sheet';
+import { TandemLogo } from '@/components/tandem-logo';
 import { TextSizeSetting } from '@/components/text-size';
 import { LOCAL_ONLY, closeCaregiver, deleteFamilyHere, signOutCaregiver } from '@/data/app-data';
 import type { Family } from '@/data/family-store';
@@ -88,6 +89,7 @@ export function SettingsPage({ family, failed }: SettingsPageProps) {
         <ExportSetting />
       </Section>
       <Section title="About">
+        <TandemLogo size="about" testID="logo-about" />
         <Row testID="app-version" label="Version" value={Constants.expoConfig?.version ?? '1.0.0'} />
         {LOCAL_ONLY ? <Row testID="close-caregiver" label="Back to the home screen" onPress={closeCaregiver} /> : null}
       </Section>

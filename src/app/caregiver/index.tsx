@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -6,6 +5,7 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, View, type ScrollVie
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TandemLogo } from '@/components/tandem-logo';
 import { AppText } from '@/components/app-text';
 import { ArchivedPeople } from '@/components/archived-people';
 import { BigButton } from '@/components/big-button';
@@ -102,7 +102,7 @@ export default function Dashboard() {
     <View style={[styles.screen, { paddingTop: insets.top + Space.s }]}>
       {/* A compact header: the logo's mark and the tab's name, so the page keeps the room. */}
       <View style={styles.header}>
-        <Image source={require('@/assets/images/logo-mark.png')} contentFit="contain" accessibilityLabel="Evermore" style={styles.mark} />
+        <TandemLogo size="header" testID="logo-header" />
         <AppText testID="page-title" fit bold size="title" accessibilityRole="header" color={tab === 'insights' ? Colors.pinkInk : Colors.text} style={styles.title}>
           {CAREGIVER_TABS.find((one) => one.id === tab)!.label}
         </AppText>
@@ -316,10 +316,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Colors.divider,
     paddingBottom: Space.s,
-  },
-  mark: {
-    width: 32,
-    height: 32,
   },
   title: {
     flex: 1,

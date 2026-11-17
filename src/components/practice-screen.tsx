@@ -5,6 +5,7 @@ import { AccessibilityInfo, AppState, Pressable, ScrollView, StyleSheet, Text, V
 import Animated, { FadeIn, FadeInDown, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TandemLogo } from '@/components/tandem-logo';
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { FittedPhoto } from '@/components/person-photo';
@@ -407,13 +408,7 @@ function WrapUp({ rounds, faces, progress, dayDone, onHome }: WrapUpProps) {
       testID="wrap-up"
       style={[styles.screen, styles.column, styles.wrapUp, { paddingTop: insets.top + Space.l, paddingBottom: insets.bottom + Space.l }]}>
       <View style={styles.wrapUpBody}>
-        <Image
-          source={require('@/assets/images/logo-mark.png')}
-          contentFit="contain"
-          style={styles.mark}
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-        />
+<TandemLogo size="wrapUp" testID="logo-wrap-up" decorative />
         <AppText accessibilityRole="header" fit center bold size="display">
           {AFTER_THE_DAY.title}
         </AppText>
@@ -535,12 +530,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     gap: Space.l,
-  },
-  mark: {
-    width: 110,
-    height: 141,
-    alignSelf: 'center',
-    marginBottom: Space.s,
   },
   seen: {
     gap: Space.m,

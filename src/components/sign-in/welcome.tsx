@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { CaregiverScreen } from '@/components/caregiver-ui';
-import { Logo } from '@/components/logo';
+import { TandemLogo } from '@/components/tandem-logo';
 import { Colors } from '@/theme/colors';
 import { GUTTER, Space } from '@/theme/layout';
 import { CompactType } from '@/theme/type';
@@ -19,7 +19,7 @@ export function Welcome({ onPerson, onCaregiver }: { onPerson: () => void; onCar
     <View style={[styles.screen, { paddingTop: insets.top + Space.xl, paddingBottom: insets.bottom + Space.l }]}>
       {/* Scrolls only if very large text on a small phone needs it, so the two ways in stay on screen. */}
       <ScrollView style={styles.middle} contentContainerStyle={styles.middleContent}>
-        <Logo size="hero" testID="logo-welcome" />
+        <TandemLogo size="hero" testID="logo-welcome" />
         <AppText accessibilityRole="header" center bold size="title">
           Welcome
         </AppText>
