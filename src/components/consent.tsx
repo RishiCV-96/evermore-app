@@ -165,14 +165,20 @@ export function ResearchSetting() {
   }
 
   if (!known) {
-    return <Row testID="research-setting" label="Research use" value={status === 'checking' ? 'Checking…' : 'Shown once online'} />;
+    return <Row testID="research-setting" label="Research use" icon="flask-outline" value={status === 'checking' ? 'Checking…' : 'Shown once online'} />;
   }
   return (
     <View>
-      <Picker testID="research-setting" label="Research use" value={research ? 'on' : 'off'} options={RESEARCH_CHOICES} clearable={false} onChange={(next) => void choose(next)} />
-      <AppText size="caption" muted style={styles.line}>
-        Optional. You can change this at any time.
-      </AppText>
+      <Picker
+        testID="research-setting"
+        label="Research use"
+        icon="flask-outline"
+        subtitle="Optional. You can change this at any time."
+        value={research ? 'on' : 'off'}
+        options={RESEARCH_CHOICES}
+        clearable={false}
+        onChange={(next) => void choose(next)}
+      />
       {notice ? <Notice>{notice}</Notice> : null}
     </View>
   );
@@ -189,9 +195,9 @@ export function AiConsentSetting({ consented }: { consented: boolean }) {
     if (sure) withdrawAiConsent();
   }
   return consented ? (
-    <Row testID="ai-consent" label="AI questions agreement" value="Given" onPress={withdraw} />
+    <Row testID="ai-consent" label="AI questions agreement" icon="checkmark-done-outline" value="Given" onPress={withdraw} />
   ) : (
-    <Row testID="ai-consent" label="AI questions agreement" value="Not given" />
+    <Row testID="ai-consent" label="AI questions agreement" icon="checkmark-done-outline" value="Not given" />
   );
 }
 

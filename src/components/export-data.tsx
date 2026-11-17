@@ -185,7 +185,7 @@ export function ExportSetting() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Row testID="export-data" label="Export my data" onPress={() => setOpen(true)} />
+      <Row testID="export-data" label="Export my data" icon="download-outline" subtitle="A copy of your family’s data to keep." onPress={() => setOpen(true)} />
       <Sheet visible={open} title="Export my data" onClose={() => setOpen(false)}>
         {open ? <ExportPanel /> : null}
       </Sheet>

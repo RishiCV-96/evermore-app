@@ -650,3 +650,17 @@ Five steps over the same eight sections (`DESIGN.md`, "Add a person in five step
 | Review | One row per step (four), the first with a 40pt face at the inner radius (the photo, or initials on white). The waiting Continue is a Mist button with muted words and the percent, and the sky strip. |
 | Story approval | "6 of 12 approved" in the headline size under the title (tabular). Each story a white card at the card radius with the edge shadow, in place of a hairline above it; its status line has an icon (a clock waiting, a check approved, a minus skipped) so it never rests on color. Approve, Edit, Skip and the pinned Approve all and Done are unchanged. |
 | Pinned bar | Floats on a soft shadow in place of its hairline. Back is Deep Rose like every other caregiver link (it was the person's ink-blue). |
+
+## Settings, polished (2026-11-17)
+
+The caregiver's tokens above; nothing a row does, opens or confirms changed.
+
+| Piece | How it looks |
+| --- | --- |
+| Status card | First, in place of a hero, on a Mist card: a person icon and "Signed in as" with the email, a hairline, then a phone icon (a check once set up) and "The person’s phone" over **Set up**, **Not set up yet**, or "Checking…" while the family loads. Icons and words, never color alone. Sign-in on only. |
+| Sections | By how often they're used: **Practice**, **The person’s phone**, **Privacy and data**, **Account**. Each a `GroupHeading` over an inset grouped card (the card radius) of `Row`s, the rows' hairlines starting after the icon. |
+| Rows | A 20pt outline icon in Deep Rose (one color), the label, a one-line muted subtitle where it helps ("Cards in a day of practice.", "Some photos start hidden behind a “?”.", "Words on the person’s screens.", "What their phone signs in with.", "A copy of your family’s data to keep."; Research use's "Optional. You can change this at any time." moved under its label), then the value (tabular) and a chevron. Pickers stay pickers: Research use writes a consent record through its list, so it doesn't become a bare switch. |
+| Delete account | Alone, 48pt below the last section, in its own card: a trash icon in Ink (not the Deep Rose of the others, and never red) and the label, with its caption under the card. Its sheet, typed confirmation and Export my data first are unchanged. |
+| Footer | The `about` lockup (168pt), "Tandem · Version 1.0.0" (the name from `src/config/brand.ts`, the version from the app's config), then "Practice activity, not a medical measure." |
+| Entrance | The status card and sections slide up 8pt and fade in, 70ms apart; with Reduce Motion they simply appear. |
+| Not here | Reminders: they live on the person's phone only (the hard rule). |

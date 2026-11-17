@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
-import { Field, FieldNote, FormCell, FormGroup, LabelLine, MarkLink, Row, type NotApplicable } from '@/components/caregiver-ui';
+import { Field, FieldNote, FormCell, FormGroup, LabelLine, MarkLink, Row, type NotApplicable, type RowProps } from '@/components/caregiver-ui';
 import { Sheet } from '@/components/sheet';
 import { NOT_APPLICABLE, displayValue, type Option } from '@/data/questionnaire';
 import { useAccent } from '@/theme/accent';
@@ -68,11 +68,14 @@ type PickerProps = {
   onClose?: () => void;
   /** Offers "Leave it blank" once there is an answer. */
   clearable?: boolean;
+  /** As a settings row: a leading icon and a line under the label (Row). */
+  icon?: RowProps['icon'];
+  subtitle?: string;
   testID?: string;
 };
 
 /** One choice of many: a settings row that opens the list, so the form stays short. */
-export function Picker({ label, value, options, other = false, placeholder, limit, onChange, notApplicable, inForm = false, required = false, note, onClose, clearable = true, testID }: PickerProps) {
+export function Picker({ label, value, options, other = false, placeholder, limit, onChange, notApplicable, inForm = false, required = false, note, onClose, clearable = true, icon, subtitle, testID }: PickerProps) {
   const [open, setOpen] = useState(false);
   const known = options.find((option) => option.value === value);
   const [own, setOwn] = useState(known ? '' : value);
@@ -121,7 +124,7 @@ export function Picker({ label, value, options, other = false, placeholder, limi
           {note ? <FieldNote>{note}</FieldNote> : null}
         </FormCell>
       ) : (
-        <Row testID={testID} label={label} value={answer} onPress={() => setOpen(true)} />
+        <Row testID={testID} label={label} value={answer} icon={icon} subtitle={subtitle} onPress={() => setOpen(true)} />
       )}
       <Sheet visible={open} title={label} onClose={close}>
         <View accessibilityRole="radiogroup">

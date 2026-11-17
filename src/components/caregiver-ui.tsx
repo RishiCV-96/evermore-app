@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import Animated, { Keyframe, useReducedMotion } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
@@ -573,23 +573,22 @@ export function Skeleton({ rows = 3, testID }: { rows?: number; testID?: string 
 
 /**
  * The caregiver's screens arrive in a few groups: each slides up 8pt and fades in, 70ms after the one
- * before, the first time the screen shows. With Reduce Motion it simply appears.
+ * before, when it first appears. A shared value started once on mount, not a layout animation, so later
+ * re-renders (data arriving) never move it. With Reduce Motion it simply appears.
  */
 export function Enter({ index = 0, children, style }: { index?: number; children: ReactNode; style?: object }) {
   const reduced = useReducedMotion();
-  const entering = reduced
-    ? undefined
-    : new Keyframe({
-        0: { opacity: 0, transform: [{ translateY: Motion.enter.distance }] },
-        100: { opacity: 1, transform: [{ translateY: 0 }], easing: EASE_ENTER },
-      })
-        .duration(Motion.enter.duration)
-        .delay(Math.min(index, Motion.enter.most - 1) * Motion.enter.stagger);
-  return (
-    <Animated.View entering={entering} style={style}>
-      {children}
-    </Animated.View>
-  );
+  const shown = useSharedValue(reduced ? 1 : 0);
+  useEffect(() => {
+    if (reduced) return;
+    const delay = Math.min(index, Motion.enter.most - 1) * Motion.enter.stagger;
+    shown.set(withDelay(delay, withTiming(1, { duration: Motion.enter.duration, easing: EASE_ENTER })));
+  }, [index, reduced, shown]);
+  const look = useAnimatedStyle(() => ({
+    opacity: shown.get(),
+    transform: [{ translateY: (1 - shown.get()) * Motion.enter.distance }],
+  }));
+  return <Animated.View style={[style, look]}>{children}</Animated.View>;
 }
 
 /** Beside a made-up answer, so nobody mistakes it for a real one. */
@@ -703,13 +702,15 @@ export function Notice({ children }: { children: ReactNode }) {
   );
 }
 
-type RowProps = {
+export type RowProps = {
   label: string;
   value?: string;
   /** One muted line under the label, saying what the row is or does. */
   subtitle?: string;
   /** A small outline icon before the label, in the accent: one color, never a rainbow. */
   icon?: keyof typeof Ionicons.glyphMap;
+  /** The icon in Ink instead, for a row that should stand apart without alarm (Delete account). */
+  inkIcon?: boolean;
   /** Makes the row a button with a chevron. */
   onPress?: () => void;
   testID?: string;
@@ -721,12 +722,12 @@ type RowProps = {
  * One line of a settings list: an optional icon, a label (and a line under it), then a value, a
  * control or a chevron. Inside a FormGroup it takes the card's inset edges; on its own, just a hairline.
  */
-export function Row({ label, value, subtitle, icon, onPress, testID, children }: RowProps) {
+export function Row({ label, value, subtitle, icon, inkIcon = false, onPress, testID, children }: RowProps) {
   const accent = useAccent();
   const grouped = useContext(InGroup);
   const iconView = icon ? (
     <View aria-hidden style={styles.rowIcon}>
-      <Ionicons name={icon} size={ROW_ICON} color={accent} />
+      <Ionicons name={icon} size={ROW_ICON} color={inkIcon ? Colors.text : accent} />
     </View>
   ) : null;
   const body = (

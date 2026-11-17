@@ -15,8 +15,7 @@ import { refreshFamily, type Family, type PersonLogin } from '@/data/family-stor
 import { RESET_LOGIN_TITLE, RESET_LOGIN_WORDS, isClear, newPasswordProblems } from '@/lib/auth-form';
 import { confirm } from '@/lib/confirm';
 import { cardsOf, dailyTarget, minutesLabel, practiceFrom } from '@/lib/session';
-import { Colors } from '@/theme/colors';
-import { COMPACT_TAP, Space } from '@/theme/layout';
+import { COMPACT_TAP } from '@/theme/layout';
 
 // Rows of the dashboard's Settings tab (laid out in src/components/settings-page.tsx). Each action
 // opens a sheet rather than a new screen, to stay within the 8-screen budget.
@@ -45,7 +44,7 @@ export function SessionLengthSetting({ family }: { family: Family }) {
 
   return (
     <>
-      <Picker testID="session-length" label="Session length" value={family.sessionLength} options={options} clearable={false} onChange={change} />
+      <Picker testID="session-length" label="Session length" icon="time-outline" subtitle="Cards in a day of practice." value={family.sessionLength} options={options} clearable={false} onChange={change} />
       {notice ? <Notice>{notice}</Notice> : null}
     </>
   );
@@ -66,7 +65,7 @@ export function RevealCardsSetting({ family }: { family: Family }) {
 
   return (
     <>
-      <Picker testID="reveal-cards" label="Reveal cards" value={family.revealCards} options={REVEAL_CHOICES} clearable={false} onChange={change} />
+      <Picker testID="reveal-cards" label="Reveal cards" icon="eye-outline" subtitle="Some photos start hidden behind a “?”." value={family.revealCards} options={REVEAL_CHOICES} clearable={false} onChange={change} />
       {notice ? <Notice>{notice}</Notice> : null}
     </>
   );
@@ -79,7 +78,7 @@ const AI_CHOICES = [
 
 /** AI off at any time. Sentences already approved are kept, and come back if it is turned on again. */
 export function AiSetting({ on }: { on: boolean }) {
-  return <Picker testID="ai-setting" label="AI questions" value={on ? 'on' : 'off'} options={AI_CHOICES} clearable={false} onChange={(next) => setAiOn(next === 'on')} />;
+  return <Picker testID="ai-setting" label="AI questions" icon="chatbubble-ellipses-outline" subtitle="New sentences from approved facts." value={on ? 'on' : 'off'} options={AI_CHOICES} clearable={false} onChange={(next) => setAiOn(next === 'on')} />;
 }
 
 /** Make the person's login, or give it a new password. */
@@ -130,7 +129,7 @@ export function PersonLoginSetting({ person }: { person: PersonLogin | null }) {
 
   return (
     <>
-      <Row testID="person-login" label="Their login" value={person ? person.username : 'Not made yet'} onPress={show} />
+      <Row testID="person-login" label="Their login" icon="phone-portrait-outline" subtitle="What their phone signs in with." value={person ? person.username : 'Not made yet'} onPress={show} />
       <Sheet visible={open} title={person ? 'Their login' : 'Make their login'} onClose={() => setOpen(false)}>
         {done ? (
           <>
@@ -235,7 +234,7 @@ export function ChangePasswordSetting() {
 
   return (
     <>
-      <Row testID="change-password" label="Change password" onPress={show} />
+      <Row testID="change-password" label="Change password" icon="key-outline" onPress={show} />
       <Sheet visible={open} title="Change password" onClose={() => setOpen(false)}>
         {saved ? (
           <>
@@ -284,12 +283,11 @@ export function ChangePasswordSetting() {
 
 const styles = StyleSheet.create({
   // A row's place in the list, with its hairline, but two lines: the email may be long, and wraps.
+  // In the status card at the top of Settings: no hairline of its own.
   signedIn: {
+    flex: 1,
     gap: 2,
     minHeight: COMPACT_TAP,
     justifyContent: 'center',
-    paddingVertical: Space.s,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.divider,
   },
 });

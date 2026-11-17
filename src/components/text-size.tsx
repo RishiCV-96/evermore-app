@@ -94,7 +94,7 @@ export function TextSizeSetting() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Row testID="text-size-setting" label="Practice text size" value={textSizeLabel(size)} onPress={() => setOpen(true)} />
+      <Row testID="text-size-setting" label="Practice text size" icon="text-outline" subtitle="Words on the person’s screens." value={textSizeLabel(size)} onPress={() => setOpen(true)} />
       <TextSizeSheet visible={open} onClose={() => setOpen(false)} />
     </>
   );

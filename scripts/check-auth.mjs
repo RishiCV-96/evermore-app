@@ -748,7 +748,7 @@ await check('the sign-in screens: Show on every password, Forgot password, and S
   assert.ok(/tab === 'settings' && \(family \|\| !LOCAL_ONLY\)/.test(dashboard), 'Settings shows with sign-in on even when the family couldn’t load');
   // Settings lives in src/components/settings-page.tsx since 2026-11-12: Sign out is in Account, which never waits for the family.
   const settings = inRepo('src/components/settings-page.tsx');
-  const account = settings.slice(settings.indexOf('<Section title="Account">'), settings.indexOf('<Section title="The person’s phone">'));
+  const account = settings.slice(settings.indexOf('<Section title="Account">'), settings.indexOf('<Section title="About">'));
   assert.ok(/<SignOutSetting \/>/.test(account) && /<Row testID="sign-out" label="Sign out"/.test(settings) && !/family \? <SignOutSetting/.test(settings), 'and Sign out is never behind the family');
   assert.ok(inRepo('src/data/app-data.ts').includes("import '@/data/forget';"), 'the app registers what sign-out clears');
 });

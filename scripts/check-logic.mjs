@@ -3674,8 +3674,13 @@ for (const level of levels) assert.deepEqual(Object.keys(TYPE_SCALE[level]).sort
   assert.ok(/export const CONFIRM_WORD = 'delete'/.test(ui) && /disabled=\{!ready \|\| busy\}/.test(ui), 'the typed confirmation: the button works only once "delete" is typed');
   const settings = inRepo('src/components/settings-page.tsx');
   assert.ok(/<TypeToConfirm testID="delete-confirm"/.test(settings) && /from the server and from every phone/.test(settings), 'Delete account names what goes and where, and needs "delete" typed');
-  const order = ['title="Account"', 'title="The person’s phone"', 'title="Practice"', 'title="Privacy and data"', 'title="About"', '<DeleteAccountSetting'].map((mark) => settings.indexOf(mark));
-  assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1])), 'Settings in order: Account, The person’s phone (Their login), Practice, Privacy and data, About, then Delete account apart');
+  // Since 2026-11-17 by how often they are used (docs/UI-POLISH-PLAN.md): a status card, then Practice first.
+  const order = ['<StatusCard', 'title="Practice"', 'title="The person’s phone"', 'title="Privacy and data"', 'title="Account"', 'title="About"', '<DeleteAccountSetting', 'testID="settings-footer"'].map((mark) => settings.indexOf(mark));
+  assert.ok(order.every((at, i) => at > 0 && (i === 0 || at > order[i - 1])), 'Settings in order: the status card, Practice, The person’s phone (Their login), Privacy and data, Account, About, then Delete account apart, then the footer');
+  assert.ok(/<View testID="danger-zone" style=\{styles\.apart\}>/.test(settings) && /apart: \{\n    marginTop: Space\.xxl,/.test(settings) && /icon="trash-outline"\n          inkIcon/.test(settings), 'Delete account stands apart, 48pt down in its own card, its icon Ink, never red');
+  assert.ok(!/<Pressable|Switch|onValueChange/.test(settings.slice(settings.indexOf('<DeleteAccountSetting'), settings.indexOf('testID="settings-footer"'))), 'nothing but the footer follows Delete account');
+  assert.ok(!/[Rr]eminder/.test(settings.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '')), 'no reminders in the caregiver’s Settings');
+  assert.ok(/\{APP_NAME\} · Version/.test(settings) && /from '@\/config\/brand'/.test(settings), 'the footer names the app from the brand config');
   assert.ok(/Your people, stories and practice stay saved in your account/.test(settings), 'Sign out says the family stays saved');
   const archived = inRepo('src/components/archived-people.tsx');
   assert.ok(/<TypeToConfirm/.test(archived) && !/await confirm\(/.test(archived), 'Delete permanently needs "delete" typed, not just OK');
