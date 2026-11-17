@@ -1,0 +1,153 @@
+# Brand audit: from Evermore to Tandem
+
+Written 2026-11-16, on the branch `brand-tandem`, before any code changed. "Tandem" is a placeholder name pending trademark clearance. It lists every trace of the old name and decides what changes.
+
+The brand kit (`./brand-kit`, from `tandem-brand-kit.zip`, 20 files) is the source of truth for the logo, icons and favicon. Its SVGs hold no scripts, links or embedded images: only circles, clip paths, masks and the outlined wordmark.
+
+**What the kit has, and what was made from it.** The reversed logo and the navy app icon use lighter tints on Ink (pink `#F27BB0`, sky `#A5D2F5`, sun `#F9D66B`, wordmark white), not the six base colors. The kit has no reversed stacked logo and no Android adaptive foreground, so both are composed from the kit's own shapes and colors (the stacked layout with the reversed colors; the mark with a safe-zone margin), never redrawn.
+
+## Decisions already made (2026-11-16)
+
+- **The brand kit:** the designer's files, copied as they are into `./brand-kit`. Nothing is rebuilt from the guide image.
+- **Pinks stay caregiver-side.** The hard rule in `CLAUDE.md` holds: Rose and Deep Rose never appear on a person-facing screen. On caregiver screens, links and small accents become Deep Rose, and the Insights pinks move to Rose and Deep Rose. Person screens use Ink, Sky, Mist and Sun, plus the logo's own colors in the logo itself.
+- **Main buttons are Ink with white text** (13.9:1), on both sides. Progress bars are Sky on a Mist track.
+
+## How the search was done
+
+- `git grep -i -P "(?<![a-z])ever[ -]?more"` over every tracked file, so "Evermore", "EverMore", "Ever more", "Ever-more" and "evermore" all match. The lookbehind stops "never more" from matching: a plain `ever[ -]?more` matched comments in `src/lib/queue.ts:76` and `src/lib/insight-scale.ts:41`, which are not the name.
+- Untracked files: none outside `.gitignore`.
+- Ignored files, outside `node_modules`, `.git`, `brand-kit` and the private files (`deck.local.ts`, the denylist, `assets/photos/`): `.env`, `.expo/` and `expo-env.d.ts` don't contain the name. `.expo/web/cache/` holds a built copy of the old favicon, which is a cache and is rebuilt.
+- Images were checked by eye, since grep can't read them (listed below).
+- No existing text says "tandem", so nothing collides with the new name.
+
+## Front-facing: change
+
+Each of these becomes a value from `src/config/brand.ts` (`APP_NAME`, `APP_NAME_LOWER`, `TAGLINE`, `SUPPORT_EMAIL`, `POLICY_CONTACT`), or new art from the kit.
+
+### App config and images
+
+| File | Line | What it is | Decision |
+|---|---|---|---|
+| `app.json` | 3 | `"name": "Evermore"`: the name under the home screen icon, in the phone's Settings and the notification header | front-facing, change |
+| `app.json` | 7 | `icon`: `assets/images/icon.png` | front-facing, change (the kit's 1024 navy icon) |
+| `app.json` | 11–12 | Android adaptive icon: background `#A9D8F5` (old sky), foreground `android-icon-foreground.png` | front-facing, change (the mark with a safe zone, on Ink) |
+| `app.json` | 17 | `web.favicon`: `favicon.png` | front-facing, change (the kit's favicon) |
+| `app.json` | 23–27 | Splash: white background, `splash-icon.png` at 120 wide | front-facing, change (Mist with the stacked logo; a dark variant on Ink with the reversed logo) |
+| `assets/images/icon.png` | (image) | Old app icon: brain, claw and yellow orb on sky blue | front-facing, change |
+| `assets/images/android-icon-foreground.png` | (image) | Old adaptive icon foreground | front-facing, change |
+| `assets/images/favicon.png` | (image) | Old favicon | front-facing, change |
+| `assets/images/splash-icon.png` | (image) | Old splash art | front-facing, change |
+| `assets/images/logo-wordmark.png` | (image) | Old landscape logo with the word "EVERMORE" in the art | front-facing, change (replaced by `<TandemLogo />`) |
+| `assets/images/logo-mark.png` | (image) | Old mark (brain and claw) on the dashboard header and the wrap-up | front-facing, change |
+| `assets/images/photo-placeholder.png` | (image) | Neutral person silhouette in light blues, no brand | not the name, leave |
+
+### Screens, messages and accessibility labels
+
+| File | Line | What it is | Decision |
+|---|---|---|---|
+| `src/components/logo.tsx` | 49 | Logo `accessibilityLabel="Evermore"` (welcome, sign-in, Hello, create account, person's home) | front-facing, change |
+| `src/components/logo.tsx` | 7 | Comment: "The landscape Evermore logo" | comment in a guarded file, change |
+| `src/app/caregiver/index.tsx` | 105 | Dashboard header mark, `accessibilityLabel="Evermore"` | front-facing, change |
+| `src/components/sign-in/welcome.tsx` | 52 | "…create one to set up Evermore for someone you care for." | front-facing, change |
+| `src/components/sign-in/welcome.tsx` | 54 | "Evermore is a practice tool, not a medical device." | front-facing, change |
+| `src/components/sign-in/caregiver-sign-in.tsx` | 79 | "Evermore is a practice tool, not a medical device." | front-facing, change |
+| `src/components/reminders.tsx` | 133–134 | The person's calm line when reminders are off: "…then Notifications, then Evermore." The name must match `app.json`'s, since it tells them where to look in the phone's Settings | front-facing, change |
+| `src/components/ai-questions.tsx` | 127 | AI consent: "Evermore keeps none of it…" | front-facing, change |
+| `src/components/export-data.tsx` | 176 | "Evermore can’t read an export back…" | front-facing, change |
+| `src/lib/auth-form.ts` | 152 | `OFFLINE`: "We couldn’t reach Evermore…" | front-facing, change |
+| `src/lib/auth-form.ts` | 199 | "Evermore can’t send email to that address yet…" | front-facing, change |
+| `src/lib/load-problem.ts` | 28, 36 | "…until Evermore’s server is updated…" | front-facing, change |
+| `src/lib/export.ts` | 114 | `RESTORE_WORDS`: "Evermore can’t read this file back…" | front-facing, change |
+| `src/lib/export.ts` | 118 | Export file names: `evermore-data-….json`, `evermore-report-….pdf`, `evermore-photos-….zip` | front-facing, change (`tandem-…`) |
+| `src/lib/export.ts` | 116 | Comment giving those file names | comment, change with them |
+| `src/lib/export.ts` | 150, 343 | `app: 'Evermore'` in the data file's header (the full file and this phone's copy) | front-facing, change (the format number stays 2) |
+| `src/lib/export.ts` | 409 | `EXPORT_PROBLEM['server-update']`: "…until Evermore’s server is updated…" | front-facing, change |
+| `src/lib/insight-report.ts` | 292, 318 | Report PDF `<title>` and `<h1>`: "Evermore practice report". The footer (322–327) doesn't name the app | front-facing, change |
+| `src/lib/save-file.ts` | 32 | Share sheet title: "Save your Evermore export" | front-facing, change |
+| `src/lib/supabase.ts` | 14 | Error shown to a developer when `.env` lacks the Supabase values | developer-facing, change |
+| `src/theme/colors.ts` | 1 | Comment: "Evermore's palette, from the logo (logo-wordmark.png)". The comments below it describe the old logo's claw, orb and brain | comment, change with the palette (step 2) |
+| `src/lib/stories.ts` | 1 | Comment: "Story building for Evermore." | comment in a guarded file, change |
+| `src/components/insight-brain.tsx` | 5 | Comment: "drawn for Evermore in the spirit of the brain in its logo" | comment, change (see "Needs my decision") |
+| `src/lib/local-practice.ts` | 25 | Comment: "When this phone first opened Evermore" | comment in a guarded file, change |
+
+### Consent and the privacy policy (step 6: a new `POLICY_VERSION`)
+
+| File | Line | What it is | Decision |
+|---|---|---|---|
+| `src/lib/consent.ts` | 24, 26, 28 | `SIGN_UP_SUMMARY` on Create an account | front-facing, change |
+| `src/lib/consent.ts` | 36 | `AGREE_RESPONSIBILITY`: "…knows I’m using Evermore." | front-facing, change |
+| `src/lib/consent.ts` | 40 | Research box: "Optional: Evermore may use de-identified information…" | front-facing, change |
+| `src/lib/consent.ts` | 50 | `PolicyGate` words: "Evermore’s privacy policy has changed…" | front-facing, change |
+| `src/lib/privacy-policy.ts` | 15 | `POLICY_TITLE`: "Evermore privacy policy" | front-facing, change |
+| `src/lib/privacy-policy.ts` | 28, 31, 34, 75, 94, 132, 146, 238 | Policy heading and body text | front-facing, change |
+| `scripts/policy-source.mjs` | 102, 120 | The policy HTML's `<title>` and `<h1>`, written into `docs/privacy-policy.html` | front-facing (generated page), change |
+| `docs/privacy-policy-draft.md` | 1, 9, 11, 12, 29, 37, 59, 65, 108, 122, 124, 125, 126, 131, 132 | Generated from the two files above by `node scripts/build-policy.mjs` | front-facing, regenerate |
+| `docs/privacy-policy.html` | 7, 25, 29, 31, 32, 53, 63, 91, 99, 156 | The page to host, generated the same way | front-facing, regenerate |
+| `docs/app-store-privacy-answers.md` | 19, 45 | Draft answers for App Store Connect | front-facing, change |
+
+### Docs others read
+
+| File | Line | What it is | Decision |
+|---|---|---|---|
+| `README.md` | 1, 3, 5, 220, 221 | Title, description, privacy summary | front-facing, change |
+| `README.md` | 70, 110 | The `EVERMORE_SECRET_KEY` secret's name | internal identifier, leave (see below) |
+| `README.md` | 86 | The test domain `caregiver.evermore.invalid` | internal identifier, leave |
+| `README.md` | 105, 106 | Paths `~/evermore-expo/…` (an old folder name, now `~/evermore-clean`) | internal path, leave and report |
+| `README.md` | 200 | Example temp folder `/tmp/evermore-check` | internal, leave |
+| `docs/testflight-checklist.md` | 32, 46, 56 | Review notes and the App Store description draft | front-facing, change |
+| `docs/FORGOT-PASSWORD.md` | 53, 56 | The Reset password email template to paste into Supabase: "Reset your Evermore password", "Type it in the Evermore app…" | front-facing (an email), change in the file; Supabase itself is updated by hand |
+| `docs/FORGOT-PASSWORD.md` | 32 | Quotes the `OFFLINE` message | change with it |
+| `docs/FORGOT-PASSWORD.md` | 42 | The domain `person.evermore.invalid` | internal identifier, leave |
+
+### Tests that assert the old front-facing text (change with it)
+
+| File | Line | What it asserts |
+|---|---|---|
+| `scripts/check-logic.mjs` | 3302 | The logo reads as "Evermore" (and 3298 reads `logo-wordmark.png`'s size, 2916 and 3305 the logo files) |
+| `scripts/check-logic.mjs` | 3584 | The data file's name |
+| `scripts/check-logic.mjs` | 879 | `KEEPS_ITS_CAPITAL` lets "Evermore" keep its capital in the sentence-case check (add the brand name) |
+| `scripts/check-logic.mjs` | 2039 | Assertion message only ("promises only what Evermore controls") |
+| `scripts/check-export.mjs` | 506–508 | The three export file names |
+| `scripts/check-privacy.mjs` | 80 | The policy page's `<title>` |
+
+## Internal identifiers: leave and report
+
+None of these is shown to anyone. Each is left as it is, and listed in the guard's allowlist (step 7).
+
+| Identifier | Where | What changing it would break |
+|---|---|---|
+| Expo slug `evermore` | `app.json:4` | The Expo and EAS project link (`@owner/evermore`), and any update channel or build tied to it. EAS would treat it as a new project. |
+| URL scheme `evermore` | `app.json:8` | Deep links `evermore://…`: the OS registration and any Supabase redirect URL on the allowlist. Forgot password now uses a code, not a link, so little uses it today. |
+| Bundle ID and Android package | not set in `app.json` | Nothing is set yet (Expo Go). Choose them once the name clears trademark: after the first App Store or Play upload they can't change without a new app listing. |
+| npm name `evermore-expo` | `package.json:2`, `package-lock.json:2, 8` | Nothing at runtime (the package is private). Renaming changes the lockfile and nothing else. |
+| Folder `~/evermore-clean` (and the old `~/evermore-expo`) | paths in `README.md`, `HANDOFF.md`, `CLAUDE.md` | Every documented command path, and Claude Code's project memory, which is keyed by the folder path. |
+| Storage keys `evermore.*` | `src/data/account.ts:77` (`profile`), `src/data/attempt-sync.ts:22, 25` (`recordQueue`, `recordBackfill`), `src/data/insights-store.ts:31` (`insightsCache`), `src/data/local-store.ts:42, 43` (`local`, `family`), `src/data/practice-store.ts:93` (`practice`), `src/data/reminders.ts:23` (`reminders`), `src/data/study-clock.ts:14` (`studyDay`), `src/data/text-size.ts:17` (`textSize`), `src/lib/attempts.ts:171–172` (`attempts`), `src/lib/install-token.ts:7` and `.web.ts:4` (`installToken`), `src/lib/notifier.web.ts:6` (`reminderStandIn`) | Every phone would lose what it saved: the local-only family, **practice and card records not yet sent** (the outbox and record queue), the text size, reminder settings and the offline profile. The study clock would restart, so a day could be handed out twice. A new install token resets AI rate counting. Needs a migration that reads the old keys. Also named in `docs/DATA-INVENTORY.md` (49–88, 122), which `scripts/check-privacy.mjs` checks against the code. |
+| `evermore.device.v1` (an earlier build's credential) | `src/lib/session-storage.ts:130`, `.web.ts:35` | `forgetOlderCredential` deletes this exact key at sign-out. Renaming it would leave old credentials on phones forever. |
+| Reminder ids `evermore.reminder.<study day>` | `src/lib/reminders.ts:28` | Reminders already scheduled under the old id would be orphaned: a phone could get two reminders a day for up to 3 days, until it opens. |
+| Reserved domain `person.evermore.invalid` | `src/data/account.ts:35`, `supabase/functions/manage-family/index.ts:13`, `scripts/fakes/supabase-server.mjs:23` | Every existing person login is `<User ID>@person.evermore.invalid` in Supabase Auth. Changing it breaks sign-in on every person's phone, and the app and the function must change together (with a redeploy). |
+| Reserved domains `caregiver.evermore.invalid`, `phone.evermore.invalid` | `supabase/tests/live.test.mjs:32, 34`, `supabase/tests/leftovers.sql:3–36`, docs | Test accounts and old paired-phone logins. `leftovers.sql` finds them by these domains. |
+| User metadata flag `evermore_person` | `supabase/schema.sql:727`, `manage-family/index.ts:79`, `scripts/fakes/supabase-server.mjs:201, 571`, schema test fixtures | The sign-up trigger uses it to make a person profile instead of a caregiver. Existing users carry it. Changing it means a schema rerun and a function redeploy (out of scope: no Supabase changes). |
+| Trigger message `evermore: a caregiver account needs both agreements` | `supabase/schema.sql:736` | A database error, never shown (the app has its own words). Changing it means rerunning the schema in Supabase. |
+| Schema and function comments | `supabase/schema.sql:1`, `manage-family/index.ts:1, 7`, test fixtures `schema-before-*.sql:5` | Nothing, but editing the function means a redeploy, and the schema a rerun. Leave until the name is final. |
+| Secret `EVERMORE_SECRET_KEY` | `manage-family/index.ts:29`, `generate-questions/index.ts:406`, `README.md` | Set in the Supabase dashboard. Renaming it in code breaks both functions until a secret of the new name is added and both are redeployed. |
+| Function slugs `dynamic-api`, `clever-service` | `src/config/functions.ts` | Don't contain the name. Listed only so nothing renames them. |
+| `EVERMORE_DENYLIST` env var | `scripts/denylist.mjs:27, 30`, `scripts/check-no-real-data.test.mjs:28–104` | The guard's self-test points it at a scratch file. Renaming is harmless if done in both places. |
+| Temp folder and file names | `scripts/check-release.mjs:70`, `scripts/check-no-real-data.test.mjs:16`, `supabase/tests/live.test.mjs:97` | Nothing. |
+| Test account prefix `evermore-test-` | `supabase/tests/live.test.mjs:2, 106–156` | `leftovers.sql` and people reading the Auth list rely on it. Rename both together if ever. |
+| Storage keys and domains in tests | `scripts/check-auth.mjs` 496–1003, 1084, 1105–1109; `check-sync.mjs` 86–388; `check-reminders.mjs` 212–342; `check-export.mjs` 143, 284, 375; `check-logic.mjs:3054`; `check-privacy.mjs:103`; `supabase/tests/rls.test.mjs` 26–799, `records.test.mjs:54`, `live.test.mjs:235` | They assert the identifiers above and change only with them. |
+| `'evermore'` and `'evermore1'` in the guessable-password list | `src/lib/auth-form.ts:100–101`, `scripts/check-auth.mjs:184, 199` | Removing them would rate those passwords as stronger. Leave (see "Needs my decision" about adding the new name). |
+| `scripts/private-denylist.example.txt` | 13 | A developer note ("isn't from Evermore's code"). Not in the guard's scope. Leave until the name is final. |
+| Developer docs | `CLAUDE.md` (7, 76, 95, 98, 123, 140, 162, 179, 181, 182, 188, 207, 213, 215, 218, 255, 298, 305, 311, 316, 317), `DESIGN.md` (1, 3, 28, 191, 272, 297, 387, 396, 586, 684), `DESIGN-UI.md` (1, 3, 11, 13, 14, 22, 38, 49, 421, 434), `HANDOFF.md` (3, 21, 44, 55, 110, 167, 222–257, 535–1663; 53 lines), `docs/DATA-INVENTORY.md`, `docs/QUESTION-AUDIT.md` (3, 10), `docs/STUDY-DAY-AUDIT.md` (3, 73), `docs/PIN-REMOVAL-PLAN.md` (15) | Project history and rules for developers, never shown to users. Most mentions are storage keys, domains and folder paths. Rewording them is a separate job once the name clears; `DESIGN-UI.md`'s logo section (434) does change in step 3, since it describes the logo component. |
+
+## Needs my decision
+
+1. **The Insights brain icon** (`src/components/insight-brain.tsx`) was drawn to echo the old logo's brain. The new mark also reads as a brain. Keep the icon as it is, or redraw it from the new mark?
+2. **The person's home** (`src/app/index.tsx:73`) shows the logo above Start today. The brief lists sign-in, welcome, Hello and About. Keep the new logo on the home, or remove it to keep that screen plainer?
+3. **The wrap-up** (`src/components/practice-screen.tsx:411`) shows the old mark above "All done". It isn't a card, but it is in the practice flow. Swap in the new mark, or drop it?
+4. **The guessable-password list** has the old name. Add `tandem` and `tandem1` too? It slightly changes the strength hint for those two passwords.
+5. **Dark mode.** `app.json` sets `"userInterfaceStyle": "light"`, so the app has no dark mode, and a dark splash only shows if that becomes `"automatic"`, which also turns system alerts, pickers and the status bar dark. The brief asks for a dark splash: add its config anyway, knowing it won't show while the app stays light, or switch to `"automatic"` (a behavior change, out of scope for branding)?
+6. **Developer docs.** Rename the product in `CLAUDE.md`, `DESIGN.md`, `DESIGN-UI.md` and `HANDOFF.md` now, or wait for trademark clearance?
+
+## Contrast ratios
+
+To be filled in at step 2, for every changed text and background pair.
