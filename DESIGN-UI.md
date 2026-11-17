@@ -60,6 +60,8 @@ The references are used for layout, structure and feel only. No brand names, log
 
 ### Palette
 
+**Superseded 2026-11-16** by "The Tandem brand" at the end of this file: the palette below is the old logo's, kept as a record.
+
 All colors live in `src/theme/colors.ts` and come from the logo. There is no red anywhere, and no tan, beige or cream.
 
 | Role | Hex | From the logo | Used for |
@@ -431,6 +433,8 @@ A sheet for the caregiver and steps of screen 1 for the person, from the existin
 
 ## The landscape logo (2026-11-11)
 
+**Superseded 2026-11-16** by `<TandemLogo />` ("The Tandem brand", below). Kept as a record.
+
 One component, `<Logo />` (`src/components/logo.tsx`), is the only way a screen shows the landscape logo (`assets/images/logo-wordmark.png`, 1200x396). It shows the file as it is: `expo-image` with `contentFit="contain"` in a box of the file's own shape (`LOGO_ASPECT`, which `scripts/check-logic.mjs` reads from the file), read as "Evermore", never recolored, cropped or stretched. To use a new logo file, replace that file and update `LOGO_ASPECT` if its shape changed; the check names the numbers.
 
 | Size | Width (under 700pt tall) | Where | Test ID |
@@ -532,3 +536,34 @@ From existing pieces, person scale, no new colors.
 ## No-login mode
 
 `AUTH_ENABLED` in `src/config/features.ts`, on by default since 2026-11-11; the local-only mode is `EXPO_PUBLIC_LOCAL_ONLY=1` (`npm run start:local`), for development. When it is `false`, the app opens on the person's home with no sign-in, practices the family kept on the phone (copied once from the example deck in `src/data/deck.ts`: the 7 family cards plus the two illustrated sample people), and makes no server calls. Holding **Caregiver** for a second opens the dashboard, where people can be added, edited, approved, archived and deleted on the phone. When it is `true`, the app opens on the sign-in welcome (above) until someone signs in, and works with Supabase.
+
+## The Tandem brand (2026-11-16)
+
+The brand guide (`brand-kit/tandem-brand-guide.png`) is the reference; `docs/BRAND-AUDIT.md` has the mapping and every contrast ratio.
+
+**Colors** (`Brand` in `src/theme/colors.ts`):
+
+| Name | Hex | Used for | Never |
+|---|---|---|---|
+| Ink | `#1F2B4D` | Headlines, body text, filled buttons (white text, 13.9:1) | |
+| Mist | `#EAF3FB` | Surfaces: answer buttons, fields, notices | text |
+| Sky | `#8EC5F2` | The progress fill, "some practice" days, shapes | text |
+| Sun | `#F7C948` | Behind the filled-in name | text |
+| Rose | `#E8629C` | The score ring's arc (caregiver only) | small text, the person's screens |
+| Deep Rose | `#B0467F` | Links and small accents on caregiver screens (5.2:1 on white, 4.6:1 on Mist) | the person's screens |
+
+`primaryDark` (`#2F4A7A`, Ink lifted toward Sky) is the pressed button and the person's link color. The success banner is a soft Sky (`#D2E8FA`) with Ink text: the brand has no green.
+
+**The logo.** One component, `<TandemLogo size="…" />` (`src/components/tandem-logo.tsx`), drawn with `react-native-svg` from the kit's shapes. Its box is the drawing plus one lobe radius (34 kit units) on every side, its height follows the kit's proportions, and it is read as the brand name (or hidden where `decorative`).
+
+| Size | Version | Width (small phone) | Where | Test ID |
+|---|---|---|---|---|
+| hero | stacked | 220 (170) | the welcome | `logo-welcome` |
+| home | horizontal | 220 (170) | the person's home | `logo-home` |
+| form | horizontal | 168 (152) | sign-in, Create an account, Hello | `logo-sign-in`, `logo-create-account`, `logo-person-sign-in` |
+| about | horizontal | 168 | Settings, About | `logo-about` |
+| header | mark | 40 | the dashboard's compact header | `logo-header` |
+| wrapUp | mark | 120 (96) | the wrap-up, decorative | `logo-wrap-up` |
+
+Every size keeps the guide's minimums (mark 24pt, lockup 140pt, clear space not counted), which `scripts/check-logic.mjs` checks. The reversed colors (`reversed`) are for Ink backgrounds; no screen has one yet. No practice card shows the logo.
+

@@ -17,6 +17,16 @@ Help a person with early memory loss keep recognizing the important people in th
 
 There are no timers anywhere in the loop. Only cards the caregiver approved ever appear. Status: **built**. Since Phase 3 the cards come from the server, in the order the spaced-retrieval schedule chooses.
 
+## The Tandem brand (2026-11-16)
+
+The app is now **Tandem** (a placeholder pending trademark clearance), with the designer's kit in `brand-kit/`. `docs/BRAND-AUDIT.md` has every trace of the old name, what changed, what stayed and why, and the contrast ratios.
+
+- **One name, one logo.** `src/config/brand.ts` holds the name; `<TandemLogo />` draws the kit's shapes (generated into `src/components/tandem-logo-data.ts`) on the welcome (stacked), the sign-in steps and Hello, the person's home, the dashboard header and the wrap-up (the mark), and Settings, About. No practice card shows it.
+- **Identifiers stay.** Storage keys, the reserved login domains, the Expo slug and scheme, and the Supabase secret keep the old name, because renaming them would lose saved data, break every person's login or unlink the Expo project.
+- **Colors.** Buttons are Ink with white text, surfaces Mist, the fill behind a name Sun, the progress fill Sky on a Mist track (soft on purpose, with the count in words). Deep Rose is the link color on caregiver screens only, given by the caregiver layout, so the pink rule still keeps every pink off the person's screens. `pink4` and `pinkInk` stay a little off Rose and Deep Rose to keep 4.5:1.
+- **The policy** moved to version 2026-11-17, so every caregiver agrees again to the renamed text.
+- **Icons and splash.** The kit's navy app icon and favicon as they are; the Android foreground and the dark splash logo composed from the kit's own shapes and reversed colors. The splash is Mist, with an Ink dark variant that shows only if the app ever allows dark mode (`userInterfaceStyle` is still `light`).
+
 ## PIN pairing removed (2026-11-16)
 
 PIN pairing ([below](#pairing-the-persons-phone-2026-11-11-removed-2026-11-16)) is gone from the app; **Their login**, the User ID and password the caregiver makes, is the one way the person's phone signs in. `docs/PIN-REMOVAL-PLAN.md` lists every piece and what depended on it.
