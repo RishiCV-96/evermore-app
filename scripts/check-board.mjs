@@ -412,11 +412,14 @@ const menuFaults = (editor) => [
   ...(/menuList: \{\s*position: 'absolute',/.test(editor) ? [] : ['the menu sits in the card and pushes it taller']),
   ...(/useState<string \| null>\(null\)/.test(editor) && /menuOpen=\{menuFor === note\.id\}/.test(editor) ? [] : ['more than one menu can be open']),
   ...(/menuOpen && styles\.raised/.test(editor) && /cardTop: \{[^}]*zIndex: 1,/.test(editor) ? [] : ['the open card isn’t raised over the next']),
+  // Found in the walk (2026-11-18): the last card's menu opened under the floating Add note, hiding Delete.
+  ...(/menuUp=\{index > 0 && index === ordered\.length - 1\}/.test(editor) && /menuUp: \{\s*top: undefined,\s*bottom: COMPACT_TAP/.test(editor) ? [] : ['the last card’s menu opens under Add note']),
 ];
 await check('the note menu floats over the cards, one at a time, with Edit, Pin and a confirmed Delete', () => {
   const tab = inRepo('src/components/family-board-tab.tsx');
   assert.deepEqual(menuFaults(tab), []);
   assert.deepEqual(menuFaults(tab.replace("menuList: {\n    position: 'absolute',", 'menuList: {')), ['the menu sits in the card and pushes it taller'], 'a planted inline menu is caught');
+  assert.deepEqual(menuFaults(tab.replace('menuUp={index > 0 && index === ordered.length - 1}', 'menuUp={false}')), ['the last card’s menu opens under Add note'], 'a planted downward last menu is caught');
   assert.ok(/'note-edit'/.test(tab) && /note\.pinned \? 'Unpin' : 'Pin to top'/.test(tab) && /confirm\('Delete this note\?'/.test(tab), 'Edit, Pin to top or Unpin, and Delete after a confirmation');
 });
 

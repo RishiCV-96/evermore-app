@@ -18,19 +18,19 @@ import { ICON, PERSON_TOUCH, RADIUS, Space } from '@/theme/layout';
 /** The two fills, in turn down the board: Mist, then the Sky tint. Ink words on both pass 7:1. */
 const FILLS = [Colors.surface, Colors.softSuccess];
 
-/** The flower mark, the title and the subtitle. */
+/** The flower mark beside the title, and the subtitle under both, so at large text it wraps across the full width. */
 export function BoardHeader() {
   return (
-    <View style={styles.header}>
-      <TandemLogo size="board" testID="logo-board" decorative />
-      <View style={styles.headerWords}>
-        <AppText testID="board-title" accessibilityRole="header" bold size="title">
+    <View style={styles.heading}>
+      <View style={styles.header}>
+        <TandemLogo size="board" testID="logo-board" decorative />
+        <AppText testID="board-title" accessibilityRole="header" bold size="title" style={styles.title}>
           {BOARD_TITLE}
         </AppText>
-        <AppText size="caption" muted>
-          {BOARD_SUBTITLE}
-        </AppText>
       </View>
+      <AppText size="caption" muted>
+        {BOARD_SUBTITLE}
+      </AppText>
     </View>
   );
 }
@@ -131,13 +131,19 @@ function ReadAloud({ note }: { note: FamilyNote }) {
   );
 }
 
-/** The quiet line at the end: the board is for reading, and new notes come here. */
+/** The quiet lines at the end: "View only" with an eye, then where new notes come. Read as one sentence. */
 export function ViewOnly() {
+  const [label, ...rest] = VIEW_ONLY.split('. ');
   return (
-    <View testID="board-view-only" style={styles.viewOnly}>
-      <Ionicons name="eye-outline" size={ICON} color={Colors.textMuted} aria-hidden />
-      <AppText size="caption" muted center style={styles.viewOnlyWords}>
-        {VIEW_ONLY}
+    <View testID="board-view-only" accessible accessibilityLabel={VIEW_ONLY} style={styles.viewOnly}>
+      <View style={styles.viewOnlyLabel}>
+        <Ionicons name="eye-outline" size={ICON} color={Colors.textMuted} aria-hidden />
+        <AppText bold size="caption" muted>
+          {label}
+        </AppText>
+      </View>
+      <AppText size="caption" muted center>
+        {rest.join('. ')}
       </AppText>
     </View>
   );
@@ -154,14 +160,16 @@ export function BoardSection({ label, children, testID }: { label: string; child
 }
 
 const styles = StyleSheet.create({
+  heading: {
+    gap: Space.s,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Space.m,
   },
-  headerWords: {
+  title: {
     flex: 1,
-    gap: Space.xs,
   },
   section: {
     gap: Space.m,
@@ -207,12 +215,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Space.xs,
   },
-  // Who it is from, and Read aloud beside it where they fit, under it where they don't.
+  // Who it is from, then Read aloud under it: in the same place on every card, whatever the name's length or the text size.
   footer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: Space.m,
   },
   from: {
@@ -247,13 +252,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.skySoft,
   },
   viewOnly: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: Space.s,
+    gap: Space.xs,
     paddingVertical: Space.s,
   },
-  viewOnlyWords: {
-    flexShrink: 1,
+  viewOnlyLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.s,
   },
 });

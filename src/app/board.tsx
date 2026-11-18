@@ -75,7 +75,9 @@ export default function Board() {
           </>
         ) : null}
       </ScrollView>
-      <BigButton testID="board-back" label="Back to home" icon="arrow-back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+      <View style={styles.back}>
+        <BigButton testID="board-back" label="Back to home" icon="arrow-back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+      </View>
       <TextSizeSheet visible={remindersOpen} onClose={() => setRemindersOpen(false)} reminders startOn="reminders" />
     </View>
   );
@@ -102,5 +104,11 @@ const styles = StyleSheet.create({
     gap: Space.xl,
     paddingTop: Space.l,
     paddingBottom: Space.xl,
+  },
+  // A hairline between the notes and Back to home, so a card cut off by the scroll ends cleanly.
+  back: {
+    paddingTop: Space.m,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.divider,
   },
 });

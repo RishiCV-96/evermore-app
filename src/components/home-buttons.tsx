@@ -23,7 +23,7 @@ export function StartPracticeButton({ label, onPress }: { label: string; onPress
       accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => [styles.button, styles.start, pressed && styles.startPressed]}>
-      <Ionicons name="play" size={30} color={Colors.onPrimary} aria-hidden />
+      <Ionicons name="play" size={28} color={Colors.onPrimary} aria-hidden />
       <AppText fit bold size="title" color={Colors.onPrimary}>
         {label}
       </AppText>
@@ -44,7 +44,7 @@ export function ViewDashboardButton({ onPress }: { onPress: () => void }) {
       accessibilityHint="Opens your Family board, with notes from your family."
       onPress={onPress}
       style={({ pressed }) => [styles.button, styles.dashboard, pressed && styles.dashboardPressed]}>
-      <Ionicons name="grid-outline" size={30} color={Colors.text} aria-hidden />
+      <Ionicons name="grid-outline" size={28} color={Colors.text} aria-hidden />
       <AppText fit bold size="title">
         {HOME_BOARD_BUTTON}
       </AppText>
@@ -59,7 +59,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Space.m,
     minHeight: HOME_BUTTON_HEIGHT,
-    paddingHorizontal: Space.xl,
+    // Room for "View dashboard" at Extra large text on a 375pt phone.
+    paddingHorizontal: Space.m,
     borderRadius: RADIUS,
   },
   start: {

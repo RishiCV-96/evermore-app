@@ -127,7 +127,12 @@ export function FamilyBoardTab() {
                 note={note}
                 tone={tones[index]}
                 menuOpen={menuFor === note.id}
-                onToggleMenu={(open) => setMenuFor(open ? note.id : null)}
+                // The last card's menu opens upward, so the floating Add note never covers it.
+                menuUp={index > 0 && index === ordered.length - 1}
+                onToggleMenu={(open) => {
+                  setMenuFor(open ? note.id : null);
+                  setFullNote(false);
+                }}
                 onEdit={() => startEditing(note)}
                 onPin={() => run(pinNote(note.pinned ? null : note.id))}
                 onDelete={async () => {
@@ -195,6 +200,7 @@ type BoardCardProps = {
   note: FamilyNote;
   tone: CardTone;
   menuOpen: boolean;
+  menuUp: boolean;
   onToggleMenu: (open: boolean) => void;
   onEdit: () => void;
   onPin: () => void;
@@ -202,7 +208,7 @@ type BoardCardProps = {
 };
 
 /** One note: tilted by its id, in its pastel. A tap anywhere on it opens Edit, as the menu's Edit does. */
-function BoardCard({ note, tone, menuOpen, onToggleMenu, onEdit, onPin, onDelete }: BoardCardProps) {
+function BoardCard({ note, tone, menuOpen, menuUp, onToggleMenu, onEdit, onPin, onDelete }: BoardCardProps) {
   const look = TONES[tone];
   return (
     <View style={[styles.cardTilt, { transform: [{ rotate: `${noteTilt(note.id)}deg` }] }, menuOpen && styles.raised]}>
@@ -218,7 +224,7 @@ function BoardCard({ note, tone, menuOpen, onToggleMenu, onEdit, onPin, onDelete
           ) : (
             <View />
           )}
-          <NoteMenu note={note} open={menuOpen} onToggle={onToggleMenu} onEdit={onEdit} onPin={onPin} onDelete={onDelete} />
+          <NoteMenu note={note} open={menuOpen} up={menuUp} onToggle={onToggleMenu} onEdit={onEdit} onPin={onPin} onDelete={onDelete} />
         </View>
         <AppText testID="note-body" bold size="headline">
           {note.body}
@@ -267,8 +273,8 @@ function BoardCard({ note, tone, menuOpen, onToggleMenu, onEdit, onPin, onDelete
   );
 }
 
-/** The "···" button on a card, and Edit, Pin to top (or Unpin) and Delete floating under it. */
-function NoteMenu({ note, open, onToggle, onEdit, onPin, onDelete }: { note: FamilyNote; open: boolean; onToggle: (open: boolean) => void; onEdit: () => void; onPin: () => void; onDelete: () => void }) {
+/** The "···" button on a card, and Edit, Pin to top (or Unpin) and Delete floating under it (or over it, `up`). */
+function NoteMenu({ note, open, up, onToggle, onEdit, onPin, onDelete }: { note: FamilyNote; open: boolean; up: boolean; onToggle: (open: boolean) => void; onEdit: () => void; onPin: () => void; onDelete: () => void }) {
   const accent = useAccent();
   const choose = (action: () => void) => () => {
     onToggle(false);
@@ -286,7 +292,7 @@ function NoteMenu({ note, open, onToggle, onEdit, onPin, onDelete }: { note: Fam
         <Ionicons name="ellipsis-horizontal" size={22} color={Colors.text} aria-hidden />
       </Pressable>
       {open ? (
-        <View style={[styles.menuList, Elevation.lifted]}>
+        <View style={[styles.menuList, up && styles.menuUp, Elevation.lifted]}>
           {[
             { id: 'note-edit', label: 'Edit', icon: 'create-outline' as const, action: onEdit },
             { id: 'note-pin', label: note.pinned ? 'Unpin' : 'Pin to top', icon: 'pin-outline' as const, action: onPin },
@@ -339,7 +345,7 @@ function NoteForm({ editing, onCancel, onSaved }: { editing: Editing; onCancel: 
           onChangeText={(body) => setDraft({ ...draft, body })}
           multiline
           maxLength={NOTE_LETTERS}
-          placeholder="e.g. Dinner at my place Sunday at 5."
+          placeholder="e.g. Dinner Sunday at 5."
           trailing={
             <AppText testID="note-counter" size="caption" muted tabular>
               {`${draft.body.length} of ${NOTE_LETTERS}`}
@@ -512,6 +518,10 @@ const styles = StyleSheet.create({
     paddingVertical: Space.xs,
     borderRadius: Radius.inner,
     backgroundColor: Colors.background,
+  },
+  menuUp: {
+    top: undefined,
+    bottom: COMPACT_TAP + Space.xs,
   },
   menuItem: {
     flexDirection: 'row',
