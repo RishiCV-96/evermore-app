@@ -21,6 +21,7 @@ import { ATTEMPTS_KEY, attemptOf, keptAttempts, monthOf, type CardAttempt, type 
 import type { InsightsData } from '@/lib/insights';
 import { collectPhotos, photoEntries, photoZip, settleRead, type Cancel, type ExportProgress, type ExportRead, type ExportSource } from '@/lib/export';
 import { sampleIdFrom, type CardStatus, type DraftFact, type SavedCard } from '@/lib/facts';
+import * as notes from '@/lib/family-notes';
 import * as families from '@/lib/local-family';
 import { emptyPractice, endSession, finishCard, forgetPerson, localActivity, pruned, renameCards, startSession, type LocalPractice } from '@/lib/local-practice';
 import { dropPhoto, keepPhoto } from '@/lib/photo-files';
@@ -244,6 +245,37 @@ export function useLocalRole() {
   return useSyncExternalStore(subscribe, () => role, () => role);
 }
 
+// ---- The Family board with sign-in off: the notes live in the family kept on this phone ----
+
+const NO_NOTES: notes.FamilyNote[] = [];
+
+/** The family's notes, or null until the phone's family has loaded. */
+export function useLocalNotes() {
+  return useSyncExternalStore(subscribe, () => (family ? (family.notes ?? NO_NOTES) : null), () => null);
+}
+
+function saveNotes(result: { notes: notes.FamilyNote[]; problem?: string }) {
+  if (result.problem) return result.problem;
+  commit({ family: { ...currentFamily(), notes: result.notes } });
+  return undefined;
+}
+
+export async function addLocalNote(draft: notes.NoteDraft) {
+  return saveNotes(notes.addNote(currentFamily().notes ?? [], draft, Crypto.randomUUID(), new Date()));
+}
+
+export async function editLocalNote(id: string, draft: notes.NoteDraft) {
+  return saveNotes(notes.editNote(currentFamily().notes ?? [], id, draft, new Date()));
+}
+
+export async function deleteLocalNote(id: string) {
+  return saveNotes({ notes: notes.deleteNote(currentFamily().notes ?? [], id) });
+}
+
+export async function pinLocalNote(id: string | null) {
+  return saveNotes({ notes: notes.pinNote(currentFamily().notes ?? [], id, new Date()) });
+}
+
 /** Holding Caregiver on the person's home. */
 export function openCaregiver() {
   role = 'caregiver';
@@ -379,6 +411,7 @@ export async function localExportSource(): Promise<ExportRead<ExportSource>> {
       sessions: practice.sessions,
       records: attempts,
       schedule: Object.entries(practice.schedule).map(([cardId, entry]) => ({ cardId, step: entry.step, dueAt: entry.dueAt, updatedAt: entry.updatedAt })),
+      notes: kept.notes ?? [],
     };
   });
 }

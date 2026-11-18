@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { AUTH_ENABLED } from '@/config/features';
+import * as board from '@/data/board-store';
 import { deleteFamily, signOut, useAccount } from '@/data/account';
 import { loadActivity, type Activity } from '@/data/activity-store';
 import * as consent from '@/data/consent-store';
@@ -8,6 +9,7 @@ import * as family from '@/data/family-store';
 // What this phone kept from the server goes whenever a login signs out here.
 import '@/data/forget';
 import { refreshFamily, setRevealCards as saveRevealCards, setSessionLength as saveSessionLength, useFamily, useFamilyFailed, useFamilyProblem, type Family } from '@/data/family-store';
+import type { FamilyNote, NoteDraft } from '@/lib/family-notes';
 import { problemOf, type LoadProblem } from '@/lib/load-problem';
 import { rememberTrends, updateInsights, useServerInsights, type InsightsSync, type TrendsCopy } from '@/data/insights-store';
 import * as local from '@/data/local-store';
@@ -154,6 +156,17 @@ export const approveAll = AUTH_ENABLED ? family.approveAll : local.approveAllLoc
 export const undoApproveAll = AUTH_ENABLED ? family.undoApproveAll : local.undoApproveAllLocal;
 
 export const { openCaregiver, closeCaregiver, practiceWith, takeHandoff } = local;
+
+// The Family board (docs/PERSON-HOME-PLAN.md): the server's notes with sign-in on, the phone's family's with it off.
+function useServerNotes() {
+  return board.useBoard()?.notes ?? null;
+}
+export const useBoardNotes: () => FamilyNote[] | null = AUTH_ENABLED ? useServerNotes : local.useLocalNotes;
+export const refreshBoard: () => Promise<void> = AUTH_ENABLED ? board.refreshBoard : async () => {};
+export const addNote: (draft: NoteDraft) => Promise<string | undefined> = AUTH_ENABLED ? board.addNote : local.addLocalNote;
+export const editNote: (id: string, draft: NoteDraft) => Promise<string | undefined> = AUTH_ENABLED ? board.editNote : local.editLocalNote;
+export const deleteNote: (id: string) => Promise<string | undefined> = AUTH_ENABLED ? board.deleteNote : local.deleteLocalNote;
+export const pinNote: (id: string | null) => Promise<string | undefined> = AUTH_ENABLED ? board.pinNote : local.pinLocalNote;
 
 // AI questions exist only with sign-in off (AI_AVAILABLE), so these are always the phone's.
 export const {

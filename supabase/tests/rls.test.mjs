@@ -792,6 +792,70 @@ check("B's family is untouched", (await db.query(`select count(*)::int as n from
 
 // Upgrading a project made before facts keeps every row: the schema as it was then, a family
 // with practice history, then today's schema over it.
+// ---- The Family board (docs/PERSON-HOME-PLAN.md): only the caregiver writes; the person only reads ----
+{
+  // Two families of its own (earlier checks delete A's account), and the first one's person login.
+  const [A, B, P] = ['00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000d9'];
+  await db.query(`insert into auth.users (id, raw_user_meta_data) values ($1, $2), ($3, $2)`, [A, consent, B]);
+  await db.query(`insert into auth.users (id, raw_user_meta_data) values ($1, '{"evermore_person": true}')`, [P]);
+  await db.query(`insert into public.profiles (id, role, display_name, caregiver_id, username) values ($1, 'person', 'Rose', $2, 'board.rose')`, [P, A]);
+  const note = (family, body, extra = '') => db.query(`insert into public.family_notes (caregiver_id, body${extra ? ', pinned' : ''}) values ($1, $2${extra ? ', true' : ''}) returning id`, [family, body]);
+  await db.query(`delete from public.family_notes`);
+  const first = (await note(A, 'Dinner at my place Sunday at 5.', 'pinned')).rows[0].id;
+  await note(A, 'Lake photos this weekend?');
+  await note(B, 'A note in another family.');
+  check('board: the caregiver reads only their family’s notes', (await count(A, 'public.family_notes')) === 2);
+  check('board: the person’s login reads only its family’s notes', (await count(P, 'public.family_notes')) === 2);
+  check('board: another family reads none of them', (await as(B, `select count(*)::int as n from public.family_notes where caregiver_id = '${A}'`)).rows[0].n === 0);
+  const anon = async (sql) => {
+    await db.exec('begin');
+    try {
+      await db.exec('set local role anon');
+      return { rows: (await db.exec(sql)).at(-1).rows };
+    } catch (error) {
+      return { error: error.message };
+    } finally {
+      await db.exec('rollback');
+    }
+  };
+  const signedOut = await anon(`select count(*)::int as n from public.family_notes`);
+  check('board: a signed-out user reads nothing', Boolean(signedOut.error) || signedOut.rows[0].n === 0, JSON.stringify(signedOut));
+  check('board: a signed-out user writes nothing', Boolean((await anon(`insert into public.family_notes (caregiver_id, body) values ('${A}', 'x')`)).error));
+  const personWrites = await as(P, `insert into public.family_notes (caregiver_id, body) values ('${A}', 'From the person') returning id`);
+  check('board: the person’s login can’t add a note', Boolean(personWrites.error), JSON.stringify(personWrites));
+  const personEdits = await as(P, `update public.family_notes set body = 'changed' where caregiver_id = '${A}'`);
+  const personDeletes = await as(P, `delete from public.family_notes where caregiver_id = '${A}'`);
+  check('board: or change or delete one', (personEdits.affected ?? 0) === 0 && (personDeletes.affected ?? 0) === 0 && (await db.query(`select count(*)::int as n from public.family_notes where caregiver_id = $1 and body <> 'changed'`, [A])).rows[0].n === 2);
+  const otherWrites = await as(B, `insert into public.family_notes (caregiver_id, body) values ('${A}', 'Into the wrong family')`);
+  const otherEdits = await as(B, `update public.family_notes set body = 'x' where caregiver_id = '${A}'`);
+  check('board: another family can’t add to, change or delete them', Boolean(otherWrites.error) && (otherEdits.affected ?? 0) === 0);
+  const own = await as(A, `insert into public.family_notes (caregiver_id, body, from_name, from_relationship) values ('${A}', 'Proud of you.', 'Lucy', 'Wife') returning id`);
+  check('board: the caregiver adds a third note', !own.error, own.error);
+  await note(A, 'A third, kept.');
+  const fourth = await as(A, `insert into public.family_notes (caregiver_id, body) values ('${A}', 'A fourth note')`);
+  check('board: a fourth note is refused by the database', /at most 3/.test(fourth.error ?? ''), JSON.stringify(fourth));
+  const ownerFourth = await note(A, 'Even as the owner').then(() => null, (error) => error.message);
+  check('board: even past row-level security', /at most 3/.test(ownerFourth ?? ''), ownerFourth);
+  const secondPin = await as(A, `update public.family_notes set pinned = true where caregiver_id = '${A}' and id <> '${first}'`);
+  check('board: only one note can be pinned', Boolean(secondPin.error), JSON.stringify(secondPin));
+  const tooLong = await as(A, `update public.family_notes set body = repeat('a', 201) where id = '${first}'`);
+  const blank = await as(A, `update public.family_notes set body = '   ' where id = '${first}'`);
+  check('board: 200 characters at most, and never empty', Boolean(tooLong.error) && Boolean(blank.error));
+  const edits = await as(A, `update public.family_notes set body = 'Dinner Sunday at 6.', pinned = false where id = '${first}'`);
+  check('board: the caregiver edits and unpins their note', edits.affected === 1);
+  const moved = await as(A, `update public.family_notes set caregiver_id = '${B}' where id = '${first}'`);
+  check('board: a note can’t be moved to another family', Boolean(moved.error) || (moved.affected ?? 0) === 0);
+  const rerunBoard = await db.exec(schema).then(() => null, (error) => error.message);
+  check('board: running the schema again keeps every note', rerunBoard === null && (await db.query(`select count(*)::int as n from public.family_notes`)).rows[0].n === 4, rerunBoard);
+  // Delete account: the notes go with the caregiver.
+  const C = '00000000-0000-4000-8000-00000000000c';
+  await db.query(`insert into auth.users (id, raw_user_meta_data) values ($1, $2)`, [C, consent]);
+  await note(C, 'Soon to be deleted.');
+  await db.query(`delete from auth.users where id = $1`, [C]);
+  check('board: deleting the account deletes its notes', (await db.query(`select count(*)::int as n from public.family_notes where caregiver_id = $1`, [C])).rows[0].n === 0);
+  await db.query(`delete from public.family_notes`);
+}
+
 const old = new PGlite();
 await old.exec(SUPABASE_STANDIN);
 await old.exec(readFileSync(new URL('./schema-before-facts.sql', import.meta.url), 'utf8'));

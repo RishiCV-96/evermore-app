@@ -98,7 +98,7 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
   const sessions = new Map(); // refresh token -> { userId, sessionId, revoked }
   const emails = []; // { to, kind: 'signup' | 'recovery', code, link, at }
   const objects = new Map(); // storage path -> bytes
-  const tables = { profiles: [], people: [], cards: [], daily_goal: [], sessions: [], attempts: [], card_schedule: [], attempt_records: [], consents: [] };
+  const tables = { profiles: [], people: [], cards: [], daily_goal: [], sessions: [], attempts: [], card_schedule: [], attempt_records: [], consents: [], family_notes: [] };
   /** Every request, in order: method, path and, for auth, the endpoint. Bodies are never kept. */
   const log = [];
   let signInTries = 0;
@@ -385,6 +385,9 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
       case 'attempts':
       case 'card_schedule':
         return Boolean(family) && row.person_user_id === who.id;
+      // The Family board: the person's login reads its family's notes, and never writes (supabase/schema.sql).
+      case 'family_notes':
+        return Boolean(family) && row.caregiver_id === family;
       default:
         return false;
     }
@@ -487,6 +490,9 @@ export function createStandin({ url = 'http://standin.test', functionSlug = 'dyn
     if (request.method === 'POST') {
       const rows = [body].flat().map((row) => ({ ...(DEFAULTS[table]?.() ?? {}), id: row.id ?? (TABLE_KEYS[table] ? undefined : randomUUID()), created_at: nowIso(), ...row }));
       if (rows.some((row) => !canWrite(table, row, who))) return json(403, { code: '42501', message: `new row violates row-level security policy for table "${table}"` });
+      if (table === 'family_notes' && rows.some((row) => tables.family_notes.filter((one) => one.caregiver_id === row.caregiver_id).length >= 3)) {
+        return json(400, { code: '23514', message: 'family_notes: at most 3 notes a family' });
+      }
       const upsert = /resolution=(merge|ignore)-duplicates/.exec(prefer)?.[1];
       for (const row of rows) {
         if (table === 'attempt_records' && !tables.people.some((person) => person.id === row.person_id && person.caregiver_id === row.caregiver_id)) {

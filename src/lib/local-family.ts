@@ -1,5 +1,6 @@
 import type { TestData, TestFact } from '@/data/test-data';
 import type { AiSentence } from '@/lib/ai-sentences';
+import type { FamilyNote } from '@/lib/family-notes';
 import {
   CAREGIVER_SOURCE,
   planFacts,
@@ -65,6 +66,8 @@ export type LocalFamily = {
   testSeeded?: boolean;
   /** AI sentences, in the caregiver's queue or approved. They never leave the phone. */
   sentences?: AiSentence[];
+  /** The Family board's notes (src/lib/family-notes.ts), written by the caregiver on this phone. */
+  notes?: FamilyNote[];
 };
 
 /** How the rules read a person: only the phone's store knows who has a photo. */

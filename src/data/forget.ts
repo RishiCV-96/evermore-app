@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 
 import { onSignOut } from '@/data/account';
+import { forgetBoard } from '@/data/board-store';
 import { forgetConsent } from '@/data/consent-store';
 import { forgetFamily } from '@/data/family-store';
 import { forgetInsights } from '@/data/insights-store';
@@ -11,7 +12,7 @@ import { clearExports } from '@/lib/save-file';
 // What a phone keeps from the server for a login, and goes when that login signs out here, however
 // it signs out (Settings, the person's phone handed back, Delete account, or the server refusing the
 // session): the saved profile (src/data/account.ts), the family in memory, the person's copy of the
-// deck, the caregiver's agreements read this session (memory only), the caregiver's copy of Insights, every photo in the image cache, and the
+// deck, the caregiver's agreements read this session (memory only), the caregiver's copy of Insights, the Family board's copy, every photo in the image cache, and the
 // person's daily reminders on this phone (cancelled, with their setting), so a signed-out phone never
 // reminds, and any export file left in the temporary folder by a share the app didn't see
 // finish. What stays: practice and
@@ -23,5 +24,5 @@ onSignOut({
   // The person's phone sends what is waiting first, if it can, so nothing is held back for long.
   before: (profile) => (profile.role === 'person' ? flushPractice() : undefined),
   after: (profile) =>
-    Promise.allSettled([Promise.resolve().then(forgetConsent), forgetFamily(), forgetInsights(profile.id), forgetPractice(profile.id), forgetReminders(), Promise.resolve().then(clearExports), Image.clearMemoryCache(), Image.clearDiskCache()]),
+    Promise.allSettled([Promise.resolve().then(forgetConsent), forgetFamily(), forgetInsights(profile.id), forgetPractice(profile.id), forgetBoard(profile.id), forgetReminders(), Promise.resolve().then(clearExports), Image.clearMemoryCache(), Image.clearDiskCache()]),
 });
