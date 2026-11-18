@@ -140,10 +140,12 @@ const styles = StyleSheet.create({
   pinned: {
     backgroundColor: Colors.softSuccess,
   },
+  // Above the words below it, so the caregiver's floating note menu (family-board-editor.tsx) covers them.
   top: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    zIndex: 1,
   },
   pinnedLabel: {
     flexDirection: 'row',

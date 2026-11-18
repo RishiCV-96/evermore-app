@@ -49,6 +49,8 @@ function BoardSheet({ visible, notes, loading, onClose }: { visible: boolean; no
   const insets = useSafeAreaInsets();
   const [editing, setEditing] = useState<Editing>(null);
   const [notice, setNotice] = useState<string>();
+  // The one note whose menu is open: it floats over the cards below, so its card is raised above them.
+  const [menuFor, setMenuFor] = useState<string | null>(null);
   const full = !canAddNote(notes);
 
   function close() {
@@ -95,12 +97,14 @@ function BoardSheet({ visible, notes, loading, onClose }: { visible: boolean; no
             </EmptyState>
           ) : null}
           {orderNotes(notes).map((note) => (
-            <View key={note.id} style={styles.cardShadow}>
+            <View key={note.id} style={[styles.cardShadow, menuFor === note.id && styles.raised]}>
               <NoteCard
                 note={note}
                 actions={
                   <NoteMenu
                     note={note}
+                    open={menuFor === note.id}
+                    onToggle={(open) => setMenuFor(open ? note.id : null)}
                     onEdit={() => setEditing({ id: note.id, draft: { body: note.body, fromName: note.fromName, fromRelationship: note.fromRelationship } })}
                     onPin={() => run(pinNote(note.pinned ? null : note.id))}
                     onDelete={async () => {
@@ -119,12 +123,25 @@ function BoardSheet({ visible, notes, loading, onClose }: { visible: boolean; no
   );
 }
 
-/** The "…" button on a card, opening Edit, Pin to top (or Unpin) and Delete under it. */
-function NoteMenu({ note, onEdit, onPin, onDelete }: { note: FamilyNote; onEdit: () => void; onPin: () => void; onDelete: () => void }) {
+/** The "…" button on a card, and Edit, Pin to top (or Unpin) and Delete floating under it. */
+function NoteMenu({
+  note,
+  open,
+  onToggle,
+  onEdit,
+  onPin,
+  onDelete,
+}: {
+  note: FamilyNote;
+  open: boolean;
+  onToggle: (open: boolean) => void;
+  onEdit: () => void;
+  onPin: () => void;
+  onDelete: () => void;
+}) {
   const accent = useAccent();
-  const [open, setOpen] = useState(false);
   const choose = (action: () => void) => () => {
-    setOpen(false);
+    onToggle(false);
     action();
   };
   return (
@@ -134,7 +151,7 @@ function NoteMenu({ note, onEdit, onPin, onDelete }: { note: FamilyNote; onEdit:
         accessibilityRole="button"
         accessibilityLabel="Note options"
         accessibilityState={{ expanded: open }}
-        onPress={() => setOpen(!open)}
+        onPress={() => onToggle(!open)}
         style={({ pressed }) => [styles.menuButton, pressed && styles.menuPressed]}>
         <Ionicons name="ellipsis-horizontal" size={22} color={Colors.text} aria-hidden />
       </Pressable>
@@ -262,8 +279,15 @@ const styles = StyleSheet.create({
   menuPressed: {
     backgroundColor: Colors.skySoft,
   },
+  raised: {
+    zIndex: 10,
+  },
+  // Floats over the card and the ones below, from just under the "…" button, without moving anything.
   menuList: {
-    marginTop: Space.xs,
+    position: 'absolute',
+    top: COMPACT_TAP + Space.xs,
+    right: 0,
+    zIndex: 10,
     minWidth: 180,
     paddingVertical: Space.xs,
     borderRadius: Radius.inner,

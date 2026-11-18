@@ -146,7 +146,7 @@ Typecheck, lint, all 16 `npm test` suites (with the new `scripts/check-board.mjs
 14. **A phone-copy export made before the board has loaded** lists the Family board among what it may lack, like sessions.
 15. **Read aloud sits on its own line under the From line** on every card, so a long name or relationship never moves it (seen in the walk).
 16. **"View only" is a bold label with an eye icon** above the quiet line, as in the mock, in muted Ink (no color of its own).
-17. **The caregiver's note menu opens inline** under the "…" button (it lengthens the card while open) rather than as a floating popover.
+17. **The caregiver's note menu floats** over the cards from under the "…" button, one open at a time (first built inline, changed at the owner's request on 2026-11-18).
 18. **Screenshots** (fictional data only) are in `docs/person-home-screenshots/`, kept out of the EAS upload by `.easignore` and checked by `scripts/check-store.mjs`.
 
 ## Needs my decision

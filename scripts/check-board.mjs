@@ -333,4 +333,17 @@ await check('Reminders: Earlier and Later differ by an arrow icon and words, not
   assert.deepEqual(lookAlikeFaults(reminders.replace(' icon="arrow-back"', ''), ['reminder-earlier', 'reminder-later']), ['a button without an icon']);
 });
 
+/** The editor's note menu floats: one open at a time, laid over the cards, never pushing them down. */
+const menuFaults = (editor) => [
+  ...(/menuList: \{\s*position: 'absolute',/.test(editor) ? [] : ['the menu sits in the card and pushes it taller']),
+  ...(/useState<string \| null>\(null\)/.test(editor) && /open=\{menuFor === note\.id\}/.test(editor) ? [] : ['more than one menu can be open']),
+  ...(/menuFor === note\.id && styles\.raised/.test(editor) ? [] : ['the open card isn’t raised over the next']),
+];
+await check('the editor’s note menu floats over the cards, one at a time', () => {
+  const editor = inRepo('src/components/family-board-editor.tsx');
+  assert.deepEqual(menuFaults(editor), []);
+  assert.ok(/top: \{[^}]*zIndex: 1,/.test(inRepo('src/components/family-board.tsx')), 'the card’s top row is above its words, so the menu covers them');
+  assert.deepEqual(menuFaults(editor.replace("menuList: {\n    position: 'absolute',", 'menuList: {')), ['the menu sits in the card and pushes it taller'], 'a planted inline menu is caught');
+});
+
 console.log(`\nAll ${passed} board checks passed`);
