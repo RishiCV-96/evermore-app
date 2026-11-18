@@ -26,8 +26,8 @@ For every type below: **Linked to the user: Yes** (it is stored in the caregiver
 | Health & Fitness → **Health** | **[REVIEW]**, recommended Yes | Card records and the Memory score describe a person's memory practice, in an app for early memory loss | Apple's definition covers "any other user provided health or medical data". The conservative answer is Yes. Declaring it brings guideline 5.1.3 into play: no use for advertising or marketing. |
 | Health & Fitness → Fitness | No | | |
 | Financial Info, Location (precise or coarse), Sensitive Info, Contacts, Browsing History, Search History, Purchases | No | | **[REVIEW]** Sensitive Info: optional answers such as marital status and family situation aren't in Apple's sensitive list, but confirm |
-| User Content → **Photos or Videos** | Yes | Photos of people and shared memories that the caregiver picks | Stored privately. Never analyzed by AI or face recognition |
-| User Content → Audio Data | No | | Read-aloud is done by the phone and produces no audio file |
+| User Content → **Photos or Videos** | Yes | Photos of people and shared memories that the caregiver picks from the library | Stored privately. Never analyzed by AI or face recognition. Nothing comes from the camera: the app never opens it (its permission string exists only because the photo picker requires it) |
+| User Content → Audio Data | No | | Read-aloud is done by the phone and produces no audio file. The microphone is never used: its permission string exists only because the photo picker requires it |
 | User Content → Gameplay Content, Customer Support | No | | Customer Support becomes Yes if a support channel collects data in the app |
 | User Content → **Other User Content** | Yes | The caregiver's profile answers and stories (relationship, nickname, birthday, work, home, interests, shared memories) | |
 | Identifiers → **User ID** | Yes | The account's user ID; the person's User ID (a username the caregiver chooses) | |

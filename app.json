@@ -55,7 +55,9 @@
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.SYSTEM_ALERT_WINDOW"
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "predictiveBackGestureEnabled": false
     },
@@ -88,8 +90,8 @@
         "expo-image-picker",
         {
           "photosPermission": "Pick a photo of each person you add, so it can appear on their practice cards. Only the photos you choose are used.",
-          "cameraPermission": false,
-          "microphonePermission": false
+          "cameraPermission": "Tandem never opens the camera and does not take photos or video. You choose photos from your own library. This note is here only because the photo picker requires it.",
+          "microphonePermission": "Tandem never uses the microphone and does not record audio or video. This note is here only because the photo picker requires it."
         }
       ],
       [

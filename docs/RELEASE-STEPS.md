@@ -235,7 +235,8 @@ npx eas-cli@latest submit --platform ios --profile production
 
 Choose the build from C5.
 - **You should see** the upload finish. App Store Connect then processes the build (5 to 30 minutes) and emails you. It won't ask about encryption: `ITSAppUsesNonExemptEncryption` is false.
-- **If the email lists ITMS-90683** (a missing purpose string, such as the camera's): Apple's scan saw the image picker's camera code, which the app never opens. Add a calm camera string to the `expo-image-picker` plugin in `app.json` in place of `false`, update `scripts/check-store.mjs` to match, and build again.
+- **The camera and microphone strings are expected.** The build carries three permission strings: the photo library, and a camera and a microphone note that say plainly the app never uses either. The notes are there only because the photo picker's native code refers to both, and Apple's scan (ITMS-90683) asks for a string whenever code does. The app never opens the camera or records anything, so no one is ever asked. `scripts/check-store.mjs` checks the exact words and that no code can reach either.
+- **If the email lists ITMS-90683 for another key**, add a plain string for it to `app.json`, add it to `PERMISSION_STRINGS` in `scripts/check-store.mjs`, and build again.
 - **If it lists ITMS-91053** (a missing API declaration): add the type and reason it names to `ios.privacyManifests` in `app.json`, and build again.
 
 ### C8. Internal testers

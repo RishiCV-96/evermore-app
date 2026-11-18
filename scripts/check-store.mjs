@@ -2,7 +2,9 @@
 // in, never uploads and never runs eas: it reads app.json, eas.json and the files on this computer.
 //
 //   1. app.json: the bundle identifier, iPhone only, export compliance, and (resolved through Expo's
-//      config plugins, as a build would) only the permissions the app uses, no push entitlement, and a
+//      config plugins, as a build would) exactly three permission strings in plain, honest words (the
+//      photo library, and the camera and microphone notes the photo picker requires, which say the app
+//      never uses either), no code that could reach the camera or microphone, no push entitlement, and a
 //      privacy manifest that declares every reason the native modules declare.
 //   2. eas.json: the three profiles, remote build numbers, production read from EAS environment
 //      variables (nothing of the project, no Apple ID, no key written in the file), sign-in on.
@@ -59,8 +61,32 @@ check(app.ios?.infoPlist?.ITSAppUsesNonExemptEncryption === false, 'ITSAppUsesNo
 const resolved = JSON.parse(execFileSync('npx', ['expo', 'config', '--type', 'introspect', '--json'], { cwd: root, encoding: 'utf8', env: { ...process.env, EXPO_OFFLINE: '1' }, stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64e6 }));
 const plist = resolved._internal?.modResults?.ios?.infoPlist ?? {};
 const usage = Object.keys(plist).filter((key) => /UsageDescription$/.test(key)).sort();
-check(JSON.stringify(usage) === JSON.stringify(['NSPhotoLibraryUsageDescription']), `the only permission string is the photo library's (found: ${usage.join(', ') || 'none'}); no camera, microphone or Face ID`);
-check(Boolean(plist.NSPhotoLibraryUsageDescription) && !/^Allow \$\(PRODUCT_NAME\)/.test(plist.NSPhotoLibraryUsageDescription), 'the photo library string is the app’s own plain words, not the plugin default');
+// Exactly these words, and no other permission string (no Face ID: nothing uses it). The camera and
+// microphone notes exist only because the photo picker's native code refers to both, so Apple's scan
+// expects them; they say plainly that the app never uses either. A rename (APP_NAME) changes them too.
+const PERMISSION_STRINGS = {
+  NSCameraUsageDescription: `${brand.APP_NAME} never opens the camera and does not take photos or video. You choose photos from your own library. This note is here only because the photo picker requires it.`,
+  NSMicrophoneUsageDescription: `${brand.APP_NAME} never uses the microphone and does not record audio or video. This note is here only because the photo picker requires it.`,
+  NSPhotoLibraryUsageDescription: 'Pick a photo of each person you add, so it can appear on their practice cards. Only the photos you choose are used.',
+};
+check(JSON.stringify(usage) === JSON.stringify(Object.keys(PERMISSION_STRINGS).sort()), `exactly three permission strings, the photo library, camera and microphone (found: ${usage.join(', ') || 'none'}); no Face ID or any other`);
+check(Object.entries(PERMISSION_STRINGS).every(([key, words]) => plist[key] === words), 'each says exactly the agreed words: the camera and microphone notes say the app never uses them');
+
+// And nothing can use them: the only picker call opens the library for images, and no camera, audio,
+// video or media-library module is installed or imported.
+const appCode = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', 'src'], { cwd: root, encoding: 'utf8' })
+  .split('\n')
+  .filter((path) => /\.tsx?$/.test(path) && existsSync(join(root, path)))
+  .map((path) => ({ path, code: inRepo(path) }));
+const reaches = appCode.filter(({ code }) =>
+  /launchCameraAsync|CameraPermission|MicrophonePermission|requestCamera|requestMicrophone|getUserMedia|recordAsync|expo-camera|expo-av|expo-audio|expo-video|expo-media-library|react-native-vision-camera/.test(code),
+);
+check(reaches.length === 0, `no code can open the camera or record audio or video${reaches.length ? `: ${reaches.map(({ path }) => path).join(', ')}` : ''}`);
+const pickerCalls = appCode.flatMap(({ code }) => [...code.matchAll(/ImagePicker\.(\w+)\(([^)]*)\)/g)]);
+check(pickerCalls.length > 0 && pickerCalls.every(([, method, args]) => method === 'launchImageLibraryAsync' && /mediaTypes: \['images'\]/.test(args)), `every image picker call opens the photo library for images only (${pickerCalls.length} calls)`);
+const pkg = JSON.parse(inRepo('package.json'));
+const mediaModules = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).filter((name) => /camera|expo-av$|expo-audio|expo-video|media-library|audio-recorder/.test(name));
+check(mediaModules.length === 0, `no camera, audio, video or media-library module is installed${mediaModules.length ? `: ${mediaModules.join(', ')}` : ''}`);
 check(plist.ITSAppUsesNonExemptEncryption === false, 'and the built Info.plist says ITSAppUsesNonExemptEncryption false');
 const entitlements = resolved._internal?.modResults?.ios?.entitlements ?? {};
 check(!('aps-environment' in entitlements) && !(plist.UIBackgroundModes ?? []).includes('remote-notification'), 'no push entitlement or remote-notification background mode: the reminder is a local notification');

@@ -57,6 +57,7 @@ Apple's notes field holds up to 4000 bytes.
 
 - **Guideline 1.4.1 (medical apps)** applies to apps "that could be used for diagnosing or treating patients", and asks apps to "remind users to check with a doctor". Tandem makes no medical claim. **[REVIEW]** Whether the store description, category (Health & Fitness, Medical or Lifestyle) and the "Memory score" name invite medical-app scrutiny, and whether to add a "talk to a doctor" line.
 - **Guideline 5.1.3 (health data)**, if the Health data type is declared: no use for advertising or marketing, and for any future research, participant consent and an independent ethics review board.
+- **Camera and microphone strings.** The build has them only because the photo picker's native code refers to both. Their words say the app never uses either, and nothing ever asks: the app collects no camera or microphone data (`scripts/check-store.mjs` checks the words and that no code can reach either).
 - **Third-party information.** The caregiver enters information and photos of other people. The sign-up confirmation covers this. **[REVIEW]**
 
 ## 8. The privacy manifest

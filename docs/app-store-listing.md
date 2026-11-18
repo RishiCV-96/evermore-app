@@ -113,11 +113,11 @@ Enter them from `docs/app-store-privacy-answers.md`. Cross-checked against this 
 | Email Address | Yes | Yes: the caregiver's sign-in, and the confirmation and reset codes |
 | Name | Yes | Yes: the people the caregiver adds, and the person's first name on Their login |
 | Health | **[REVIEW]**, recommended Yes | Yes: card records and the Memory score describe memory practice |
-| Photos or Videos | Yes | Yes: photos picked from the library. No camera: the build asks for no camera permission |
+| Photos or Videos | Yes | Yes: photos picked from the library. The camera is never used: its permission string exists only because the photo picker requires it, and says so |
 | Other User Content | Yes | Yes: profile answers and stories |
 | User ID | Yes | Yes: the account ID and the person's User ID |
 | Product Interaction | Yes | Yes: sessions and card records, shown to the caregiver as Insights |
-| Device ID, Location, Contacts, Diagnostics, Purchases, Financial, Audio, Browsing, Search | No | Yes: PIN pairing (the only device names) was removed; no crash or analytics SDK; reminders never leave the phone; read-aloud makes no audio file |
+| Device ID, Location, Contacts, Diagnostics, Purchases, Financial, Audio, Browsing, Search, anything from the camera or microphone | No | Yes: PIN pairing (the only device names) was removed; no crash or analytics SDK; reminders never leave the phone; read-aloud makes no audio file |
 | Tracking | No | Yes: no ads, analytics or attribution, and no tracking prompt |
 
 Everything collected is **linked to the user** and used for **App Functionality** only. Two things to settle first:
@@ -166,7 +166,7 @@ User ID: [DEMO USER ID]
 Password: [DEMO PERSON PASSWORD]
 Then tap Continue, and Start. To return to the welcome, hold "Caregiver" on the person's home and confirm.
 
-Privacy: sign-up asks the caregiver to agree to the privacy policy and confirm they may add the people they include; no account is made without both. Research use is optional and off. The privacy policy is in Settings, Privacy and data. Photos are picked from the library (the app asks for no camera access), stored privately and never analyzed. No ads, analytics or tracking. AI features are not in this version. The daily reminder is a local notification on the person's phone, off until they say yes.
+Privacy: sign-up asks the caregiver to agree to the privacy policy and confirm they may add the people they include; no account is made without both. Research use is optional and off. The privacy policy is in Settings, Privacy and data. Photos are picked from the library, stored privately and never analyzed. The app never opens the camera or microphone: their permission strings are there only because the photo picker requires them, and nothing ever asks for either. No ads, analytics or tracking. AI features are not in this version. The daily reminder is a local notification on the person's phone, off until they say yes.
 
 Account deletion: Settings, Delete account (last on the tab). Type "delete" to confirm. It deletes the account, every person, photo, story and practice record, and the person's login, from the server straight away.
 <!-- /store-copy -->
