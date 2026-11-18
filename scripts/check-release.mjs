@@ -122,6 +122,25 @@ try {
 
   // No developer tools
   check(contents.every((buffer) => !/Load 14 days of sample activity|Clear sample activity|Load demo data for Insights|Development only/.test(buffer.toString('latin1'))), 'no developer control in the bundles');
+
+  // Text as Hermes may keep it: Latin-1, and UTF-16 at both byte alignments.
+  const views = contents.map((buffer) => [buffer.toString('latin1'), buffer.toString('utf16le'), buffer.subarray(1).toString('utf16le')].join('\n'));
+  const nowhere = (pattern) => views.every((text) => !pattern.test(text));
+
+  // No .env file, whatever its name, among the exported files.
+  check(files.every((path) => !/(^|[\\/])\.env/.test(path.slice(dir.length))), 'no .env file in the export');
+
+  // The old name is never shown. It stays only in lowercase identifiers (storage keys, the login
+  // domain: scripts/brand-allowlist.txt), so any capitalized form would be a word on screen.
+  check(nowhere(/Evermore|EVERMORE|EverMore|Ever[ _-]more/), 'the old app name is shown nowhere (only lowercase storage keys keep it)');
+
+  // PIN pairing was removed (docs/PIN-REMOVAL-PLAN.md): none of its plumbing or words ship.
+  check(nowhere(/pair-phone|hyper-function|Linked phones|Remove phone|Send the PIN|device_seen|phone\.evermore\.invalid|signInPairedPhone|DeviceCredential/), 'no PIN pairing code or words in the bundles');
+
+  // The deck a release ships is the fictional sample deck: each sample memory is there (and, above,
+  // none of the local deck's cards, photos or denylist entries is).
+  const { sampleDeck } = await import('@/data/sample-deck');
+  check(sampleDeck.length === 5 && sampleDeck.every((person) => person.memories.every(inBundles)), `the bundles hold the fictional sample deck (${sampleDeck.map((person) => person.name).join(', ')})`);
 } finally {
   if (made) rmSync(dir, { recursive: true, force: true });
 }

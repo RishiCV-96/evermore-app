@@ -46,7 +46,8 @@ export const FRONT_FACING = (path) =>
   path === 'README.md' ||
   (path.startsWith('assets/') && /\.(md|txt|json)$/.test(path)) ||
   /^docs\/(privacy-policy|app-store)/.test(path) ||
-  path === 'docs/testflight-checklist.md';
+  path === 'docs/testflight-checklist.md' ||
+  path === 'docs/TESTER-GUIDE.md';
 
 const allowlist = readFileSync(new URL('brand-allowlist.txt', import.meta.url), 'utf8')
   .split('\n')
