@@ -124,6 +124,10 @@ A web walk at 375x647 and 430x839, Large and Extra large text, with no notes, on
 - **Stale notes on a phone offline for a long time**: the board shows the last notes it saw, with no "updated" time (by the rules: no counters).
 - **The server not yet upgraded**: notes don't load or save until the schema runs, and the caregiver sees a calm message.
 
+## Verification (2026-11-18)
+
+Typecheck, lint, all 16 `npm test` suites (with the new `scripts/check-board.mjs`, 14 checks) and the production iOS export with its release and real-data checks pass. The web walk passed all 16 combinations (375x647 and 430x839, Large and Extra large, no notes, one, three with one pinned, and a 200-character note): no clipping, both main buttons at least 56pt and every other control at least 48pt drawn, contrast, Start practice on screen without scrolling, no sideways scroll, and no shadow, rotation or gradient on the person's screen. Its own audit was shown to fail on a planted clipped label, low contrast, a small target, a shadow, rotation and a gradient. The editor showed the full board with Add note waiting. Screenshots, before and after, with grayscale, protanopia, deuteranopia and tritanopia: `docs/person-home-screenshots/`.
+
 ## Assumed while unattended
 
 1. **View dashboard** opens the caregiver's dashboard after a confirmation with sign-in off, and explains that the dashboard is on the caregiver's phone with sign-in on (section 3).
@@ -138,6 +142,12 @@ A web walk at 375x647 and 430x839, Large and Extra large text, with no notes, on
 10. **Export format stays 2**, with a `familyBoard` section always present.
 11. **The storage key** is `tandem.board.v1.<user id>`: a new key takes the new name. `check-privacy` was widened to find it.
 12. **Notes keep their creation order** after an edit (newest first by when they were written).
+13. **The export's key for a pinned note is `shownFirst`**, not `pinned`: the export's secret-field guard refuses any key containing "pin" (from the removed PIN pairing), and weakening that guard would be worse.
+14. **A phone-copy export made before the board has loaded** lists the Family board among what it may lack, like sessions.
+15. **Read aloud sits on its own line under the From line** on every card, so a long name or relationship never moves it (seen in the walk).
+16. **"View only" is a bold label with an eye icon** above the quiet line, as in the mock, in muted Ink (no color of its own).
+17. **The caregiver's note menu opens inline** under the "…" button (it lengthens the card while open) rather than as a floating popover.
+18. **Screenshots** (fictional data only) are in `docs/person-home-screenshots/`, kept out of the EAS upload by `.easignore` and checked by `scripts/check-store.mjs`.
 
 ## Needs my decision
 

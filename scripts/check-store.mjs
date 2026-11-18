@@ -150,7 +150,7 @@ check(none(/(^|\/)deck\.local\.ts$|private-denylist\.local\.txt$|\.local\.(ts|md
 check(none(/\.(p8|p12|pem|key|jks|keystore|mobileprovision)$/i).length === 0, 'no signing key or provisioning profile');
 check(none(/^(ios|android)\//).length === 0 && none(/^(node_modules|\.expo|dist|web-build)\//).length === 0, 'no native folder (made on the builder), dependencies or build output');
 check(none(/^supabase\/tests\/|^scripts\/fakes\//).length === 0, 'no tests or fixtures');
-const screenshotDirs = ['docs/ui-polish-screenshots/', 'docs/brand-screenshots/'];
+const screenshotDirs = ['docs/ui-polish-screenshots/', 'docs/brand-screenshots/', 'docs/person-home-screenshots/'];
 const screenshots = git('ls-files', ...screenshotDirs);
 check(screenshotDirs.every((dir) => new RegExp(`^${dir.replace(/[.]/g, '\\.')}$`, 'm').test(easignore)) && upload.every((path) => !screenshotDirs.some((dir) => path.startsWith(dir))), `the documentation screenshots stay out (${screenshots.length} files, ${megabytes(screenshots)} MB, in git only)`);
 
