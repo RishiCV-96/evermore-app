@@ -4,7 +4,7 @@
 >
 > Written from `src/lib/privacy-policy.ts` and `src/lib/consent.ts` by `node scripts/build-policy.mjs`: edit those, never this file. The facts behind it are in `docs/DATA-INVENTORY.md`.
 
-**Version:** 2026-11-17 · **Effective date:** [Effective date to be added] · **Contact:** [Contact email to be added]
+**Version:** 2026-11-18 · **Effective date:** [Effective date to be added] · **Contact:** tandemsupport26@gmail.com
 
 ## What Tandem is, and is not
 
@@ -83,7 +83,7 @@
 - To delete everything: Settings, then Delete account. It deletes your account, every person, photo, story and practice record, your agreement records, and every login of the person practicing, from our servers straight away. It can’t be undone. **[REVIEW 12]**
 - Copies may remain in the hosting provider’s backups for a limited time before they expire. **[REVIEW 13]**
 - Signing out removes the copies kept on that phone. Everything in your account stays.
-- You can also ask us for a copy of your information, or to correct or delete it: [Contact email to be added]. **[REVIEW 14]**
+- You can also ask us for a copy of your information, or to correct or delete it: tandemsupport26@gmail.com. **[REVIEW 14]**
 
 ## How long we keep it
 
@@ -113,7 +113,7 @@
 
 ## Contact
 
-- Questions or requests: [Contact email to be added]. **[REVIEW 20]**
+- Questions or requests: tandemsupport26@gmail.com. **[REVIEW 20]**
 
 ## The agreements in the app
 

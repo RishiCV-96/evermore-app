@@ -124,6 +124,10 @@ Everything collected is **linked to the user** and used for **App Functionality*
 - **Custom SMTP** (needed before other testers, `docs/RELEASE-STEPS.md` A8) changes none of these answers, but the policy must name the provider.
 - The **[REVIEW]** items in `docs/app-store-privacy-answers.md` still need your decision.
 
+## Support contact
+
+Use **tandemsupport26@gmail.com** (`SUPPORT_EMAIL` in `src/config/brand.ts`, the same address the privacy policy gives) as TestFlight's **Feedback Email**, App Review's contact email, and the store's support contact.
+
 ## Beta App Description (TestFlight)
 
 <!-- store-copy -->
@@ -169,6 +173,8 @@ Then tap Continue, and Start. To return to the welcome, hold "Caregiver" on the 
 Privacy: sign-up asks the caregiver to agree to the privacy policy and confirm they may add the people they include; no account is made without both. Research use is optional and off. The privacy policy is in Settings, Privacy and data. Photos are picked from the library, stored privately and never analyzed. The app never opens the camera or microphone: their permission strings are there only because the photo picker requires them, and nothing ever asks for either. No ads, analytics or tracking. AI features are not in this version. The daily reminder is a local notification on the person's phone, off until they say yes.
 
 Account deletion: Settings, Delete account (last on the tab). Type "delete" to confirm. It deletes the account, every person, photo, story and practice record, and the person's login, from the server straight away.
+
+Contact: tandemsupport26@gmail.com
 <!-- /store-copy -->
 
 ## Needs a decision
@@ -176,4 +182,4 @@ Account deletion: Settings, Delete account (last on the tab). Type "delete" to c
 - **The name.** Trademark clearance for "Tandem" is still pending, and the word is used by other apps and by a medical-device maker. A store name with a description after it ("Tandem: Memory Practice") avoids a clash in the store but not in trademark law.
 - **Condition words in the keywords** ("dementia", "Alzheimer's"): they would help caregivers find the app, and invite the medical-app questions above. Left out for now.
 - **"Memory score" in the listing.** Left out of the description (it says "how practice went"). The checklist's **[REVIEW]** on whether the name invites medical scrutiny still stands.
-- **Support URL and marketing URL.** App Store submission needs a support URL; TestFlight doesn't. `SUPPORT_EMAIL` in `src/config/brand.ts` is still a placeholder.
+- **Support URL and marketing URL.** App Store submission needs a support URL (a web page); TestFlight doesn't. The support email is set: tandemsupport26@gmail.com (`SUPPORT_EMAIL` in `src/config/brand.ts`).

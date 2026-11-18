@@ -10,6 +10,7 @@ const suites = [
   'scripts/check-no-real-data.mjs',
   'scripts/check-no-real-data.test.mjs',
   'scripts/check-logic.mjs',
+  'scripts/check-sentences.mjs',
   'scripts/check-auth.mjs',
   'scripts/check-server-family.mjs',
   'scripts/check-sync.mjs',

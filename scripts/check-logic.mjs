@@ -398,9 +398,11 @@ assert.deepEqual(show(asked('team', 'the Riverton Otters')), [
 assert.ok(show(asked('work', 'a carpenter')).includes('{name} is a carpenter.'));
 assert.deepEqual(asked('team', 'x').map((p) => p.kind), ['blank', 'blank', 'blank', 'ask', 'who', 'photo'], 'four kinds of question');
 // Template words, so a phrasing can be checked to say nothing beyond the caregiver's words
-const TEMPLATE_WORDS = new Set(
-  'my and i is enjoys loves watching listening to has a birthday on met who whose did you meet this person favorite team show food music as of worked in or studied at the movie place always we had holiday goes by call do known each other have lives with partner named child'.split(' '),
-);
+const TEMPLATE_WORDS = new Set([
+  ...'my and i is enjoys loves watching listening to has a birthday on met who whose did you meet this person favorite team show food music as of worked in or studied at the movie place always we had holiday goes by call do known each other have lives with partner named child'.split(' '),
+  // Wording 2's fixed bridge words (src/lib/wording.ts, docs/SENTENCE-AUDIT.md), and the article it may add.
+  ...'likes works used work career there was time when remember once back were one spent know that born also called name for home shares takes care of parent children are partners fan cheers eat planning plans going together me working studying an'.split(' '),
+]);
 for (const type of stories.FACT_TYPES) {
   for (const about of [withAll, { hasPhoto: false }]) {
     for (const more of [{}, { timeSensitive: true, asOf: '2026-05-01' }]) {
@@ -913,7 +915,7 @@ const noLongerApproved = families.setStatus(gate, gate.cards.find((c) => c.perso
 assert.equal(profile.deckOf(noLongerApproved.people, noLongerApproved.cards, hasPicture).cards.length, deckNow.cards.length - 1, 'approval still decides each card');
 
 // One capitalization: sentence case, from one place, so it can't drift
-const KEEPS_ITS_CAPITAL = new Set(['ID', 'PDF', 'Me', 'Tandem', 'Caregiver']);
+const KEEPS_ITS_CAPITAL = new Set(['ID', 'PDF', 'Me', 'Tandem', 'Caregiver', 'I']);
 function sentenceCase(text, where) {
   const words = text.replace(/[^\p{L}\p{N}\s’'-]/gu, ' ').trim().split(/\s+/).filter(Boolean);
   assert.ok(words.length === 0 || /^[\p{Lu}\p{N}]/u.test(words[0]), `${where}: "${text}" starts with a capital`);

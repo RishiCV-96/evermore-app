@@ -10,13 +10,15 @@ import { FormGroup, Notice, Row } from '@/components/caregiver-ui';
 import { Avatar, avatarSource, profileOf, type PhotoFields } from '@/components/person-photo';
 import { Checkbox, Sheet } from '@/components/sheet';
 import { Toast, type ToastContent } from '@/components/toast';
-import { LOCAL_ONLY, approveAll, practiceWith, setAiOk, setHints, setIncludeInPractice, setRevealOk, undoApproveAll } from '@/data/app-data';
+import { LOCAL_ONLY, approveAll, moveToNewWording, practiceWith, setAiOk, setHints, setIncludeInPractice, setRevealOk, undoApproveAll } from '@/data/app-data';
 import type { FamilyAi, SavedCard, SavedPerson } from '@/data/family-store';
 import { displayValue } from '@/data/questionnaire';
 import { approvalPlan, approvedText, markListOpened } from '@/lib/approve-all';
 import { inPractice } from '@/lib/facts';
 import { missingItems, needsFinishing, profileCompletion, resumeLine, resumeStep } from '@/lib/profile';
+import { confirm } from '@/lib/confirm';
 import { HINT_LADDER, type HintRung } from '@/lib/stories';
+import { WORDING_LATEST } from '@/lib/wording';
 import { Space } from '@/theme/layout';
 
 const HINT_LABELS: Record<HintRung, string> = {
@@ -195,6 +197,7 @@ export function PersonSheet({ person, cards, ai, practiceReady, visible, onClose
         />
       ) : null}
       <HintSettings person={shown} />
+      <NewWording person={shown} cards={theirs} />
       {/* The way to archive without the long press, apart from the rest. Deleting is only offered once someone is archived. */}
       <View style={styles.apart} />
       <BigButton
@@ -207,6 +210,44 @@ export function PersonSheet({ person, cards, ai, practiceReady, visible, onClose
         }}
       />
     </Sheet>
+  );
+}
+
+/**
+ * Moves this person's stories to the newest wording, on purpose (docs/SENTENCE-AUDIT.md). Shown only while
+ * some story still uses an older wording. Approved ones go back to story approval, so each new sentence is
+ * read before practice uses it; nothing moves without this tap.
+ */
+function NewWording({ person, cards }: { person: SavedPerson; cards: SavedCard[] }) {
+  const [notice, setNotice] = useState<string>();
+  const older = cards.filter((card) => card.status !== 'skipped' && (card.wording ?? 1) < WORDING_LATEST);
+  if (older.length === 0 && !notice) return null;
+
+  async function move() {
+    const approved = older.filter((card) => card.status === 'approved').length;
+    const sure = await confirm(
+      'Use the new wording?',
+      `${person.name}’s stories will read more naturally. ${approved ? 'Approved stories go back to story approval so you can read each one first. Until you approve them, they aren’t in practice.' : 'You can read each one in story approval.'}`,
+      'Use the new wording',
+    );
+    if (!sure) return;
+    try {
+      const moved = await moveToNewWording(person.id);
+      setNotice(`${moved} ${moved === 1 ? 'story uses' : 'stories use'} the new wording. Open Stories to read and approve them.`);
+    } catch {
+      setNotice(NOT_SAVED);
+    }
+  }
+
+  return (
+    <>
+      {older.length ? (
+        <FormGroup footnote="Stories written before the new wording keep theirs until you change them.">
+          <Row testID="new-wording" label="Use the new wording" icon="text-outline" value={`${older.length}`} onPress={move} />
+        </FormGroup>
+      ) : null}
+      {notice ? <Notice>{notice}</Notice> : null}
+    </>
   );
 }
 

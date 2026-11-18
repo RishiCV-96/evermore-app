@@ -1,7 +1,11 @@
-// Story building for the app. Kept free of imports so it can be checked in plain Node.
+// Story building for the app. It imports only the two import-free text modules (src/lib/wording.ts and,
+// through it, src/lib/grammar.ts), so it can still be checked in plain Node.
 //
-// Every word practice shows comes from the caregiver's fields placed into the fixed sentence
-// shapes below. Nothing here writes new words about a person.
+// Every word practice shows comes from the caregiver's fields placed into fixed sentence shapes.
+// Nothing here writes new words about a person. Two wordings exist (Fact.wording): version 1, the
+// original shapes below, kept exactly for every card approved or in use before 2026-11-18; and version
+// 2, the fluent frames in src/lib/wording.ts, for new and edited drafts (docs/SENTENCE-AUDIT.md).
+import { askMetV2, askV2, callsV2, favoriteV2, sentenceV2, thisPersonV2 } from '@/lib/wording';
 
 /** One person as a deck (src/data/sample-deck.ts, or the gitignored src/data/deck.local.ts) lists them. */
 export type Person = {
@@ -62,7 +66,14 @@ export type Fact = {
   asOf?: string;
   /** The year of a shared memory, if the caregiver gave one. */
   year?: number;
+  /** The card's id, when it has one: wording 2 chooses its variant from it, so it never changes. */
+  id?: string;
+  /** Which wording the card's sentences use: 1 (missing) the original shapes, 2 the fluent ones. */
+  wording?: number;
 };
+
+/** Whether a fact uses the fluent wording (version 2). Missing means version 1. */
+export const usesWordingTwo = (fact: Pick<Fact, 'wording'>) => (fact.wording ?? 1) >= 2;
 
 /** The hints the caregiver can turn off for a person, as stored (supabase/schema.sql lists the same set). */
 export const HINT_RUNGS = ['letter', 'fact', 'relationship', 'fewer'] as const;
@@ -214,7 +225,8 @@ function fill(shape: string, about: { relationship?: string }, fact: Fact) {
 }
 
 /** The sentence a fact makes, with BLANK for the name. The one the caregiver approves. */
-export function sentenceFor(about: { relationship?: string }, fact: Fact) {
+export function sentenceFor(about: { relationship?: string; name?: string }, fact: Fact) {
+  if (usesWordingTwo(fact)) return sentenceV2(about, fact);
   return fill(shapeOf(fact.type, about.relationship ? 'my-rel' : 'name'), about, fact);
 }
 
@@ -337,6 +349,7 @@ export function saysName(words: string, name: string) {
  * still true today.
  */
 export function phrasingsFor(about: { relationship?: string; hasPhoto: boolean; name?: string }, fact: Fact): Phrasing[] {
+  if (usesWordingTwo(fact)) return phrasingsTwo(about, fact);
   const reveal = sentenceFor(about, fact);
   return PHRASINGS[fact.type].flatMap((id) => {
     const shape = SHAPES[id];
@@ -350,6 +363,46 @@ export function phrasingsFor(about: { relationship?: string; hasPhoto: boolean; 
     if (about.name && saysName(ask.replace(BLANK, ' '), about.name)) return [];
     return [{ id, kind: shape.kind, ask, reveal: shape.kind === 'blank' ? ask : reveal, cue: CUE_LEVELS[id] }];
   });
+}
+
+/** The same shapes in wording 2: the same ids, kinds and cue levels, so turning one off, cue fading and rotation work as before. */
+function phrasingsTwo(about: { relationship?: string; hasPhoto: boolean; name?: string }, fact: Fact): Phrasing[] {
+  const reveal = sentenceFor(about, fact);
+  return PHRASINGS[fact.type].flatMap((id) => {
+    const shape = SHAPES[id];
+    if (shape.needs === 'relationship' && !about.relationship) return [];
+    if (shape.needs === 'photo' && !about.hasPhoto) return [];
+    if (id === 'ask' && fact.type === 'memory' && /^(and |with |& |,|')/i.test(fact.text)) return [];
+    const ask = shapeTwo(id, about, fact);
+    if (ask === undefined) return [];
+    // A card that already says the name anywhere outside the blank would give the answer away.
+    if (about.name && saysName(ask.split(BLANK).join(' '), about.name)) return [];
+    return [{ id, kind: shape.kind, ask, reveal: shape.kind === 'blank' ? ask : reveal, cue: CUE_LEVELS[id] }];
+  });
+}
+
+function shapeTwo(id: string, about: { relationship?: string; name?: string }, fact: Fact) {
+  const favorite = FAVORITES[fact.type] ?? '';
+  switch (id) {
+    case 'my-rel':
+      return sentenceV2(about, fact);
+    case 'name':
+      return sentenceV2({ name: about.name }, fact);
+    case 'favorite':
+      return favoriteV2(fact, favorite, false);
+    case 'whose':
+      return favoriteV2(fact, favorite, true);
+    case 'ask':
+      return fact.type === 'calls' ? callsV2(fact, true) : askV2(fact, about);
+    case 'ask-met':
+      return askMetV2(fact);
+    case 'who':
+      return `${fact.type === 'calls' ? callsV2(fact, false) : thisPersonV2(fact, about)}${WHO_IS_THIS}`;
+    case 'photo':
+      return 'Who is this?';
+    default:
+      return undefined;
+  }
 }
 
 /** The phrasings practice may use: the ones the caregiver left on, or the first if every one is off. */
@@ -389,6 +442,7 @@ export function tidyMemory(text: string) {
 
 /** A fact said about the person, for the fact hint: "This person enjoys gardening." */
 export function clueFor(fact: Fact) {
+  if (usesWordingTwo(fact)) return fact.type === 'calls' ? callsV2(fact, false) : thisPersonV2(fact);
   return fill(shapeOf(fact.type, 'who').replace(WHO_IS_THIS, ''), {}, fact);
 }
 

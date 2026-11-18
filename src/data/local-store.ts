@@ -124,7 +124,7 @@ async function load() {
     exampleDeck,
   );
   const samplePeople = TEST_DATA.samples.map((sample) => sample.id);
-  const kept = families.releaseSampleFacts(families.seedTestData(copied, TEST_DATA), samplePeople);
+  const kept = families.rewordWaitingDrafts(families.releaseSampleFacts(families.seedTestData(copied, TEST_DATA), samplePeople));
   // Together: a schedule entry whose card is gone is dropped.
   commit({ practice: renameCards(pruned(state, now, studyToday(now)), (id) => sampleIdFrom(id, samplePeople)), family: kept });
   // Development only, never a control in the app: start with EXPO_PUBLIC_CLEAR_TEST_DATA=1 to remove
@@ -456,6 +456,13 @@ export async function setLocalCardStatus(cardId: string, status: CardStatus) {
 
 export async function editLocalCard(cardId: string, fact: Fact) {
   commit({ family: families.editCard(currentFamily(), cardId, fact) });
+}
+
+/** One person's cards move to the newest wording, on purpose; approved ones wait for approval again. */
+export async function moveLocalToNewWording(personId: string) {
+  const { family, moved } = families.moveToNewWording(currentFamily(), personId);
+  if (moved) commit({ family });
+  return moved;
 }
 
 export async function setLocalPhrasingsOff(cardId: string, off: string[]) {

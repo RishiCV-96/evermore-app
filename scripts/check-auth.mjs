@@ -268,8 +268,8 @@ await check('Confirm email off: a new account is signed in at once, with consent
   assert.equal(app.now().email, 'pat@caregiver.test');
   const user = standin.users.find((one) => one.email === 'pat@caregiver.test');
   assert.ok(Date.parse(user.user_metadata.consented_at) > Date.now() - 60_000, 'with the consent the database requires');
-  assert.deepEqual([user.user_metadata.policy_version, user.user_metadata.agreed_policy, user.user_metadata.agreed_responsibility, user.user_metadata.research], ['2026-11-17', true, true, false], 'both agreements, at the policy’s version, research off');
-  assert.deepEqual(standin.tables.consents.filter((one) => one.caregiver_id === user.id).map((one) => [one.kind, one.policy_version, one.choice]), [['policy', '2026-11-17', true], ['responsibility', '2026-11-17', true], ['research', '2026-11-17', false]], 'recorded as three versioned records');
+  assert.deepEqual([user.user_metadata.policy_version, user.user_metadata.agreed_policy, user.user_metadata.agreed_responsibility, user.user_metadata.research], ['2026-11-18', true, true, false], 'both agreements, at the policy’s version, research off');
+  assert.deepEqual(standin.tables.consents.filter((one) => one.caregiver_id === user.id).map((one) => [one.kind, one.policy_version, one.choice]), [['policy', '2026-11-18', true], ['responsibility', '2026-11-18', true], ['research', '2026-11-18', false]], 'recorded as three versioned records');
   assert.equal(standin.tables.people.filter((one) => one.caregiver_id === user.id).length, 5, 'and the 5 sample people');
   assert.equal(standin.emails.length, 0, 'no email was sent');
 });
@@ -870,7 +870,7 @@ await check('agreements: versioned per caregiver, asked again for a new version,
   assert.equal(standin.tables.people.length, people, 'with nothing lost while it waits');
   assert.deepEqual(await store.agreeToPolicy(), { ok: true });
   assert.equal(store.useConsent().status, 'current', 'agreeing lets the caregiver continue');
-  assert.deepEqual(standin.tables.consents.filter((one) => one.caregiver_id === pat).map((one) => [one.kind, one.policy_version]), [['responsibility', 'legacy'], ['policy', '2026-11-17'], ['responsibility', '2026-11-17']], 'the old record kept, the new ones added');
+  assert.deepEqual(standin.tables.consents.filter((one) => one.caregiver_id === pat).map((one) => [one.kind, one.policy_version]), [['responsibility', 'legacy'], ['policy', '2026-11-18'], ['responsibility', '2026-11-18']], 'the old record kept, the new ones added');
   assert.ok(standin.tables.consents.every((one) => one.agreed_at), 'each at the server’s time');
   // Records can't be changed or removed, even by their caregiver.
   const supabase = (await module('lib/supabase.ts')).supabase;

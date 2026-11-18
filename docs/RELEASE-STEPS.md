@@ -246,12 +246,12 @@ They must be users of your App Store Connect team (up to 100). Add them in **Use
 ### C9. External testers (family and friends)
 
 **TestFlight → External Testing → +**: make a group, then invite by email or with a public link. The first build for an external group goes to **Beta App Review** (often about a day), and needs, under **Test Information**:
-- **Beta App Description** and **Feedback Email**.
+- **Beta App Description** and **Feedback Email** (tandemsupport26@gmail.com).
 - **A privacy policy URL**: a public page serving `docs/privacy-policy.html` (`docs/testflight-checklist.md` §2). Fill in its placeholders first.
 - **Sign-in information**: a demo caregiver account that doesn't expire. Make it in the app on production, with an address you control and a password used nowhere else. Complete two sample people, make Their login, and agree to the current policy. Put both logins in the review notes (`docs/app-store-listing.md`).
 - **What to Test** (`docs/app-store-listing.md`).
 
-A8 must be done first, and `SUPPORT_EMAIL` in `src/config/brand.ts` filled in (and the policy's contact, with a new policy version), so testers have somewhere to write.
+A8 must be done first. Testers write to tandemsupport26@gmail.com (`SUPPORT_EMAIL`, also the policy's contact since version 2026-11-18).
 
 ## Every later build
 

@@ -47,6 +47,7 @@ import {
   canNotApply,
   displayValue,
   exampleOf,
+  labelOf,
   firstSectionOf,
   hasRequired,
   pageOf,
@@ -420,7 +421,7 @@ function SectionStep({ id, page, section, person, cards, forward, focus, toRevie
     if (!canNotApply(question)) return undefined;
     return {
       marked: marks.includes(question.id),
-      label: question.label,
+      label: labelOf(question, name),
       testID: `na-${question.id}`,
       onChange: touched((marked: boolean) => (marked ? setMarks((current) => [...current, question.id]) : unmark(question.id))),
     };
@@ -592,7 +593,7 @@ function SectionStep({ id, page, section, person, cards, forward, focus, toRevie
     }
     return (
       <FactAnswers
-        question={question}
+        question={{ ...question, label: labelOf(question, name) }}
         entries={entries.filter((entry) => entry.question === question.id)}
         cards={cards}
         notApplicable={markFor(question)}

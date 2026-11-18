@@ -2,8 +2,6 @@
 
 Thank you for helping test Tandem. This page explains what it is, how to install it, and how to tell us what you think. It takes about five minutes to read.
 
-Before you send this page, fill in the support email below. It is still a placeholder.
-
 ## What Tandem is
 
 Tandem is an iPhone app for families. A caregiver adds the important people in someone's life, each with a photo and a few short facts. Tandem turns those facts into little fill-in-the-blank stories, like "My aunt, ______, grows tomatoes and shares them every summer." The person being helped, someone with early memory loss, practices a few of these cards a day on their own phone by tapping the right name.
@@ -46,7 +44,7 @@ Anything is useful: something confusing, too small to read, slow, or broken.
 
 - **A screenshot, straight from the app.** Take a screenshot as usual (the side button and volume up together). Tap the small picture that appears, tap the share button, then **Share Beta Feedback**. Add a note and tap **Submit**.
 - **A note without a screenshot.** Open **TestFlight**, tap **Tandem**, then **Send Beta Feedback**.
-- **Email.** Write to [Support email to be added].
+- **Email.** Write to tandemsupport26@gmail.com.
 
 Screenshots go to the developer through Apple. Please leave out real people's photos or anything private you'd rather not share. The sample people are fine.
 

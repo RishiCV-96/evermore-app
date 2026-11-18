@@ -136,6 +136,25 @@ alter table public.cards add column if not exists photo_path text;
 alter table public.cards add column if not exists hint_ok boolean not null default true;
 alter table public.cards drop constraint if exists cards_dated_if_it_may_change;
 alter table public.cards add constraint cards_dated_if_it_may_change check (not time_sensitive or as_of is not null);
+-- Which wording the card's sentences use (added 2026-11-18, docs/SENTENCE-AUDIT.md). 1 is the original
+-- fixed templates, kept exactly for every card approved or in use before then; 2 is the fluent wording
+-- (src/lib/wording.ts) that new and edited drafts get, which the app writes itself. Additive and safe to
+-- rerun: the column and its one-time move happen only the first time this runs. That once, cards still
+-- waiting for approval move to wording 2, so the caregiver reads the new sentence before approving;
+-- approved and skipped cards (the sample people's among them) stay 1. A caregiver moves one person's
+-- cards on purpose with "Use the new wording" on their sheet.
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'cards' and column_name = 'wording'
+  ) then
+    alter table public.cards add column wording smallint not null default 1;
+    update public.cards set wording = 2 where status = 'pending';
+  end if;
+end $$;
+alter table public.cards drop constraint if exists cards_wording_check;
+alter table public.cards add constraint cards_wording_check check (wording in (1, 2));
 
 -- A practice session. Ids are made on the phone so sessions can be saved offline and synced.
 create table if not exists public.sessions (

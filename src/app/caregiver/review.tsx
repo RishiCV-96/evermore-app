@@ -17,6 +17,7 @@ import { sentencesInUse, type AiSentence } from '@/lib/ai-sentences';
 import { approveAllButton, approvedText, storyApproval } from '@/lib/approve-all';
 import { monthOf, tidyDraft } from '@/lib/facts';
 import { BLANK, PLAIN_MOST_WORDS, asOfLabel, phrasingsFor, sentenceFor, wordCount, type Fact, type PhrasingKind } from '@/lib/stories';
+import { WORDING_LATEST } from '@/lib/wording';
 import { approvedVariants } from '@/lib/variants';
 import { Colors } from '@/theme/colors';
 import { Elevation } from '@/theme/elevation';
@@ -293,7 +294,8 @@ function StoryReview({ person, card, sentences, isNext, label, onEditing }: Stor
                 small
                 label="Edit"
                 onPress={() => {
-                  setDraft({ type: card.type, text: card.text, timeSensitive: card.timeSensitive, asOf: card.asOf, year: card.year });
+                  // Saving an edit writes the newest wording, so the preview shows it too.
+                  setDraft({ type: card.type, text: card.text, timeSensitive: card.timeSensitive, asOf: card.asOf, year: card.year, id: card.id, wording: WORDING_LATEST });
                   onEditing(true);
                 }}
               />

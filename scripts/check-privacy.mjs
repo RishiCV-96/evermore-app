@@ -54,7 +54,10 @@ await check('every draft statement for the lawyer is marked, and the documents s
   assert.ok(md.includes('Draft for review by a lawyer or privacy professional') && html().includes('Draft for review by a lawyer or privacy professional'), 'both say so at the top');
   assert.ok(/Draft for review by a lawyer or privacy professional/.test(inRepo('src/components/privacy-policy.tsx')) || /DRAFT_LINE/.test(inRepo('src/components/privacy-policy.tsx')), 'and so does the app');
   assert.ok(!/\[REVIEW/.test(html()) && !/review:/.test(code('src/components/privacy-policy.tsx')), 'the notes stay out of the hosted page and the app');
-  for (const placeholder of [policy.CONTACT, policy.EFFECTIVE_DATE]) assert.ok(md.includes(placeholder) && html().includes(placeholder.replace(/&/g, '&amp;')), `a clear placeholder: ${placeholder}`);
+  for (const placeholder of [policy.EFFECTIVE_DATE]) assert.ok(md.includes(placeholder) && html().includes(placeholder.replace(/&/g, '&amp;')), `a clear placeholder: ${placeholder}`);
+  // The contact is a real address now (src/config/brand.ts): both documents name it, and no contact placeholder is left.
+  assert.ok(/^[^\s@[\]]+@[^\s@[\]]+\.[a-z]{2,}$/.test(policy.CONTACT) && md.includes(policy.CONTACT) && html().includes(policy.CONTACT), `the contact is a real address in both documents: ${policy.CONTACT}`);
+  assert.ok(!/(Contact|Support) email to be added/.test(md + html()), 'no contact placeholder left in either');
 });
 
 await check('the policy covers every section asked for', () => {

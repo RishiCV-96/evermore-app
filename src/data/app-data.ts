@@ -139,6 +139,8 @@ export const updatePerson = AUTH_ENABLED ? family.updatePerson : local.updateLoc
 export const saveFacts = AUTH_ENABLED ? family.saveFacts : local.saveLocalFacts;
 export const setCardStatus = AUTH_ENABLED ? family.setCardStatus : local.setLocalCardStatus;
 export const editCard = AUTH_ENABLED ? family.editCard : local.editLocalCard;
+/** One person's cards to the newest wording, on purpose (docs/SENTENCE-AUDIT.md). */
+export const moveToNewWording = AUTH_ENABLED ? family.moveToNewWording : local.moveLocalToNewWording;
 export const archivePerson = AUTH_ENABLED ? family.archivePerson : local.archiveLocalPerson;
 export const restorePerson = AUTH_ENABLED ? family.restorePerson : local.restoreLocalPerson;
 export const deletePerson = AUTH_ENABLED ? family.deletePerson : local.deleteLocalPerson;

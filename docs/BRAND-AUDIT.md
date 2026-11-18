@@ -190,7 +190,7 @@ The web preview's tab still showed the old Evermore icon (pink brain, blue claw,
 - **Supabase:** rerun nothing (no schema or function changed). In Authentication → Emails, update the **Reset password** and **Confirm signup** templates and their subjects to say Tandem (`docs/FORGOT-PASSWORD.md` has the new reset template), and set the **sender name** to Tandem once custom SMTP is set up.
 - **The hosted privacy policy:** upload the new `docs/privacy-policy.html` (version 2026-11-17) wherever the old page is hosted. Caregivers are asked to agree again on their next fresh check.
 - **App Store Connect and TestFlight:** the app name, subtitle, description and review notes (`docs/testflight-checklist.md`), and the privacy answers (`docs/app-store-privacy-answers.md`). Choose the bundle identifier and Android package only once the name clears trademark: they can't change after the first upload.
-- **The support email and policy contact:** set `SUPPORT_EMAIL` and `POLICY_CONTACT` in `src/config/brand.ts` when a real address exists, then `node scripts/build-policy.mjs` (a new `POLICY_VERSION` if the policy has been shown).
+- **The support email and policy contact:** done on 2026-11-18: both are tandemsupport26@gmail.com in `src/config/brand.ts`, with policy version 2026-11-18.
 - **Trademark:** "Tandem" is a placeholder. A rename is `src/config/brand.ts`, `app.json`'s name, a new kit in `brand-kit/` with `node scripts/make-brand-assets.mjs`, the policy with a new version, and the docs above.
 
 ## Colors and contrast ratios

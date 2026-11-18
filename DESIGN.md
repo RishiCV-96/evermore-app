@@ -17,6 +17,14 @@ Help a person with early memory loss keep recognizing the important people in th
 
 There are no timers anywhere in the loop. Only cards the caregiver approved ever appear. Status: **built**. Since Phase 3 the cards come from the server, in the order the spaced-retrieval schedule chooses.
 
+## Fluent sentences, two wordings (2026-11-18)
+
+- **Why.** `docs/SENTENCE-AUDIT.md`: 65% of the sentences built from realistic answers had a grammar problem or read like a form, almost all from free text dropped into a frame expecting another shape ("____ and I A time we …", "always They always say …").
+- **What.** One grammar helper (`src/lib/grammar.ts`), and wording 2 (`src/lib/wording.ts`): Mad Libs style frames with bridge words, two or three variants per kind chosen from the card's id (never at render time), the caregiver's words fitted to the slot without adding or changing a fact. Typical answers stay within 16 words; long answers are never cut. No pronoun is ever guessed: frames use the blank, "I", "you" and "This person". Typos stay: the caregiver fixes them on story approval.
+- **Safety.** Wording 1 is kept byte for byte for every card approved or in use before 2026-11-18 (`cards.wording`, default 1). New and edited drafts are 2; drafts waiting at the upgrade moved to 2 once; a person moves to 2 only through **Use the new wording** on their sheet, which sends approved stories back to approval. Shape ids, cue levels, the hint ladder, scheduling and scores are unchanged.
+- **The form.** The questions whose labels invited the frame's own words ("A time we…", "They always say or do", "How we met", "The place we always…", "A holiday we…") now show the sentence being finished ("June and I once…"), as text and placeholders only.
+- **Not built:** an AI polish step (see the audit's assessment).
+
 ## The Tandem brand (2026-11-16)
 
 The app is now **Tandem** (a placeholder pending trademark clearance), with the designer's kit in `brand-kit/`. `docs/BRAND-AUDIT.md` has every trace of the old name, what changed, what stayed and why, and the contrast ratios.
