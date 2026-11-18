@@ -34,7 +34,8 @@ Each test version lasts 90 days. When there's a new one, TestFlight offers an **
 1. Open Tandem, tap **I am a caregiver**, then **Create an account**. Use an email address you can read: we send a 6-digit code to confirm it.
 2. Open a sample person and tap **Resume profile** to finish them, or add someone under **People**. Approve their stories. Practice starts once two people are finished.
 3. Make a login for the person practicing: **Settings**, then **The person's phone**, then **Their login**.
-4. On a second iPhone (or after **Settings**, then **Sign out**), tap **I am practicing** and sign in with that User ID and password. Tap **Start** and practice a few cards.
+4. Leave a note for them: tap **Board** in the bar at the bottom, then **Add note**. Up to three short notes; the "···" on a note edits, pins or deletes it.
+5. On a second iPhone (or after **Settings**, then **Sign out**), tap **I am practicing** and sign in with that User ID and password. Tap **Start practice** and practice a few cards. **View dashboard** on their home opens their Family board, with your notes.
 
 If you forget your password, tap **Forgot password?** on the sign-in screen, and we email you a code.
 

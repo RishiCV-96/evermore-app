@@ -1,5 +1,7 @@
 # The person's home: Family board and two clear buttons
 
+> **Superseded in part on 2026-11-18 by `docs/FAMILY-BOARD-TAB-PLAN.md`.** The Family board is no longer on the person's home or in Settings: the caregiver writes notes in the dashboard's **Board** tab, and the person reads them on their own **Family board** screen, which **View dashboard** opens on every phone (signed in or not). The home is now two equal 72pt buttons, Start practice and View dashboard. The colors, limits, contrast table and data rules below still hold; sections 1, 3 and 4 describe the earlier layout.
+
 Written 2026-11-18 on `person-home-board` (from `main` at `f9e8789`). Step 1 of the brief: the plan. It was written and built in one unattended run, so every choice the brief left open is recorded under **Assumed while unattended**, and anything that needs the owner is under **Needs my decision**.
 
 **Branch state.** `sentence-grammar` is not merged into `main` and there is no `photo-privacy` branch. This branch starts from `main` regardless: its schema change is one labeled block at the end of `supabase/schema.sql`, and nothing here touches the sentence code. `main` doesn't yet have the support email or policy version 2026-11-18 (those are on `sentence-grammar`).
