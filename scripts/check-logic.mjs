@@ -3447,7 +3447,9 @@ for (const level of levels) assert.deepEqual(Object.keys(TYPE_SCALE[level]).sort
   assert.ok(/logo \? <TandemLogo size="form" testID=\{logo\} foldWithKeyboard \/>/.test(inRepo('src/components/caregiver-ui.tsx')), 'the caregiver forms’ logo folds with the keyboard');
   // On the person's home the logo is above Start, and the middle scrolls, so Start is never pushed off.
   const home = inRepo('src/app/index.tsx');
-  assert.ok(home.indexOf('logo-home') < home.indexOf('testID="start"') && /<ScrollView style=\{styles\.middle\}/.test(home), 'home: the logo above Start, in a middle that can scroll');
+  // Since 2026-11-18 (docs/PERSON-HOME-PLAN.md): Start practice, then View dashboard, then the Family board, so notes never push Start off.
+  assert.ok(home.indexOf('logo-home') < home.indexOf('<StartPracticeButton') && home.indexOf('<StartPracticeButton') < home.indexOf('<ViewDashboardButton') && home.indexOf('<ViewDashboardButton') < home.indexOf('<FamilyBoard') && /<ScrollView style=\{styles\.middle\}/.test(home), 'home: the logo above Start practice, then View dashboard, then the board, in a middle that can scroll');
+  assert.ok(/testID="start"/.test(inRepo('src/components/home-buttons.tsx')), 'Start practice keeps its test id');
 }
 
 // ---------------------------------------------------------------------------------------

@@ -552,6 +552,12 @@ The brand guide (`brand-kit/tandem-brand-guide.png`) is the reference; `docs/BRA
 | Rose | `#E8629C` | The score ring's arc (caregiver only) | small text, the person's screens |
 | Deep Rose | `#B0467F` | Links and small accents on caregiver screens (5.2:1 on white, 4.6:1 on Mist) | the person's screens |
 
+**The person's home (2026-11-18, `docs/PERSON-HOME-PLAN.md`).** Two allowances, on the person's home only:
+- **Sky as a button background.** **View dashboard** is Sky with Ink words (7.56:1) and a 2pt Ink outline (Sky alone is 1.84:1 on white), 64pt tall with a grid icon. **Start practice** is Ink with white words (13.9:1), 72pt tall with a play icon. The two backgrounds differ by 7.56:1, and they stay apart under grayscale, protanopia, deuteranopia and tritanopia (`scripts/check-board.mjs`). Lightness, icon and words tell them apart, never color alone.
+- **Mist and the soft Sky tint (`#D2E8FA`) as note backgrounds** on the Family board: Mist for every note, the Sky tint for the pinned one (which also says "Pinned" with a pin icon). Ink words (12.4:1 and 11.0:1), a hairline `divider` edge, the one 16pt radius, no shadow, rotation, gradient or decoration. Authors are told apart by initials and names, never by color.
+
+Pink, red and yellow stay off every person screen, the home included.
+
 `primaryDark` (`#2F4A7A`, Ink lifted toward Sky) is the pressed button and the person's link color. **The progress bar** is an outline (2pt, 1.5 on caregiver screens) and a solid fill in one color: Ink on the person's screens (13.9:1 on white), Deep Rose on the caregiver's (5.2:1), from `useProgressColor()`. The success banner is a soft Sky (`#D2E8FA`) with Ink text: the brand has no green.
 
 **The logo.** One component, `<TandemLogo size="…" />` (`src/components/tandem-logo.tsx`), drawn with `react-native-svg` from the kit's shapes. Its box is the drawing plus one lobe radius (34 kit units) on every side, its height follows the kit's proportions, and it is read as the brand name (or hidden where `decorative`).
