@@ -6,6 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { Card, Enter, FormGroup, Notice, Row, TypeToConfirm } from '@/components/caregiver-ui';
+import { FamilyBoardSetting } from '@/components/family-board-editor';
 import { AiSetting, ChangePasswordSetting, PersonLoginSetting, RevealCardsSetting, SessionLengthSetting, SignedInAs } from '@/components/caregiver-settings';
 import { Note } from '@/components/dashboard';
 import { ExportPanel, ExportSetting } from '@/components/export-data';
@@ -64,21 +65,21 @@ export function SettingsPage({ family, failed }: SettingsPageProps) {
           <TextSizeSetting />
         </Section>
       </Enter>
-      {LOCAL_ONLY ? null : (
-        <Enter index={2}>
-          <Section title="The person’s phone">
-            {family ? (
-              <PersonLoginSetting person={family.person} />
-            ) : (
-              <View testID="person-login-waiting" style={styles.waiting}>
-                <AppText size="caption" muted>
-                  {failed ? 'Their login appears once your family has loaded.' : 'Getting their login…'}
-                </AppText>
-              </View>
-            )}
-          </Section>
-        </Enter>
-      )}
+      {/* The person's phone: Their login (sign-in on), and the Family board, whose notes show on their home. */}
+      <Enter index={2}>
+        <Section title="The person’s phone">
+          {LOCAL_ONLY ? null : family ? (
+            <PersonLoginSetting person={family.person} />
+          ) : (
+            <View testID="person-login-waiting" style={styles.waiting}>
+              <AppText size="caption" muted>
+                {failed ? 'Their login appears once your family has loaded.' : 'Getting their login…'}
+              </AppText>
+            </View>
+          )}
+          <FamilyBoardSetting />
+        </Section>
+      </Enter>
       {/* Privacy and data: the policy, a plain list of what is stored, the choices that can change at any time, and the export. Delete account sits last, apart. */}
       <Enter index={3}>
         <Section title="Privacy and data">
