@@ -117,13 +117,10 @@ export function ReminderSettings() {
           <AppText testID="reminder-time" center bold size="title" accessibilityLiveRegion="polite">
             {`At ${timeLabel(settings.time)}`}
           </AppText>
+          {/* Stacked, each full width: with its arrow, "Earlier" at the person's large size needs the room. */}
           <View style={styles.steps}>
-            <View style={styles.grow}>
-              <BigButton testID="reminder-earlier" label="Earlier" disabled={!canStep(settings.time, -1)} onPress={() => stepReminderTime(-1)} />
-            </View>
-            <View style={styles.grow}>
-              <BigButton testID="reminder-later" label="Later" disabled={!canStep(settings.time, 1)} onPress={() => stepReminderTime(1)} />
-            </View>
+            <BigButton testID="reminder-earlier" label="Earlier" icon="arrow-back" accessibilityHint="Half an hour earlier." disabled={!canStep(settings.time, -1)} onPress={() => stepReminderTime(-1)} />
+            <BigButton testID="reminder-later" label="Later" icon="arrow-forward" accessibilityHint="Half an hour later." disabled={!canStep(settings.time, 1)} onPress={() => stepReminderTime(1)} />
           </View>
         </View>
       ) : null}
@@ -181,7 +178,6 @@ const styles = StyleSheet.create({
     gap: Space.m,
   },
   steps: {
-    flexDirection: 'row',
     gap: Space.m,
   },
   notice: {

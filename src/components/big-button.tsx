@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -29,6 +30,8 @@ type BigButtonProps = {
   disabled?: boolean;
   /** Echoes a percent with a thin strip along the bottom edge. */
   progress?: number;
+  /** An icon before the words, so two buttons side by side differ by more than their place ("Earlier", "Later"). */
+  icon?: keyof typeof Ionicons.glyphMap;
   /** For screen readers: what it does, or why it isn't available yet. */
   accessibilityHint?: string;
   /** For screen readers, when the words on the button say less than it does. */
@@ -47,6 +50,7 @@ export function BigButton({
   selected = false,
   disabled,
   progress,
+  icon,
   accessibilityHint,
   accessibilityLabel,
   testID,
@@ -77,7 +81,8 @@ export function BigButton({
           if (primary) tapFeel();
           onPress();
         }}
-        style={[styles.button, styles.compact, disabled && !waiting && styles.disabled]}>
+        style={[styles.button, styles.compact, disabled && !waiting && styles.disabled, icon && styles.withIcon]}>
+        {icon ? <Ionicons name={icon} size={20} color={waiting ? Colors.textMuted : filled ? Colors.onPrimary : quiet ? accent : Colors.text} aria-hidden /> : null}
         <AppText
           fit
           bold={filled}
@@ -111,7 +116,9 @@ export function BigButton({
         pressed && (filled ? styles.filledPressed : styles.softPressed),
         pressed && styles.pressed,
         disabled && styles.disabled,
+        icon && styles.withIcon,
       ]}>
+      {icon ? <Ionicons name={icon} size={26} color={filled ? Colors.onPrimary : quiet ? Colors.primaryDark : Colors.text} aria-hidden /> : null}
       <AppText
         fit
         bold
@@ -126,6 +133,11 @@ export function BigButton({
 }
 
 const styles = StyleSheet.create({
+  // An icon and the words side by side, centered together.
+  withIcon: {
+    flexDirection: 'row',
+    gap: Space.s,
+  },
   button: {
     minHeight: 64,
     paddingHorizontal: Space.xl,

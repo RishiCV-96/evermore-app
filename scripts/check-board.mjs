@@ -312,4 +312,25 @@ await check('the home: Start practice first, then View dashboard, then the board
   assert.ok(/from '@\/components\/family-board-editor'/.test(inRepo('src/components/settings-page.tsx')), 'the editor lives in Settings');
 });
 
+/** Two buttons side by side must differ by icon and words, not only by where they sit. */
+function lookAlikeFaults(code, ids) {
+  const buttons = ids.map((id) => new RegExp(`<BigButton testID="${id}"[^>]*>`).exec(code)?.[0] ?? '');
+  const icons = buttons.map((tag) => /icon="([^"]+)"/.exec(tag)?.[1]);
+  const labels = buttons.map((tag) => /label="([^"]+)"/.exec(tag)?.[1]);
+  return [
+    ...(icons.some((icon) => !icon) ? ['a button without an icon'] : []),
+    ...(new Set(icons).size < icons.length ? ['the same icon twice'] : []),
+    ...(new Set(labels).size < labels.length ? ['the same words twice'] : []),
+  ];
+}
+await check('Reminders: Earlier and Later differ by an arrow icon and words, not only by place', () => {
+  const reminders = inRepo('src/components/reminders.tsx');
+  assert.deepEqual(lookAlikeFaults(reminders, ['reminder-earlier', 'reminder-later']), []);
+  assert.ok(/<BigButton testID="reminder-earlier" label="Earlier" icon="arrow-back"/.test(reminders) && /<BigButton testID="reminder-later" label="Later" icon="arrow-forward"/.test(reminders));
+  const button = inRepo('src/components/big-button.tsx');
+  assert.ok(/icon \? <Ionicons name=\{icon\}/.test(button.slice(button.indexOf('  return (\n    <Pressable'))), 'the person’s BigButton draws the icon, in the words’ color');
+  assert.deepEqual(lookAlikeFaults(reminders.replace('icon="arrow-forward"', 'icon="arrow-back"'), ['reminder-earlier', 'reminder-later']), ['the same icon twice'], 'a planted look-alike pair is caught');
+  assert.deepEqual(lookAlikeFaults(reminders.replace(' icon="arrow-back"', ''), ['reminder-earlier', 'reminder-later']), ['a button without an icon']);
+});
+
 console.log(`\nAll ${passed} board checks passed`);
