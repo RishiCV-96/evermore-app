@@ -1,6 +1,6 @@
 # SQL to run
 
-Written 2026-11-18 on `family-board-tab`. Nothing here has been run: run it yourself, in both Supabase projects (development first, then production), before a build with these changes reaches anyone.
+Written 2026-11-18 on `family-board-tab`; updated on `sentence-fix` the same day. Nothing here has been run: run it yourself, in both Supabase projects (development first, then production), before a build with these changes reaches anyone.
 
 ## This branch adds no SQL
 
@@ -8,7 +8,7 @@ The brief asked for two new columns on the board's notes, `author_name` and `aut
 
 ## Still to run from `main`: the whole schema
 
-`family_notes` itself is new on `main` (merged 2026-11-18) and hasn't been run in either project yet. In each project:
+`family_notes` and the `cards.wording` column are both new on `main` (2026-11-18) and haven't been run in either project yet. Until `cards.wording` exists, every card reads in the old wording and **Refresh wording** says the update is needed (`sentence-fix` keeps saving working meanwhile). `sentence-fix` itself adds no SQL. In each project:
 
 1. **SQL Editor → New query.**
 2. Paste the whole of `supabase/schema.sql` (`pbcopy < supabase/schema.sql`).
@@ -17,6 +17,16 @@ The brief asked for two new columns on the board's notes, `author_name` and `aut
 The file is written to be rerun, so running it again is safe. It needs no Edge Function redeploy.
 
 ## To confirm afterwards
+
+The wording column (it should say `smallint`, `NO`, default `1`):
+
+```sql
+select column_name, data_type, is_nullable, column_default
+from information_schema.columns
+where table_schema = 'public' and table_name = 'cards' and column_name = 'wording';
+```
+
+The board's author columns:
 
 Run this in each project. It should list the two author columns, both nullable:
 

@@ -169,7 +169,7 @@ Approved on 2026-11-18 with these decisions: a stored wording version; drafts wa
 - **Approved and skipped cards** keep wording 1, exactly: the server's on the schema rerun, the phone's local family, the sample people and the local deck.
 - **Drafts waiting for approval** move to wording 2 once: on the server when the schema rerun first adds the column, on the phone the first time the app opens after the update. Story approval then shows the new sentence, and approving it approves that wording. Nothing about the draft but its sentence changes (its words, id, status, photo, schedule and phrasings off stay).
 - **A card the caregiver edits** becomes a wording-2 draft, as any edit already sends a card back for approval. A relationship change keeps each card's wording.
-- **On purpose:** a person's sheet shows **Use the new wording** while any of their stories is in wording 1. After a confirmation it moves them all; approved ones go back to story approval (out of practice until approved; Approve all on the sheet does it in one tap); skipped ones stay skipped. A whole deck moves person by person.
+- **On purpose:** a person's sheet shows **Refresh wording** (called **Use the new wording** until the copy edit of 2026-11-18, `docs/SENTENCE-DUMP.md`; Settings → Practice has the same for the whole family) while any of their stories is in wording 1. After a confirmation it moves them all; approved ones go back to story approval (out of practice until approved; Approve all on the sheet does it in one tap); skipped ones stay skipped. A whole deck moves person by person.
 
 ## Step 3: should an AI "polish" step be added later?
 

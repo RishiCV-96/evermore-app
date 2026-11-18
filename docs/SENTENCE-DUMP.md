@@ -1,16 +1,16 @@
 # Every sentence, for the five sample people
 
-> **This is the output before the fix** (`main` at `db7f2c0`), kept as the reproduction. The copy edit below lists what is wrong in it.
+> **After the fix** (branch `sentence-fix`). Regenerate with `node scripts/dump-sentences.mjs > docs/SENTENCE-DUMP.md`, then put the copy edit back.
 
 Written by `node scripts/dump-sentences.mjs` on 2026-11-18 (fictional people and invented facts only). `{name}` is the blank and `{rel}` the person's relationship. Each answer shows every distinct sentence it gives across the five sample people (June, aunt; Leo, neighbor; Ruth, cousin; Omar, friend; Mae, granddaughter), every variant and every phrasing, in wording 2, which new cards use. Wording 1 is kept byte for byte for cards approved before 2026-11-18 and is not shown.
 
-1684 sentences in all.
+1348 sentences in all.
 
-## The copy edit (before the fix)
+## The copy edit
 
-Read line by line on 2026-11-18. Each class below is now a check in `scripts/check-sentences.mjs`, planted with the sentence shown so it is seen to fail.
+Read line by line on 2026-11-18, on the output before the fix (in git at `be7bdcc`, which also has that whole dump). Every row is fixed in wording 2, and each class is now a check in `scripts/check-sentences.mjs`, planted with the "before" sentence so it is seen to fail while the fixed one passes. The dump below is the output after the fix.
 
-| # | Kind of fact | Answer typed | Sentence the app built | Problem |
+| # | Kind of fact | Answer typed | Sentence before the fix | Problem |
 | --- | --- | --- | --- | --- |
 | 1 | every kind | (empty) | "My {rel}, {name}, works as." · "Who?" · "{name} and I met." | Dangling bridge word: no card should exist |
 | 2 | memory | an early riser | "{name} an early riser." | Missing verb ("is") |
@@ -39,16 +39,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}.
-- {name}.
-- Who?
-- This person. Who is this?
-- Who is this?
-- This person.
-- I know that my {rel}, {name}.
-- I know that {name}.
-- I know that this person. Who is this?
-- I know that this person.
+- (no sentence, so no card)
 
 **“grows tomatoes every summer”**
 
@@ -60,8 +51,6 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 - This person grows tomatoes every summer.
 - I know that my {rel}, {name}, grows tomatoes every summer.
 - I know that {name} grows tomatoes every summer.
-- I know that this person grows tomatoes every summer. Who is this?
-- I know that this person grows tomatoes every summer.
 
 **“Loves to bake bread”**
 
@@ -73,8 +62,6 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 - This person loves to bake bread.
 - I know that my {rel}, {name}, loves to bake bread.
 - I know that {name} loves to bake bread.
-- I know that this person loves to bake bread. Who is this?
-- I know that this person loves to bake bread.
 
 **“She knits scarves”**
 
@@ -86,8 +73,6 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 - This person knits scarves.
 - I know that my {rel}, {name}, knits scarves.
 - I know that {name} knits scarves.
-- I know that this person knits scarves. Who is this?
-- I know that this person knits scarves.
 
 **“They love card games”**
 
@@ -99,21 +84,17 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 - This person loves card games.
 - I know that my {rel}, {name}, loves card games.
 - I know that {name} loves card games.
-- I know that this person loves card games. Who is this?
-- I know that this person loves card games.
 
 **“an early riser”**
 
-- My {rel}, {name}, an early riser.
-- {name} an early riser.
-- Who an early riser?
-- This person an early riser. Who is this?
+- My {rel}, {name}, is an early riser.
+- {name} is an early riser.
+- Who is an early riser?
+- This person is an early riser. Who is this?
 - Who is this?
-- This person an early riser.
-- I know that my {rel}, {name}, an early riser.
-- I know that {name} an early riser.
-- I know that this person an early riser. Who is this?
-- I know that this person an early riser.
+- This person is an early riser.
+- I know that my {rel}, {name}, is an early riser.
+- I know that {name} is an early riser.
 
 **“owns three bikes”**
 
@@ -125,24 +106,12 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 - This person owns three bikes.
 - I know that my {rel}, {name}, owns three bikes.
 - I know that {name} owns three bikes.
-- I know that this person owns three bikes. Who is this?
-- I know that this person owns three bikes.
 
 ## work
 
 **(empty)**
 
-- My {rel}, {name}, works as.
-- {name} works as.
-- Who works as?
-- This person works as. Who is this?
-- Who is this?
-- This person works as.
-- My {rel}, {name}, is.
-- {name} is.
-- Who is?
-- This person is. Who is this?
-- This person is.
+- (no sentence, so no card)
 
 **“nurse”**
 
@@ -206,17 +175,17 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“accountants”**
 
-- My {rel}, {name}, works as accountants.
-- {name} works as accountants.
-- Who works as accountants?
-- This person works as accountants. Who is this?
+- My {rel}, {name}, works as an accountant.
+- {name} works as an accountant.
+- Who works as an accountant?
+- This person works as an accountant. Who is this?
 - Who is this?
-- This person works as accountants.
-- My {rel}, {name}, is accountants.
-- {name} is accountants.
-- Who is accountants?
-- This person is accountants. Who is this?
-- This person is accountants.
+- This person works as an accountant.
+- My {rel}, {name}, is an accountant.
+- {name} is an accountant.
+- Who is an accountant?
+- This person is an accountant. Who is this?
+- This person is an accountant.
 
 **“works at the bank”**
 
@@ -229,17 +198,17 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“Nurse at the clinic”**
 
-- My {rel}, {name}, works as Nurse at the clinic.
-- {name} works as Nurse at the clinic.
-- Who works as Nurse at the clinic?
-- This person works as Nurse at the clinic. Who is this?
+- My {rel}, {name}, works as a nurse at the clinic.
+- {name} works as a nurse at the clinic.
+- Who works as a nurse at the clinic?
+- This person works as a nurse at the clinic. Who is this?
 - Who is this?
-- This person works as Nurse at the clinic.
-- My {rel}, {name}, is Nurse at the clinic.
-- {name} is Nurse at the clinic.
-- Who is Nurse at the clinic?
-- This person is Nurse at the clinic. Who is this?
-- This person is Nurse at the clinic.
+- This person works as a nurse at the clinic.
+- My {rel}, {name}, is a nurse at the clinic.
+- {name} is a nurse at the clinic.
+- Who is a nurse at the clinic?
+- This person is a nurse at the clinic. Who is this?
+- This person is a nurse at the clinic.
 
 **“owner of a bakery”**
 
@@ -259,17 +228,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, worked as.
-- {name} worked as.
-- Who worked as?
-- This person worked as. Who is this?
-- Who is this?
-- This person worked as.
-- My {rel}, {name}, used to work as.
-- {name} used to work as.
-- Who used to work as?
-- This person used to work as. Who is this?
-- This person used to work as.
+- (no sentence, so no card)
 
 **“teacher”**
 
@@ -333,33 +292,23 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“Mail carrier”**
 
-- My {rel}, {name}, worked as Mail carrier.
-- {name} worked as Mail carrier.
-- Who worked as Mail carrier?
-- This person worked as Mail carrier. Who is this?
+- My {rel}, {name}, worked as a mail carrier.
+- {name} worked as a mail carrier.
+- Who worked as a mail carrier?
+- This person worked as a mail carrier. Who is this?
 - Who is this?
-- This person worked as Mail carrier.
-- My {rel}, {name}, used to work as Mail carrier.
-- {name} used to work as Mail carrier.
-- Who used to work as Mail carrier?
-- This person used to work as Mail carrier. Who is this?
-- This person used to work as Mail carrier.
+- This person worked as a mail carrier.
+- My {rel}, {name}, used to work as a mail carrier.
+- {name} used to work as a mail carrier.
+- Who used to work as a mail carrier?
+- This person used to work as a mail carrier. Who is this?
+- This person used to work as a mail carrier.
 
 ## field
 
 **(empty)**
 
-- My {rel}, {name}, has worked in.
-- {name} has worked in.
-- Who has worked in?
-- This person has worked in. Who is this?
-- Who is this?
-- This person has worked in.
-- My {rel}, {name}, has had a career in.
-- {name} has had a career in.
-- Who has had a career in?
-- This person has had a career in. Who is this?
-- This person has had a career in.
+- (no sentence, so no card)
 
 **“health care”**
 
@@ -421,16 +370,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, has worked or studied at.
-- {name} has worked or studied at.
-- Who has worked or studied at?
-- This person has worked or studied at. Who is this?
-- Who is this?
-- This person has worked or studied at.
-- My {rel}, {name}, spent time working or studying at.
-- {name} spent time working or studying at.
-- This person spent time working or studying at. Who is this?
-- This person spent time working or studying at.
+- (no sentence, so no card)
 
 **“the library”**
 
@@ -488,17 +428,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, is planning to.
-- {name} is planning to.
-- Who is planning to?
-- This person is planning to. Who is this?
-- Who is this?
-- This person is planning to.
-- My {rel}, {name}, plans to.
-- {name} plans to.
-- Who plans to?
-- This person plans to. Who is this?
-- This person plans to.
+- (no sentence, so no card)
 
 **“retire next year”**
 
@@ -539,47 +469,32 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“to visit Spain”**
 
-- My {rel}, {name}, is planning to to visit Spain.
-- {name} is planning to to visit Spain.
-- Who is planning to to visit Spain?
-- This person is planning to to visit Spain. Who is this?
+- My {rel}, {name}, is planning to visit Spain.
+- {name} is planning to visit Spain.
+- Who is planning to visit Spain?
+- This person is planning to visit Spain. Who is this?
 - Who is this?
-- This person is planning to to visit Spain.
-- My {rel}, {name}, plans to to visit Spain.
-- {name} plans to to visit Spain.
-- Who plans to to visit Spain?
-- This person plans to to visit Spain. Who is this?
-- This person plans to to visit Spain.
+- This person is planning to visit Spain.
+- My {rel}, {name}, plans to visit Spain.
+- {name} plans to visit Spain.
+- Who plans to visit Spain?
+- This person plans to visit Spain. Who is this?
+- This person plans to visit Spain.
 
 **“a trip to Maine”**
 
-- My {rel}, {name}, is planning to a trip to Maine.
-- {name} is planning to a trip to Maine.
-- Who is planning to a trip to Maine?
-- This person is planning to a trip to Maine. Who is this?
+- My {rel}, {name}, is planning a trip to Maine.
+- {name} is planning a trip to Maine.
+- Who is planning a trip to Maine?
+- This person is planning a trip to Maine. Who is this?
 - Who is this?
-- This person is planning to a trip to Maine.
-- My {rel}, {name}, plans to a trip to Maine.
-- {name} plans to a trip to Maine.
-- Who plans to a trip to Maine?
-- This person plans to a trip to Maine. Who is this?
-- This person plans to a trip to Maine.
+- This person is planning a trip to Maine.
 
 ## interest
 
 **(empty)**
 
-- My {rel}, {name}, enjoys.
-- {name} enjoys.
-- Who enjoys?
-- This person enjoys. Who is this?
-- Who is this?
-- This person enjoys.
-- My {rel}, {name}, likes.
-- {name} likes.
-- Who likes?
-- This person likes. Who is this?
-- This person likes.
+- (no sentence, so no card)
 
 **“gardening”**
 
@@ -653,17 +568,17 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“Golf”**
 
-- My {rel}, {name}, enjoys Golf.
-- {name} enjoys Golf.
-- Who enjoys Golf?
-- This person enjoys Golf. Who is this?
+- My {rel}, {name}, enjoys golfing.
+- {name} enjoys golfing.
+- Who enjoys golfing?
+- This person enjoys golfing. Who is this?
 - Who is this?
-- This person enjoys Golf.
-- My {rel}, {name}, likes Golf.
-- {name} likes Golf.
-- Who likes Golf?
-- This person likes Golf. Who is this?
-- This person likes Golf.
+- This person enjoys golfing.
+- My {rel}, {name}, likes golfing.
+- {name} likes golfing.
+- Who likes golfing?
+- This person likes golfing. Who is this?
+- This person likes golfing.
 
 **“the garden”**
 
@@ -697,23 +612,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, is a fan of.
-- {name} is a fan of.
-- {name}’s favorite team is.
-- Who is a fan of?
-- This person is a fan of. Who is this?
-- Who is this?
-- This person is a fan of.
-- My {rel}, {name}, loves.
-- {name} loves.
-- Who loves?
-- This person loves. Who is this?
-- This person loves.
-- My {rel}, {name}, cheers for.
-- {name} cheers for.
-- Who cheers for?
-- This person cheers for. Who is this?
-- This person cheers for.
+- (no sentence, so no card)
 
 **“the Otters”**
 
@@ -757,23 +656,17 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“baseball”**
 
-- My {rel}, {name}, is a fan of baseball.
-- {name} is a fan of baseball.
-- {name}’s favorite team is baseball.
-- Who is a fan of baseball?
-- This person is a fan of baseball. Who is this?
-- Who is this?
-- This person is a fan of baseball.
 - My {rel}, {name}, loves baseball.
 - {name} loves baseball.
 - Who loves baseball?
 - This person loves baseball. Who is this?
+- Who is this?
 - This person loves baseball.
-- My {rel}, {name}, cheers for baseball.
-- {name} cheers for baseball.
-- Who cheers for baseball?
-- This person cheers for baseball. Who is this?
-- This person cheers for baseball.
+- My {rel}, {name}, is a fan of baseball.
+- {name} is a fan of baseball.
+- Who is a fan of baseball?
+- This person is a fan of baseball. Who is this?
+- This person is a fan of baseball.
 
 **“the Riverton Otters and the Bears”**
 
@@ -799,18 +692,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, loves watching.
-- {name} loves watching.
-- {name}’s favorite show is.
-- Who loves watching?
-- This person loves watching. Who is this?
-- Who is this?
-- This person loves watching.
-- My {rel}, {name}, likes to watch.
-- {name} likes to watch.
-- Who likes to watch?
-- This person likes to watch. Who is this?
-- This person likes to watch.
+- (no sentence, so no card)
 
 **“Jeopardy”**
 
@@ -831,7 +713,6 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 - My {rel}, {name}, loves watching game shows.
 - {name} loves watching game shows.
-- {name}’s favorite show is game shows.
 - Who loves watching game shows?
 - This person loves watching game shows. Who is this?
 - Who is this?
@@ -846,7 +727,6 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 - My {rel}, {name}, loves watching the news.
 - {name} loves watching the news.
-- {name}’s favorite show is the news.
 - Who loves watching the news?
 - This person loves watching the news. Who is this?
 - Who is this?
@@ -861,7 +741,6 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 - My {rel}, {name}, loves watching cooking shows.
 - {name} loves watching cooking shows.
-- {name}’s favorite show is cooking shows.
 - Who loves watching cooking shows?
 - This person loves watching cooking shows. Who is this?
 - Who is this?
@@ -876,18 +755,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, loves the movie.
-- {name} loves the movie.
-- {name}’s favorite movie is.
-- Who loves the movie?
-- This person loves the movie. Who is this?
-- Who is this?
-- This person loves the movie.
-- My {rel}, {name}, is a fan of the movie.
-- {name} is a fan of the movie.
-- Who is a fan of the movie?
-- This person is a fan of the movie. Who is this?
-- This person is a fan of the movie.
+- (no sentence, so no card)
 
 **“Casablanca”**
 
@@ -951,18 +819,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, loves.
-- {name} loves.
-- {name}’s favorite food is.
-- Who loves?
-- This person loves. Who is this?
-- Who is this?
-- This person loves.
-- My {rel}, {name}, loves to eat.
-- {name} loves to eat.
-- Who loves to eat?
-- This person loves to eat. Who is this?
-- This person loves to eat.
+- (no sentence, so no card)
 
 **“lasagna”**
 
@@ -1043,18 +900,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, loves listening to.
-- {name} loves listening to.
-- {name}’s favorite music is.
-- Who loves listening to?
-- This person loves listening to. Who is this?
-- Who is this?
-- This person loves listening to.
-- My {rel}, {name}, enjoys listening to.
-- {name} enjoys listening to.
-- Who enjoys listening to?
-- This person enjoys listening to. Who is this?
-- This person enjoys listening to.
+- (no sentence, so no card)
 
 **“jazz”**
 
@@ -1120,18 +966,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, loves.
-- {name} loves.
-- {name}’s favorite place is.
-- Who loves?
-- This person loves. Who is this?
-- Who is this?
-- This person loves.
-- My {rel}, {name}, loves going to.
-- {name} loves going to.
-- Who loves going to?
-- This person loves going to. Who is this?
-- This person loves going to.
+- (no sentence, so no card)
 
 **“the lake”**
 
@@ -1167,7 +1002,6 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 - My {rel}, {name}, loves beaches.
 - {name} loves beaches.
-- {name}’s favorite place is beaches.
 - Who loves beaches?
 - This person loves beaches. Who is this?
 - Who is this?
@@ -1194,24 +1028,23 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“park”**
 
-- My {rel}, {name}, loves park.
-- {name} loves park.
-- {name}’s favorite place is park.
-- Who loves park?
-- This person loves park. Who is this?
+- My {rel}, {name}, loves the park.
+- {name} loves the park.
+- {name}’s favorite place is the park.
+- Who loves the park?
+- This person loves the park. Who is this?
 - Who is this?
-- This person loves park.
-- My {rel}, {name}, loves going to park.
-- {name} loves going to park.
-- Who loves going to park?
-- This person loves going to park. Who is this?
-- This person loves going to park.
+- This person loves the park.
+- My {rel}, {name}, loves going to the park.
+- {name} loves going to the park.
+- Who loves going to the park?
+- This person loves going to the park. Who is this?
+- This person loves going to the park.
 
 **“the mountains”**
 
 - My {rel}, {name}, loves the mountains.
 - {name} loves the mountains.
-- {name}’s favorite place is the mountains.
 - Who loves the mountains?
 - This person loves the mountains. Who is this?
 - Who is this?
@@ -1226,12 +1059,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, always.
-- {name} always.
-- Who always?
-- This person always. Who is this?
-- Who is this?
-- This person always.
+- (no sentence, so no card)
 
 **“hums in the kitchen”**
 
@@ -1300,19 +1128,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- I remember when my {rel}, {name}, and I.
-- I remember when {name} and I.
-- I remember when this person and I. Who is this?
-- Who is this?
-- I remember when this person and I.
-- There was a time when my {rel}, {name}, and I.
-- There was a time when {name} and I.
-- There was a time when this person and I. Who is this?
-- There was a time when this person and I.
-- My {rel}, {name}, and I once.
-- {name} and I once.
-- This person and I once. Who is this?
-- This person and I once.
+- (no sentence, so no card)
 
 **“got lost in Rome”**
 
@@ -1380,11 +1196,11 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“a picnic”**
 
-- There was a time when a picnic, with my {rel}, {name}, and me.
-- There was a time when a picnic, with {name} and me.
-- There was a time when a picnic, with this person and me. Who is this?
+- I remember a picnic with my {rel}, {name}.
+- I remember a picnic with {name}.
+- I remember a picnic with this person. Who is this?
 - Who is this?
-- There was a time when a picnic, with this person and me.
+- I remember a picnic with this person.
 
 **“our car broke down”**
 
@@ -1398,11 +1214,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, and I always.
-- {name} and I always.
-- This person and I always. Who is this?
-- Who is this?
-- This person and I always.
+- (no sentence, so no card)
 
 **“went for ice cream”**
 
@@ -1430,29 +1242,25 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“the park”**
 
-- My {rel}, {name}, and I always the park.
-- {name} and I always the park.
-- This person and I always the park. Who is this?
+- My {rel}, {name}, and I always went to the park.
+- {name} and I always went to the park.
+- This person and I always went to the park. Who is this?
 - Who is this?
-- This person and I always the park.
+- This person and I always went to the park.
 
 **“camping”**
 
-- My {rel}, {name}, and I always camping.
-- {name} and I always camping.
-- This person and I always camping. Who is this?
+- My {rel}, {name}, and I always went camping.
+- {name} and I always went camping.
+- This person and I always went camping. Who is this?
 - Who is this?
-- This person and I always camping.
+- This person and I always went camping.
 
 ## holiday
 
 **(empty)**
 
-- My {rel}, {name}, and I spent together.
-- {name} and I spent together.
-- This person and I spent together. Who is this?
-- Who is this?
-- This person and I spent together.
+- (no sentence, so no card)
 
 **“at the lake”**
 
@@ -1510,16 +1318,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, and I met.
-- {name} and I met.
-- Who did you meet?
-- This person and I met. Who is this?
-- Who is this?
-- This person and I met.
-- I met my {rel}, {name}.
-- I met {name}.
-- I met this person. Who is this?
-- I met this person.
+- (no sentence, so no card)
 
 **“at church”**
 
@@ -1564,7 +1363,6 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 - My {rel}, {name}, and I met when we were 5.
 - {name} and I met when we were 5.
-- Who did you meet when we were 5?
 - This person and I met when we were 5. Who is this?
 - Who is this?
 - This person and I met when we were 5.
@@ -1575,30 +1373,22 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“school”**
 
-- My {rel}, {name}, and I met school.
-- {name} and I met school.
-- Who did you meet school?
-- This person and I met school. Who is this?
+- My {rel}, {name}, and I met at school.
+- {name} and I met at school.
+- Who did you meet at school?
+- This person and I met at school. Who is this?
 - Who is this?
-- This person and I met school.
-- I met my {rel}, {name}, school.
-- I met {name} school.
-- I met this person school. Who is this?
-- I met this person school.
+- This person and I met at school.
+- I met my {rel}, {name}, at school.
+- I met {name} at school.
+- I met this person at school. Who is this?
+- I met this person at school.
 
 ## birthday
 
 **(empty)**
 
-- My {rel} {name}’s birthday is on.
-- {name}’s birthday is on.
-- Whose birthday is on?
-- This person’s birthday is on. Who is this?
-- Who is this?
-- This person’s birthday is on.
-- My {rel}, {name}, was born on.
-- This person was born on. Who is this?
-- This person was born on.
+- (no sentence, so no card)
 
 **“March 3”**
 
@@ -1638,31 +1428,21 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“May”**
 
-- My {rel} {name}’s birthday is on May.
-- {name}’s birthday is on May.
-- Whose birthday is on May?
-- This person’s birthday is on May. Who is this?
+- My {rel} {name}’s birthday is in May.
+- {name}’s birthday is in May.
+- Whose birthday is in May?
+- This person’s birthday is in May. Who is this?
 - Who is this?
-- This person’s birthday is on May.
-- My {rel}, {name}, was born on May.
-- This person was born on May. Who is this?
-- This person was born on May.
+- This person’s birthday is in May.
+- My {rel}, {name}, was born in May.
+- This person was born in May. Who is this?
+- This person was born in May.
 
 ## nickname
 
 **(empty)**
 
-- My {rel}, {name}, goes by.
-- {name} goes by.
-- Who goes by?
-- This person goes by. Who is this?
-- Who is this?
-- This person goes by.
-- My {rel}, {name}, is also called.
-- {name} is also called.
-- Who is also called?
-- This person is also called. Who is this?
-- This person is also called.
+- (no sentence, so no card)
 
 **“Junie”**
 
@@ -1724,14 +1504,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- I call my {rel}, {name}.
-- I call {name}.
-- Who do you call?
-- You call this person. Who is this?
-- Who is this?
-- You call this person.
-- My name for my {rel}, {name}, is.
-- My name for {name} is.
+- (no sentence, so no card)
 
 **“Nana”**
 
@@ -1746,14 +1519,14 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“grandma”**
 
-- I call my {rel}, {name}, grandma.
-- I call {name} grandma.
-- Who do you call grandma?
-- You call this person grandma. Who is this?
+- I call my {rel}, {name}, Grandma.
+- I call {name} Grandma.
+- Who do you call Grandma?
+- You call this person Grandma. Who is this?
 - Who is this?
-- You call this person grandma.
-- My name for my {rel}, {name}, is grandma.
-- My name for {name} is grandma.
+- You call this person Grandma.
+- My name for my {rel}, {name}, is Grandma.
+- My name for {name} is Grandma.
 
 **“Aunt Bea”**
 
@@ -1770,15 +1543,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, and I have known each other.
-- {name} and I have known each other.
-- This person and I have known each other. Who is this?
-- Who is this?
-- This person and I have known each other.
-- I have known my {rel}, {name}.
-- I have known {name}.
-- I have known this person. Who is this?
-- I have known this person.
+- (no sentence, so no card)
 
 **“since 1962”**
 
@@ -1811,10 +1576,6 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 - This person and I have known each other all our lives. Who is this?
 - Who is this?
 - This person and I have known each other all our lives.
-- I have known my {rel}, {name}, all our lives.
-- I have known {name} all our lives.
-- I have known this person all our lives. Who is this?
-- I have known this person all our lives.
 
 **“forever”**
 
@@ -1832,16 +1593,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, lives in.
-- {name} lives in.
-- Who lives in?
-- This person lives in. Who is this?
-- Who is this?
-- This person lives in.
-- My {rel} {name}’s home is in.
-- {name}’s home is in.
-- This person’s home is in. Who is this?
-- This person’s home is in.
+- (no sentence, so no card)
 
 **“Ohio”**
 
@@ -1912,17 +1664,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, lives with.
-- {name} lives with.
-- Who lives with?
-- This person lives with. Who is this?
-- Who is this?
-- This person lives with.
-- My {rel}, {name}, shares a home with.
-- {name} shares a home with.
-- Who shares a home with?
-- This person shares a home with. Who is this?
-- This person shares a home with.
+- (no sentence, so no card)
 
 **“two roommates”**
 
@@ -1982,32 +1724,18 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“alone”**
 
-- My {rel}, {name}, lives with alone.
-- {name} lives with alone.
-- Who lives with alone?
-- This person lives with alone. Who is this?
+- My {rel}, {name}, lives alone.
+- {name} lives alone.
+- Who lives alone?
+- This person lives alone. Who is this?
 - Who is this?
-- This person lives with alone.
-- My {rel}, {name}, shares a home with alone.
-- {name} shares a home with alone.
-- Who shares a home with alone?
-- This person shares a home with alone. Who is this?
-- This person shares a home with alone.
+- This person lives alone.
 
 ## partner
 
 **(empty)**
 
-- My {rel} {name}’s partner is.
-- {name}’s partner is.
-- Whose partner is?
-- This person’s partner is. Who is this?
-- Who is this?
-- This person’s partner is.
-- My {rel}, {name}, and are partners.
-- {name} and are partners.
-- This person and are partners. Who is this?
-- This person and are partners.
+- (no sentence, so no card)
 
 **“Sam”**
 
@@ -2026,8 +1754,6 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 - My {rel}, {name}, has partners named Sam and Alex.
 - {name} has partners named Sam and Alex.
-- {name}’s partner is Sam and Alex.
-- Whose partner is Sam and Alex?
 - This person has partners named Sam and Alex. Who is this?
 - Who is this?
 - This person has partners named Sam and Alex.
@@ -2036,17 +1762,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, has a child named.
-- {name} has a child named.
-- Who has a child named?
-- This person has a child named. Who is this?
-- Who is this?
-- This person has a child named.
-- My {rel}, {name}, is the parent of.
-- {name} is the parent of.
-- Who is the parent of?
-- This person is the parent of. Who is this?
-- This person is the parent of.
+- (no sentence, so no card)
 
 **“Noah”**
 
@@ -2112,17 +1828,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, has.
-- {name} has.
-- Who has?
-- This person has. Who is this?
-- Who is this?
-- This person has.
-- My {rel}, {name}, takes care of.
-- {name} takes care of.
-- Who takes care of?
-- This person takes care of. Who is this?
-- This person takes care of.
+- (no sentence, so no card)
 
 **“Rex”**
 
@@ -2205,27 +1911,18 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **“Rex and Bella”**
 
-- My {rel}, {name}, has Rex and Bella.
-- {name} has Rex and Bella.
-- Who has Rex and Bella?
-- This person has Rex and Bella. Who is this?
+- My {rel}, {name}, has pets named Rex and Bella.
+- {name} has pets named Rex and Bella.
+- Who has pets named Rex and Bella?
+- This person has pets named Rex and Bella. Who is this?
 - Who is this?
-- This person has Rex and Bella.
-- My {rel}, {name}, takes care of Rex and Bella.
-- {name} takes care of Rex and Bella.
-- Who takes care of Rex and Bella?
-- This person takes care of Rex and Bella. Who is this?
-- This person takes care of Rex and Bella.
+- This person has pets named Rex and Bella.
 
 ## marital
 
 **(empty)**
 
-- My {rel}, {name}, is.
-- {name} is.
-- This person is. Who is this?
-- Who is this?
-- This person is.
+- (no sentence, so no card)
 
 **“married”**
 
@@ -2255,11 +1952,7 @@ Read line by line on 2026-11-18. Each class below is now a check in `scripts/che
 
 **(empty)**
 
-- My {rel}, {name}, is.
-- {name} is.
-- This person is. Who is this?
-- Who is this?
-- This person is.
+- (no sentence, so no card)
 
 **“expecting a baby”**
 

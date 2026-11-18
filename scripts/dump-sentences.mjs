@@ -73,14 +73,14 @@ export function sentencesFor(type, text, wording) {
       out.add(own(stories.clueFor(fact)));
     }
   }
-  return [...out].filter((sentence) => typeof sentence === 'string');
+  return [...out].filter((sentence) => typeof sentence === 'string' && sentence !== '');
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const lines = [
     '# Every sentence, for the five sample people',
     '',
-    `Written by \`node scripts/dump-sentences.mjs\` on ${new Date().toISOString().slice(0, 10)} (fictional people and invented facts only). \`{name}\` is the blank. Each answer shows every distinct sentence it gives across the five sample people (June, aunt; Leo, neighbor; Ruth, cousin; Omar, friend; Mae, granddaughter), every variant and every phrasing, in wording 2, which new cards use. Wording 1 is kept byte for byte for cards approved before 2026-11-18 and is not shown.`,
+    `Written by \`node scripts/dump-sentences.mjs\` on ${new Date().toISOString().slice(0, 10)} (fictional people and invented facts only). \`{name}\` is the blank and \`{rel}\` the person's relationship. Each answer shows every distinct sentence it gives across the five sample people (June, aunt; Leo, neighbor; Ruth, cousin; Omar, friend; Mae, granddaughter), every variant and every phrasing, in wording 2, which new cards use. Wording 1 is kept byte for byte for cards approved before 2026-11-18 and is not shown.`,
     '',
   ];
   let total = 0;
@@ -89,7 +89,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     for (const answer of answers) {
       const sentences = sentencesFor(type, answer, 2);
       total += sentences.length;
-      lines.push(`**${answer === '' ? '(empty)' : `“${answer}”`}**`, '', ...sentences.map((sentence) => `- ${sentence}`), '');
+      lines.push(`**${answer === '' ? '(empty)' : `“${answer}”`}**`, '', ...(sentences.length ? sentences.map((sentence) => `- ${sentence}`) : ['- (no sentence, so no card)']), '');
     }
   }
   lines.splice(4, 0, `${total} sentences in all.`, '');
