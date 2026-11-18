@@ -12,7 +12,7 @@ import { APP_NAME } from '@/config/brand';
  * policy's text means a new version (scripts/check-privacy.mjs refuses a changed text under an old
  * version), and every caregiver is asked to read and agree again before continuing.
  */
-export const POLICY_VERSION = '2026-11-17';
+export const POLICY_VERSION = '2026-11-18';
 
 /** The version recorded for caregivers who signed up before agreements were versioned. */
 export const LEGACY_VERSION = 'legacy';

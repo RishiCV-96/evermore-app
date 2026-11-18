@@ -12,7 +12,7 @@ Written 2026-11-13. It covers only what relates to privacy. Apple changes its re
 
 - **App Store: required.** Guideline 5.1.1(i): "All apps must include a link to their privacy policy in the App Store Connect metadata field and within the app in an easily accessible manner." The policy must say what data is collected, how, and all its uses; that third parties give equal protection; and how data is kept and deleted, and how a user can revoke consent or request deletion. The in-app link is done: Settings → Privacy and data → Privacy policy, the sign-up screen, and the person's first step.
 - **TestFlight external testing: probably required; check.** Many developers report that App Store Connect asks for a privacy policy URL before a build goes to external testers. Apple's own "Provide test information" page names only the Beta App Description (required) and a Feedback Email, so this list couldn't confirm it. Have the URL ready either way. **Internal testing** (your own team in App Store Connect) needs no Beta App Review; check Apple's current TestFlight page to confirm.
-- **No placeholders at review.** Guideline 2.1(a) asks for "fully functional URLs" with "placeholder text, empty websites, and other temporary content" removed. Before submitting, fill in `CONTACT`, `EFFECTIVE_DATE` and `REGION` in `src/lib/privacy-policy.ts` after legal review, run `node scripts/build-policy.mjs`, and host the new `docs/privacy-policy.html`.
+- **No placeholders at review.** Guideline 2.1(a) asks for "fully functional URLs" with "placeholder text, empty websites, and other temporary content" removed. The contact is set (tandemsupport26@gmail.com, from `src/config/brand.ts`, since policy version 2026-11-18). Before submitting, fill in `EFFECTIVE_DATE` and `REGION` in `src/lib/privacy-policy.ts` after legal review, run `node scripts/build-policy.mjs`, and host the new `docs/privacy-policy.html`.
 
 ## 2. Hosting the policy page
 
@@ -74,7 +74,7 @@ Apple requires a privacy manifest (`PrivacyInfo.xcprivacy`) that declares "requi
 
 ## 10. Before every submission
 
-- [ ] Policy reviewed by a lawyer; `CONTACT`, `EFFECTIVE_DATE`, `REGION` filled in; `node scripts/build-policy.mjs`; page hosted; URL in App Store Connect.
+- [ ] Policy reviewed by a lawyer; `EFFECTIVE_DATE` and `REGION` filled in (the contact is set); `node scripts/build-policy.mjs`; page hosted; URL in App Store Connect.
 - [ ] If the words changed after any caregiver agreed: a new `POLICY_VERSION` (caregivers are asked again).
 - [ ] `docs/DATA-INVENTORY.md` matches the build; `node scripts/check-privacy.mjs` passes.
 - [ ] App Privacy answers entered from `docs/app-store-privacy-answers.md`.

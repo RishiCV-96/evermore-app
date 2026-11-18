@@ -15,8 +15,8 @@ export const APP_NAME_LOWER = 'tandem';
 /** A short line about the app, under the logo on the welcome. */
 export const TAGLINE = 'Short stories about the people you love.';
 
-/** Where people write for help. A placeholder until a real address exists: never shown as a link. */
-export const SUPPORT_EMAIL = '[Support email to be added]';
+/** Where people write for help: testers, App Review and the store listing. Never shown as a link. */
+export const SUPPORT_EMAIL = 'tandemsupport26@gmail.com';
 
-/** Where the privacy policy says to write about your information. A placeholder, like SUPPORT_EMAIL. */
-export const POLICY_CONTACT = '[Contact email to be added]';
+/** Where the privacy policy says to write about your information: the same address. Changing it changes the policy (a new POLICY_VERSION). */
+export const POLICY_CONTACT = SUPPORT_EMAIL;
