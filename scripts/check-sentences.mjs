@@ -17,6 +17,7 @@ import { readFileSync } from 'node:fs';
 import { registerHooks } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { DUMP_FACTS } from './dump-sentences.mjs';
 import { ANSWERS, CARD_IDS, LEADS, NAMES, RELATIONSHIPS } from './sentence-inputs.mjs';
 import { versionOneFingerprint } from './sentence-fingerprint.mjs';
 
@@ -92,7 +93,7 @@ check('grammar: verbs for one person, activities, capitals and cleanup', () => {
 
 const ORDINARY_CAPITAL = (word) => grammar.isOrdinaryWord(word) && word !== 'I';
 const PRONOUNS = /\b(he|she|him|her|his|hers|himself|herself)\b/i;
-const DANGLING = /\b(and|or|who|when|where|with|because|which|so|after|that|of|to|the|a|an|is|in|on|at|for|by|named|than)[.?!]["”’)]?$|\band I[.?!]$|,\s*(and|who|when|with)\s*[,.?!]|\b(when|who|with|and)\s*,/i;
+const DANGLING = /\b(and|or|who|when|where|with|because|which|so|after|that|of|to|the|a|an|is|in|on|at|for|by|named|than|as|always|once|enjoys|likes|watching|planning|about|from|into)[.?!]["”’)]?$|\band I[.?!]$|,\s*(and|who|when|with)\s*[,.?!]|\b(when|who|with|and)\s*,/i;
 /** Syllables in a word, roughly (vowel groups, a silent final e). */
 const syllablesIn = (word) => Math.max(1, (word.toLowerCase().replace(/(?<=[^aeiouy])e$/, '').match(/[aeiouy]+/g) ?? []).length);
 /**
@@ -115,8 +116,34 @@ function hardToRead(sentence) {
 /** Kinds of fact whose answers are names or titles, so a capital the caregiver typed stays ("The Wizard of Oz"). */
 const TITLES = new Set(['movie', 'show', 'music', 'team', 'workplace', 'home', 'place', 'nickname', 'calls', 'partner', 'child', 'pet', 'birthday', 'holiday']);
 
+/**
+ * The copy editor's classes found in docs/SENTENCE-DUMP.md (2026-11-18), each a pattern a wrong sentence
+ * has and a right one never does. Every one is planted below to show it fails.
+ */
+const PROPER_ADJECTIVES = /^(English|French|Spanish|German|Italian|Chinese|Japanese|Korean|Greek|Irish|Mexican|American|Indian|Thai|Polish|Russian|Latin|Christmas|Easter|Thanksgiving|Bible|Catholic|Jewish|Sunday)$/;
+const MONTHS = 'January|February|March|April|May|June|July|August|September|October|November|December';
+const COPY_EDIT = [
+  ['missing verb before a thing', (s) => /(?:\{name\}|\b[Pp]erson),? (?:a|an|the) /.test(s)],
+  ['a thing said as a clause', (s) => /\btime when (?:a|an) \w+(?: \w+)?, with\b/.test(s)],
+  ['a plural job for one person', (s) => /\b(?:works as|worked as|work as|is|was) (?:[a-z]+ )?[a-z]*(?:ants|ers|ors|ists|ians|nurses)[.?]$/.test(s)],
+  ['a typed capital mid-sentence', (s, type) => ['work', 'pastwork', 'field', 'interest', 'plans', 'habit'].includes(type) && [...s.matchAll(/\b(?:works as|worked as|work as|is|enjoys|likes|career in|worked in|always|planning to|plans to) (?:an? )?(\p{Lu}\p{Ll}+)(?! \p{Lu})/gu)].some(([, word]) => !PROPER_ADJECTIVES.test(word))],
+  ['a bare noun with no article', (s) => /\b(?:loves going to|loves|has|met|takes care of) (?:park|dog|cat|school|church|beach|lake|store|garden|farm|library|bank|office|bird)[.?]/.test(s)],
+  ['a month needs "in"', (s) => new RegExp(`\\bon (?:${MONTHS})[.?]`).test(s)],
+  ['"you" and "we" in one sentence', (s) => /\byou\b[^.?]*\b(?:we|our|us)\b/i.test(s)],
+  ['"I" with "our"', (s) => /(?<!and )\bI have known (?!each other)[^.?]*\bour\b/.test(s)],
+  ['a name in lower case', (s) => /\b(?:call|goes by|also called) (?:[^.?]*?(?:\{name\}|this person),? )?\p{Ll}[\p{L}]*[.?]$/u.test(s) || /\bMy name for [^.?]* is \p{Ll}[\p{L}]*[.?]$/u.test(s)],
+  ['a favorite that is a kind, not one', (s) => /\bfavorite (?:team|show|place) is (?!the\b|an?\b|home\b|downtown\b)\p{Ll}/u.test(s)],
+  ['an activity with no verb', (s) => /\balways (?:the|a|an|\w+ing)\b/.test(s)],
+  ['"lives with" alone', (s) => /\bwith (?:alone|herself|himself|themselves)\b/.test(s)],
+  ['"I know that this person"', (s) => /^I know that this person\b/.test(s)],
+  ['"planning to" a thing', (s) => /\b(?:planning|plans) to (?:a|an|the)\b/.test(s)],
+  ['two pets said as one', (s) => /\bhas \p{Lu}\w+ and \p{Lu}\w+[.?]$/u.test(s)],
+  ['two partners as one', (s) => /\bpartner is [^.?]* and /.test(s)],
+];
+
 function problemsIn(sentence, { kind = 'blank', typed = '', name = 'June', typical = false, type = 'memory' } = {}) {
   const found = [];
+  for (const [problem, test] of COPY_EDIT) if (test(sentence.replace(/ Who is this\?$/, ''), type)) found.push(problem);
   const statement = sentence.replace(/ Who is this\?$/, '');
   if (/\{(?!name\})[^}]*\}|\^|\[(NAME|PERSON_\d+|FACT[^\]]*)\]/.test(sentence)) found.push('unresolved placeholder');
   if (/ {2,}/.test(sentence)) found.push('double space');
@@ -168,6 +195,35 @@ check('each check fails on a planted bad sentence', () => {
     const found = problemsIn(sentence, { typical: true });
     assert.ok(found.some((one) => one.startsWith(problem)), `"${sentence}" should fail "${problem}", found: ${found.join('; ') || 'nothing'}`);
   }
+  // The copy editor's classes (docs/SENTENCE-DUMP.md): each "before" sentence fails, its fixed sentence passes.
+  const before = [
+    [`${BLANK} an early riser.`, `${BLANK} is an early riser.`, 'missing verb before a thing', 'memory'],
+    [`There was a time when a picnic, with ${BLANK} and me.`, `I remember a picnic with ${BLANK}.`, 'a thing said as a clause', 'shared'],
+    [`${BLANK} works as accountants.`, `${BLANK} works as an accountant.`, 'a plural job for one person', 'work'],
+    [`${BLANK} works as Nurse at the clinic.`, `${BLANK} works as a nurse at the clinic.`, 'a typed capital mid-sentence', 'work'],
+    [`${BLANK} loves going to park.`, `${BLANK} loves going to the park.`, 'a bare noun with no article', 'place'],
+    [`${BLANK} and I met school.`, `${BLANK} and I met at school.`, 'a bare noun with no article', 'met'],
+    [`${BLANK}’s birthday is on May.`, `${BLANK}’s birthday is in May.`, 'a month needs "in"', 'birthday'],
+    ['Who did you meet when we were 5?', 'Who did you meet at school?', '"you" and "we" in one sentence', 'met'],
+    [`I have known ${BLANK} all our lives.`, `${BLANK} and I have known each other all our lives.`, '"I" with "our"', 'known'],
+    [`I call ${BLANK} grandma.`, `I call ${BLANK} Grandma.`, 'a name in lower case', 'calls'],
+    [`${BLANK}’s favorite team is baseball.`, `${BLANK}’s favorite team is the Otters.`, 'a favorite that is a kind, not one', 'team'],
+    [`${BLANK} and I always camping.`, `${BLANK} and I always went camping.`, 'an activity with no verb', 'regular'],
+    [`${BLANK} lives with alone.`, `${BLANK} lives alone.`, '"lives with" alone', 'lives_with'],
+    ['I know that this person grows tomatoes. Who is this?', 'This person grows tomatoes. Who is this?', '"I know that this person"', 'memory'],
+    [`${BLANK} is planning to a trip to Maine.`, `${BLANK} is planning a trip to Maine.`, '"planning to" a thing', 'plans'],
+    [`${BLANK} is planning to to visit Spain.`, `${BLANK} is planning to visit Spain.`, 'repeated word', 'plans'],
+    [`${BLANK} has Rex and Bella.`, `${BLANK} has pets named Rex and Bella.`, 'two pets said as one', 'pet'],
+    [`${BLANK}’s partner is Sam and Alex.`, `${BLANK}’s partner is Sam.`, 'two partners as one', 'partner'],
+    [`${BLANK} works as.`, `${BLANK} works as a nurse.`, 'dangling bridge word', 'work'],
+  ];
+  for (const [bad, good, problem, type] of before) {
+    const found = problemsIn(bad, { type });
+    assert.ok(found.some((one) => one.startsWith(problem)), `"${bad}" should fail "${problem}", found: ${found.join('; ') || 'nothing'}`);
+    const fixed = problemsIn(good, { type, kind: good.includes(BLANK) ? 'blank' : 'ask' });
+    assert.deepEqual(fixed, [], `"${good}" should pass`);
+  }
+  assert.equal(COPY_EDIT.filter(([problem]) => !before.some(([, , planted]) => planted === problem)).length, 0, 'every copy-edit class is planted');
   assert.deepEqual(problemsIn(`My aunt, ${BLANK}, loves to bake bread.`, { typical: true }), [], 'a good sentence passes');
   assert.deepEqual(problemsIn('Who loves to bake bread?', { kind: 'ask', typical: true }), []);
 });
@@ -181,7 +237,9 @@ const failures = [];
 let sentences = 0;
 const seen = new Map();
 for (const type of stories.FACT_TYPES) {
-  for (const [typed, typical] of ANSWERS[type]) {
+  // The answers of the dump (docs/SENTENCE-DUMP.md) too, as typed: the empty ones are checked apart, below.
+  const answers = [...ANSWERS[type], ...DUMP_FACTS[type].filter((one) => one.trim()).map((one) => [one, false])];
+  for (const [typed, typical] of answers) {
     for (const relationship of RELATIONSHIPS) {
       // The optional parts a fact of this kind can really have: a year only on a memory that asks for one,
       // a month only on a fact that may change. Each is tried both filled and empty.
@@ -222,6 +280,16 @@ check(`wording 2: ${sentences} sentences, phrasings and hints, every optional pa
     for (const kind of Object.keys(kinds)) console.log([...new Set(failures.filter((one) => one.includes(kind)).map((one) => one.replace(/, (sample|card|f3b1)[^ ]* \[/, ' [')))].slice(0, 4).join('\n'));
   }
   assert.deepEqual(failures.slice(0, 12), [], `${failures.length} problems`);
+});
+
+check('an empty answer gives no sentence and no card, in every kind of fact', () => {
+  for (const type of stories.FACT_TYPES) {
+    for (const typed of ['', '   ', '.']) {
+      const fact = { type, text: typed, timeSensitive: false, id: 'card-a', wording: 2 };
+      assert.equal(stories.sentenceFor({ relationship: 'aunt', name: 'June' }, fact), '', `${type} "${typed}"`);
+      assert.deepEqual(stories.phrasingsFor({ relationship: 'aunt', hasPhoto: true, name: 'June' }, fact), [], `${type} "${typed}": no phrasing, so cardsOf drops the card`);
+    }
+  }
 });
 
 check('the hint ladder still works on wording 2: the same order, and each hint’s fact stands apart from the card', () => {

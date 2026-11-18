@@ -5,7 +5,7 @@
 // Nothing here writes new words about a person. Two wordings exist (Fact.wording): version 1, the
 // original shapes below, kept exactly for every card approved or in use before 2026-11-18; and version
 // 2, the fluent frames in src/lib/wording.ts, for new and edited drafts (docs/SENTENCE-AUDIT.md).
-import { askMetV2, askV2, callsV2, favoriteV2, sentenceV2, thisPersonV2 } from '@/lib/wording';
+import { askMetV2, askV2, callsV2, favoriteV2, hasWords, sentenceV2, thisPersonV2 } from '@/lib/wording';
 
 /** One person as a deck (src/data/sample-deck.ts, or the gitignored src/data/deck.local.ts) lists them. */
 export type Person = {
@@ -367,6 +367,8 @@ export function phrasingsFor(about: { relationship?: string; hasPhoto: boolean; 
 
 /** The same shapes in wording 2: the same ids, kinds and cue levels, so turning one off, cue fading and rotation work as before. */
 function phrasingsTwo(about: { relationship?: string; hasPhoto: boolean; name?: string }, fact: Fact): Phrasing[] {
+  // A fact with no words gives no card at all (cardsOf drops a card with nothing to ask), never "My aunt, ____, works as."
+  if (!hasWords(fact)) return [];
   const reveal = sentenceFor(about, fact);
   return PHRASINGS[fact.type].flatMap((id) => {
     const shape = SHAPES[id];

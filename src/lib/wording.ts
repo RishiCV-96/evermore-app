@@ -62,6 +62,39 @@ const HOBBY_VERBS = new Set('knit paint bake cook read fish swim dance sing sew 
 const DOING_VERBS = new Set('teaches works runs owns drives manages sells fixes cleans builds helps writes designs cooks bakes makes cares delivers repairs serves leads'.split(' '));
 const PAST_VERBS = /^(\w+ed|taught|ran|drove|sold|built|wrote|made|owned|led|kept|grew|flew|went|spent|took|saw|met|got|had|did|came|left|found|lost|won|ate|sang|gave|threw)$/i;
 const STARTS_A_CLAUSE = /^(our|my|the|a|an|it|there|everyone|everybody|nobody|they|his|her|their|this|that|grandma|grandpa)\b/i;
+/** A verb somewhere in the words: a clause ("our car broke down"), not just a thing ("a picnic"). */
+const HAS_VERB =
+  /\b(\w+ed|was|were|is|are|am|had|has|have|went|came|broke|fell|got|took|made|saw|ran|left|caught|found|lost|won|ate|sang|gave|threw|drove|flew|sat|stood|bought|brought|told|said|met|did|became|began|kept|grew|swam|rode|wrote|spent|stayed|played|danced|laughed|cried|sang|slept|woke|knew|thought|felt|heard|built|paid|sold|won)\b/i;
+/** Words that start a thing, not an action: "a picnic", "the park", "an early riser". */
+const STARTS_A_THING = /^(a|an|the|one|our|my|his|her|their)\s/i;
+/** A capital that isn't the keyboard's (job and hobby fields never capitalize): a language or nation, a holiday. */
+const PROPER_FIRST_WORDS = new Set(
+  'english french spanish german italian chinese japanese korean greek irish scottish welsh mexican american canadian indian thai polish russian dutch swedish norwegian latin hebrew arabic christmas easter thanksgiving bible catholic jewish christian muslim sunday monday tuesday wednesday thursday friday saturday'.split(' '),
+);
+const MONTH = /^(january|february|march|april|may|june|july|august|september|october|november|december)$/i;
+const PREPOSITION = /^(at|in|on|through|thanks to|via|when|while|after|before|during|since|because|by|near|from|outside|inside|over|under|across)\b/i;
+
+/**
+ * "Nurse at the clinic" → "nurse at the clinic", "Golf" → "golf": a capital on only the first word of an
+ * answer to a field whose keyboard never adds one (a job, a hobby) is the typist's, not a name's. Kept: a
+ * second capital ("Red Cross volunteer"), all capitals ("IT"), and languages, nations and holidays.
+ */
+export function lowerTypedCapital(text: string) {
+  const words = text.split(/\s+/);
+  const first = words[0] ?? '';
+  if (!/^\p{Lu}\p{Ll}/u.test(first) || PROPER_FIRST_WORDS.has(first.toLowerCase().replace(/[^a-z]/g, ''))) return text;
+  if (words.slice(1).some((word) => /^\p{Lu}/u.test(word))) return text;
+  return `${first[0].toLowerCase()}${text.slice(1)}`;
+}
+
+/** "accountants" → "accountant", "secretaries" → "secretary", "nurses" → "nurse": a job held by one person. */
+export function singular(phrase: string) {
+  if (!isPlural(phrase)) return phrase;
+  const words = phrase.split(' ');
+  const last = words.pop()!;
+  const one = /[^aeiou]ies$/i.test(last) && last.length > 4 ? `${last.slice(0, -3)}y` : /(ches|shes|xes|sses)$/i.test(last) ? last.slice(0, -2) : last.slice(0, -1);
+  return [...words, one].join(' ');
+}
 
 /** Tidy as stories.ts does, and drop end marks a question can't keep (? and ! too). Quotes stay. */
 function tidy(text: string) {
@@ -93,26 +126,39 @@ function withoutOurselves(text: string, name?: string) {
 /** What a caregiver's words became, and which shape of answer they are. */
 type Fitted = { text: string; shape: string };
 
+/** A name used as a form of address is capitalized: "grandma" → "Grandma", "doc" → "Doc". One word only. */
+const nameCapital = (text: string) => (/^\p{Ll}[\p{L}’'-]*$/u.test(text) ? `${text[0].toUpperCase()}${text.slice(1)}` : text);
+
 /** Fits what the caregiver typed to the slot its kind of fact has. Only grammar words change. */
 export function fitWords(type: FactType, typed: string, name?: string): Fitted {
   let text = tidy(typed);
   switch (type) {
     case 'memory':
     case 'situation':
-    case 'lives_with':
+    case 'lives_with': {
       text = lowerOrdinaryFirst(withoutSubject(text));
       if (type === 'situation') text = text.replace(/^is\s+/i, '');
-      if (type === 'lives_with') text = text.replace(/^lives with\s+/i, '');
+      if (type === 'lives_with') {
+        text = text.replace(/^lives with\s+/i, '').replace(/^lives\s+(?=alone\b|by\s)/i, '');
+        // "alone", "by herself": no one to live with.
+        if (/^(alone|by (herself|himself|themselves|myself))\b/i.test(text)) return { text, shape: 'alone' };
+      }
+      // "an early riser", "always cheerful": a thing or a state, not an action, so it takes "is".
+      const first = text.match(/^[a-z]+/i)?.[0]?.toLowerCase() ?? '';
+      if (type === 'memory' && ((STARTS_A_THING.test(text) && !HAS_VERB.test(text)) || STATES.has(first) || /^(very|so|always|still)\s+\w+$/i.test(text) && STATES.has(text.split(' ')[1]?.toLowerCase()))) {
+        return { text, shape: 'state' };
+      }
       return { text, shape: 'plain' };
+    }
     case 'habit': {
-      text = lowerOrdinaryFirst(withoutSubject(text)).replace(/^always\s+/i, '');
+      text = lowerTypedCapital(lowerOrdinaryFirst(withoutSubject(text))).replace(/^always\s+/i, '');
       const first = text.match(/^[a-z]+/i)?.[0]?.toLowerCase() ?? '';
       if (STATES.has(first)) return { text, shape: 'state' };
       if (BASE_VERBS.has(first)) text = `${thirdPerson(first)}${text.slice(first.length)}`;
       return { text, shape: 'verb' };
     }
     case 'interest': {
-      text = lowerOrdinaryFirst(withoutSubject(text)).replace(/^enjoys\s+/i, '');
+      text = lowerTypedCapital(lowerOrdinaryFirst(withoutSubject(text))).replace(/^enjoys\s+/i, '');
       const toVerb = /^to\s+/i.test(text);
       if (toVerb) text = text.replace(/^to\s+/i, '');
       const first = text.match(/^[a-z]+/i)?.[0] ?? '';
@@ -123,26 +169,43 @@ export function fitWords(type: FactType, typed: string, name?: string): Fitted {
     }
     case 'work':
     case 'pastwork': {
-      text = lowerOrdinaryFirst(withoutSubject(text)).replace(/^(is|was|works as|worked as)\s+/i, '');
+      text = lowerTypedCapital(lowerOrdinaryFirst(withoutSubject(text))).replace(/^(is|was|works as|worked as)\s+/i, '');
       const first = text.match(/^[a-z]+/i)?.[0] ?? '';
       if (type === 'work' && DOING_VERBS.has(first.toLowerCase())) return { text, shape: 'doing' };
       if (type === 'pastwork' && PAST_VERBS.test(first)) return { text, shape: 'doing' };
       if (/(ed|ing)$/i.test(first) && !/^(red)$/i.test(first)) return { text, shape: 'state' };
-      return { text: withArticle(text), shape: 'role' };
+      // One person holds one job: "accountants" → "an accountant". A list of jobs ("farmer and carpenter") stays.
+      const one = /\band\b|,/.test(text) ? text : singular(text);
+      return { text: withArticle(one), shape: 'role' };
     }
     case 'plans':
-      text = lowerOrdinaryFirst(withoutSubject(text)).replace(/^is\s+/i, '');
-      return { text, shape: /^\w+ing\b/i.test(text) ? 'doing' : 'base' };
+      text = lowerTypedCapital(lowerOrdinaryFirst(withoutSubject(text))).replace(/^is\s+/i, '').replace(/^(planning|plans|going) to\s+/i, '').replace(/^to\s+/i, '');
+      if (/^\w+ing\b/i.test(text)) return { text, shape: 'doing' };
+      // "a trip to Maine": a thing being planned, not a verb.
+      return { text, shape: STARTS_A_THING.test(text) ? 'thing' : 'base' };
+    case 'field':
+      return { text: lowerTypedCapital(text), shape: 'plain' };
     case 'team':
-      // "Otters" is a team's name in the plural: "the Otters".
+      // "Otters" is a team's name in the plural: "the Otters". No capital at all ("baseball") is a sport, not a team.
+      if (!/\p{Lu}/u.test(text)) return { text, shape: 'sport' };
       return { text: /^[A-Z]\w*s$/.test(text) ? `the ${text}` : text, shape: 'plain' };
+    case 'show':
+      // "game shows" is a kind of show, not one: never "favorite show is game shows".
+      return { text, shape: /^[a-z]/.test(text) && isPlural(text) ? 'kind' : 'plain' };
     case 'movie':
       text = text.replace(/^the movie\s+/i, '');
       return { text, shape: /^[a-z]/.test(text) && isPlural(text) ? 'kind' : 'title' };
-    case 'place':
-      return { text, shape: /^\w+ing\b/i.test(text) ? 'doing' : 'plain' };
+    case 'place': {
+      if (/^\w+ing\b/i.test(text)) return { text, shape: 'doing' };
+      // "beaches" is a kind of place; "park" needs "the" ("loves going to the park").
+      if (/^[a-z]/.test(text) && isPlural(text)) return { text, shape: 'kind' };
+      if (/^[a-z][a-z ]*$/.test(text) && !STARTS_A_THING.test(text) && !/^(home|downtown|church|school|work|outside|abroad|camp)$/i.test(text)) return { text: `the ${text}`, shape: 'plain' };
+      return { text, shape: 'plain' };
+    }
     case 'shared': {
       text = withoutOurselves(text.replace(/^(a|the|one) time\s+(when\s+|that\s+)?/i, ''), name);
+      // "a picnic": a thing that happened, with no verb, so it is remembered rather than done.
+      if (STARTS_A_THING.test(text) && !HAS_VERB.test(text)) return { text: lowerOrdinaryFirst(text), shape: 'thing' };
       if (STARTS_A_CLAUSE.test(text)) {
         // A whole clause ("our car came to life and we had to save the world"): its own "we" is "____ and I".
         return /\bwe\b/i.test(text) ? { text, shape: 'clause-we' } : { text, shape: 'clause' };
@@ -152,8 +215,11 @@ export function fitWords(type: FactType, typed: string, name?: string): Fitted {
     case 'regular': {
       const place = /^(the|a) place\s+(where\s+)?we\s+(always\s+)?(used to\s+)?(went|go)(\s+to)?(\s+(was|is))?\s+/i.exec(text);
       if (place) text = `went to ${text.slice(place[0].length)}`;
-      text = withoutOurselves(text, name).replace(/^always\s+/i, '');
-      return { text: lowerOrdinaryFirst(text), shape: 'verb' };
+      text = lowerOrdinaryFirst(withoutOurselves(text, name).replace(/^always\s+/i, ''));
+      // "camping" → "went camping"; "the park" → "went to the park": what the question ("NAME and I always…") means.
+      if (/^\w+ing\b/i.test(text) && !HAS_VERB.test(text.split(' ').slice(1).join(' '))) text = `went ${text}`;
+      else if (STARTS_A_THING.test(text) && !HAS_VERB.test(text)) text = `went to ${text}`;
+      return { text, shape: 'verb' };
     }
     case 'holiday': {
       text = lowerOrdinaryFirst(withoutOurselves(text.replace(/^(a|the|one) holiday\s+(when\s+|that\s+)?/i, ''), name));
@@ -165,19 +231,24 @@ export function fitWords(type: FactType, typed: string, name?: string): Fitted {
     }
     case 'met':
       text = withoutOurselves(text.replace(/^(we|you and i|i)\s+(first\s+)?met\s+/i, '').replace(/^(first\s+)?met\s+/i, ''), name);
-      return { text, shape: 'plain' };
+      // "school" → "at school": a bare place needs its preposition.
+      if (text && !PREPOSITION.test(text)) text = `at ${text}`;
+      // "when we were 5" is said by "I": it can't become "Who did you meet when we were 5?"
+      return { text, shape: /\b(we|our|us)\b/i.test(text) ? 'ours' : 'plain' };
     case 'known': {
       text = text.replace(/^(we|we've|we have)\s+(have\s+)?known each other\s+/i, '');
-      return { text: /^\d/.test(text) ? `for ${text}` : text, shape: 'plain' };
+      // "all our lives" belongs with "each other", never "I have known June all our lives".
+      return { text: /^\d/.test(text) ? `for ${text}` : text, shape: /\b(we|our|us)\b/i.test(text) ? 'ours' : 'plain' };
     }
     case 'home':
       return { text: text.replace(/^(lives\s+)?in\s+/i, ''), shape: 'plain' };
     case 'birthday':
-      return { text: /^(in|on)\s+/i.test(text) ? text : `on ${text}`, shape: 'plain' };
+      // A month alone is "in May"; a day is "on March 3".
+      return { text: /^(in|on)\s+/i.test(text) ? text : `${MONTH.test(text) ? 'in' : 'on'} ${text}`, shape: 'plain' };
     case 'nickname':
-      return { text: text.replace(/^(goes by|is called|called)\s+/i, ''), shape: 'plain' };
+      return { text: nameCapital(text.replace(/^(goes by|is called|called)\s+/i, '')), shape: 'plain' };
     case 'calls':
-      return { text: text.replace(/^i call (her|him|them)\s+/i, ''), shape: 'plain' };
+      return { text: nameCapital(text.replace(/^i call (her|him|them)\s+/i, '')), shape: 'plain' };
     case 'partner':
     case 'child': {
       const names = splitList(text);
@@ -186,6 +257,8 @@ export function fitWords(type: FactType, typed: string, name?: string): Fitted {
     }
     case 'pet':
       if (/^[A-Z][\w’'-]*$/.test(text)) return { text, shape: 'named' };
+      // "Rex and Bella": two names, so two pets.
+      if (splitList(text).length > 1 && splitList(text).every((one) => /^[A-Z][\w’'-]*$/.test(one))) return { text: joinList(splitList(text)), shape: 'named-many' };
       return { text: withArticle(lowerOrdinaryFirst(text)), shape: 'plain' };
     default:
       return { text, shape: 'plain' };
@@ -198,7 +271,7 @@ export function fitWords(type: FactType, typed: string, name?: string): Fitted {
 // ---------------------------------------------------------------------------------------
 
 type Frame = (w: Who, t: string, year?: number) => string;
-type Frames = { sentences: Frame[]; asks?: string[] };
+type Frames = { sentences: Frame[]; asks?: string[]; noAsk?: boolean };
 
 /** A sentence from a predicate: "My aunt, ____, enjoys gardening." */
 const say = (predicate: string): Frame => (w, t) => `${w.start} ${predicate.replace('{t}', t)}`;
@@ -208,11 +281,13 @@ function framesFor(type: FactType, { text, shape }: Fitted): Frames {
   const once = !/\b(every|always|each|often|usually|whenever)\b/i.test(t);
   switch (type) {
     case 'memory':
+      if (shape === 'state') return { sentences: [say('is {t}'), (w) => `I know that ${w.mid} is ${t}`], asks: ['is {t}'] };
       return { sentences: [say('{t}'), (w) => `I know that ${w.mid} ${t}`], asks: ['{t}'] };
     case 'situation':
     case 'marital':
       return { sentences: [say('is {t}')], asks: ['is {t}'] };
     case 'lives_with':
+      if (shape === 'alone') return { sentences: [say('lives {t}')], asks: ['lives {t}'] };
       return { sentences: [say('lives with {t}'), say('shares a home with {t}')], asks: ['lives with {t}', 'shares a home with {t}'] };
     case 'habit':
       return shape === 'state' ? { sentences: [say('is always {t}')], asks: ['is always {t}'] } : { sentences: [say('always {t}')], asks: ['always {t}'] };
@@ -231,8 +306,10 @@ function framesFor(type: FactType, { text, shape }: Fitted): Frames {
       return { sentences: [say('has worked or studied at {t}'), say('spent time working or studying at {t}')], asks: ['has worked or studied at {t}'] };
     case 'plans':
       if (shape === 'doing') return { sentences: [say('is {t}')], asks: ['is {t}'] };
+      if (shape === 'thing') return { sentences: [say('is planning {t}')], asks: ['is planning {t}'] };
       return { sentences: [say('is planning to {t}'), say('plans to {t}')], asks: ['is planning to {t}', 'plans to {t}'] };
     case 'team':
+      if (shape === 'sport') return { sentences: [say('loves {t}'), say('is a fan of {t}')], asks: ['loves {t}', 'is a fan of {t}'] };
       return { sentences: [say('loves {t}'), say('is a fan of {t}'), say('cheers for {t}')], asks: ['loves {t}', 'is a fan of {t}', 'cheers for {t}'] };
     case 'show':
       return { sentences: [say('loves watching {t}'), say('likes to watch {t}')], asks: ['loves watching {t}', 'likes to watch {t}'] };
@@ -252,6 +329,7 @@ function framesFor(type: FactType, { text, shape }: Fitted): Frames {
         return { sentences: [(w, _t, year) => (year ? `In ${year}, there was a time when ${ours(w)}` : `There was a time when ${ours(w)}`)] };
       }
       if (shape === 'clause') return { sentences: [(w, _t, year) => `${year ? `In ${year}, there` : 'There'} was a time when ${t}, with ${w.mid} and me`] };
+      if (shape === 'thing') return { sentences: [(w, _t, year) => `I remember ${t} with ${w.mid}${year ? ` in ${year}` : ''}`] };
       return {
         sentences: [
           (w, _t, year) => (year ? `In ${year}, ${w.mid} and I ${t}` : `There was a time when ${w.mid} and I ${t}`),
@@ -268,8 +346,9 @@ function framesFor(type: FactType, { text, shape }: Fitted): Frames {
       return { sentences: [(w, _t, year) => `${lead(w, year)} and I spent ${t} together`] };
     }
     case 'met':
-      return { sentences: [(w) => `${w.start} and I met ${t}`, (w) => `I met ${w.mid} ${t}`], asks: [] };
+      return { sentences: [(w) => `${w.start} and I met ${t}`, (w) => `I met ${w.mid} ${t}`], asks: [], ...(shape === 'ours' ? { noAsk: true } : {}) };
     case 'known':
+      if (shape === 'ours') return { sentences: [(w) => `${w.start} and I have known each other ${t}`] };
       return { sentences: [(w) => `${w.start} and I have known each other ${t}`, (w) => `I have known ${w.mid} ${t}`] };
     case 'home':
       return { sentences: [say('lives in {t}'), (w) => `${w.poss} home is in ${t}`], asks: ['lives in {t}'] };
@@ -288,6 +367,7 @@ function framesFor(type: FactType, { text, shape }: Fitted): Frames {
       return { sentences: [say('has a child named {t}'), say('is the parent of {t}')], asks: ['has a child named {t}', 'is the parent of {t}'] };
     case 'pet':
       if (shape === 'named') return { sentences: [say('has a pet named {t}')], asks: ['has a pet named {t}'] };
+      if (shape === 'named-many') return { sentences: [say('has pets named {t}')], asks: ['has pets named {t}'] };
       return { sentences: [say('has {t}'), say('takes care of {t}')], asks: ['has {t}', 'takes care of {t}'] };
     default:
       return { sentences: [say('{t}')], asks: ['{t}'] };
@@ -351,21 +431,28 @@ function pick(options: string[], id?: string) {
   return lengths.indexOf(Math.min(...lengths));
 }
 
-/** The approved sentence in wording 2, with the blank for the name. */
+/** Whether a fact has any words to build a sentence from. A fact with none gives no sentence and no card. */
+export const hasWords = (fact: Pick<Fact, 'text'>) => Boolean(fact.text?.replace(/[\s.,;:!?"“”'‘’]+/g, ''));
+
+/** The approved sentence in wording 2, with the blank for the name; empty for a fact with no words. */
 export function sentenceV2(about: About, fact: Fact) {
+  if (!hasWords(fact)) return '';
   const { sentences } = sentencesOf(fact, whoOf(about), about.name);
   return sentences[pick(sentences, fact.id)];
 }
 
 /** "This person …", for a "Who is this?" card and the fact hint: the same variant as the card's sentence. */
 export function thisPersonV2(fact: Fact, about: About = {}) {
+  if (!hasWords(fact)) return '';
   const own = sentencesOf(fact, whoOf(about), about.name).sentences;
   const theirs = sentencesOf(fact, THIS_PERSON, about.name).sentences;
-  return theirs[pick(own, fact.id)];
+  // "I know that this person …" over a photo reads oddly: "This person …" says it.
+  return theirs[pick(own, fact.id)].replace(/^I know that this person\b/, 'This person');
 }
 
 /** The words after "Who" in a question card, or undefined when this kind of fact isn't asked that way. */
 export function askV2(fact: Fact, about: About = {}) {
+  if (!hasWords(fact)) return undefined;
   const fitted = fitted2(fact, about.name);
   const asks = framesFor(fact.type, fitted).asks;
   if (!asks?.length) return undefined;
@@ -377,19 +464,26 @@ export function askV2(fact: Fact, about: About = {}) {
 /** "____’s favorite food is lasagna." and "Whose favorite food is lasagna?" */
 export function favoriteV2(fact: Fact, favorite: string, whose: boolean) {
   // A birthday keeps its own "on March 3" (fitWords adds it); everything else reads "is the Otters".
+  if (!hasWords(fact)) return undefined;
   const { text, shape } = fitted2(fact);
-  // "Favorite place is going to the beach" and "favorite movie is old westerns" don't fit: not asked this way.
-  if (shape === 'doing' || shape === 'kind') return undefined;
+  // "Favorite place is going to the beach", "favorite movie is old westerns", "favorite team is baseball" and
+  // "partner is Sam and Alex" don't fit: not asked this way.
+  if (shape === 'doing' || shape === 'kind' || shape === 'sport' || shape === 'many') return undefined;
   return whose ? cleanSentence(lead(asOfLead(fact), `Whose ${favorite} is ${text}`), '?') : cleanSentence(lead(asOfLead(fact), `${possessive(BLANK)} ${favorite} is ${text}`));
 }
 
 /** "Who did you meet at church?" */
 export function askMetV2(fact: Fact) {
-  return cleanSentence(`Who did you meet ${fitted2(fact).text}`, '?');
+  if (!hasWords(fact)) return undefined;
+  const fitted = fitted2(fact);
+  // "Who did you meet when we were 5?" mixes "you" and "we": that card is asked another way.
+  if (fitted.shape === 'ours') return undefined;
+  return cleanSentence(`Who did you meet ${fitted.text}`, '?');
 }
 
 /** "Who do you call Nana?" and "You call this person Nana." */
 export function callsV2(fact: Fact, ask: boolean) {
+  if (!hasWords(fact)) return undefined;
   const { text } = fitted2(fact);
   return ask ? cleanSentence(`Who do you call ${text}`, '?') : cleanSentence(`You call this person ${text}`);
 }
