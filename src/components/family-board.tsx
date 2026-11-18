@@ -33,7 +33,12 @@ export function FamilyBoard({ notes }: { notes: FamilyNote[] }) {
         <NoteCard key={note.id} note={note} />
       ))}
       <View testID="board-view-only" style={styles.viewOnly}>
-        <Ionicons name="eye-outline" size={ICON} color={Colors.textMuted} aria-hidden />
+        <View style={styles.viewOnlyLabel}>
+          <Ionicons name="eye-outline" size={ICON} color={Colors.textMuted} aria-hidden />
+          <AppText bold size="caption" muted>
+            View only
+          </AppText>
+        </View>
         <AppText size="caption" muted center>
           New notes from your family appear here.
         </AppText>
@@ -145,11 +150,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Space.xs,
   },
+  // Who it is from, then Read aloud on its own line: the same on every card, whatever the name's length.
   footer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: Space.m,
   },
   from: {
@@ -184,10 +187,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.skySoft,
   },
   viewOnly: {
+    alignItems: 'center',
+    gap: Space.xs,
+    paddingVertical: Space.s,
+  },
+  viewOnlyLabel: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: Space.s,
-    paddingVertical: Space.s,
   },
 });
