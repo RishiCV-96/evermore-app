@@ -24,7 +24,7 @@ The app reads exactly these four, all `EXPO_PUBLIC_` (inlined into the app, so p
 | `EXPO_PUBLIC_MANAGE_FAMILY_FUNCTION` | `manage-family` | Plain text |
 | `EXPO_PUBLIC_GENERATE_QUESTIONS_FUNCTION` | `generate-questions` | Plain text |
 
-Never create `EXPO_PUBLIC_LOCAL_ONLY` or `EXPO_PUBLIC_CLEAR_TEST_DATA` on EAS. Without the two function variables the app calls the development project's slugs (`dynamic-api`, `clever-service`), which don't exist in production: Their login and Delete account would fail. Without the URL or key the app stops at launch with a message naming them.
+Never create `EXPO_PUBLIC_LOCAL_ONLY` or `EXPO_PUBLIC_CLEAR_TEST_DATA` on EAS. Without the two function variables the app calls the development project's slugs (`dynamic-api`, `clever-service`), which don't exist in production: Their login and Delete account would fail. Without the URL or key the built app closes as soon as it opens (Expo Go shows a message naming them).
 
 ## Part A. The production Supabase project
 
@@ -173,7 +173,7 @@ npx expo start --clear
 npm test
 ```
 
-- **You should see** `All 15 suites passed`. `check-store.mjs` prints the upload's size (about 240 files, under 5 MB) and that the screenshot folders are left out.
+- **You should see** `All 15 suites passed`. For the details, `node scripts/check-store.mjs` lists what an upload would hold (about 240 files, under 5 MB) and that the screenshot folders are left out.
 - **If anything fails**, stop: don't build until it passes.
 
 ### C2. Log in to Expo
