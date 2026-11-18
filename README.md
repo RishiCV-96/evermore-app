@@ -9,7 +9,7 @@ Tandem is a practice tool, not a medical device. The name is a placeholder pendi
 - **The app** runs in Expo Go (Expo SDK 58). It has 8 screens: sign-in (a welcome, the person's sign-in and the caregiver's forms, as steps), the person's home, practice, wrap-up, the caregiver dashboard, add a person, story approval, and Insights.
 - **Sign-in is on by default** (see [Sign-in on or off](#sign-in-on-or-off)). For development without a server, `npm run start:local` opens straight on the person's home, practices the example deck, and keeps everything on the phone.
 - **Supabase** holds the accounts, people, stories, practice activity and photos. Row Level Security keeps each family's data to itself. Photos are in a private bucket.
-- **Two Edge Functions.** `manage-family`, deployed at the URL slug `dynamic-api`, does the three things the app must not do with its public key: create the person's login, reset it, and delete a whole family. `generate-questions`, at the URL slug `clever-service`, writes AI questions, and is off until you turn it on (see [AI questions](#ai-questions)).
+- **Two Edge Functions.** `manage-family` does the three things the app must not do with its public key: create the person's login, reset it, and delete a whole family. `generate-questions` writes AI questions, and is off until you turn it on (see [AI questions](#ai-questions)). The app calls each at the URL slug in `src/config/functions.ts`, which reads `EXPO_PUBLIC_MANAGE_FAMILY_FUNCTION` and `EXPO_PUBLIC_GENERATE_QUESTIONS_FUNCTION` and otherwise uses the development project's slugs, `dynamic-api` and `clever-service`. The production project's functions are deployed with the CLI under their own names (`docs/RELEASE-STEPS.md`).
 - **The look** follows `DESIGN-UI.md`: colors from the logo (`src/theme/colors.ts`), one type scale, and a **Text size** setting with four levels.
 
 ## Sign-in on or off
@@ -68,14 +68,13 @@ The function needs a secret key. You set it in Supabase yourself; it never goes 
 
 1. **Make a secret key:** **Project Settings → API Keys → Secret keys → Add new secret key**. Copy it. It starts with `sb_secret_`.
 2. **Store it as a function secret:** **Edge Functions → Secrets**. Add `EVERMORE_SECRET_KEY` with that value. It must be the secret key: with the publishable key the function can tell who is calling but can't read the tables, so every action fails. (If the project still has the legacy `service_role` key, the function falls back to Supabase's built-in `SUPABASE_SERVICE_ROLE_KEY` and this step is optional.)
-3. **Deploy**, either way:
-   - **Dashboard:** **Edge Functions → Deploy a new function → Via editor**. Name it `manage-family` and paste `supabase/functions/manage-family/index.ts`. Turn **off** "Verify JWT", because the function checks the caller's session itself. Then deploy.
-   - **CLI:**
-     ```bash
-     npx supabase login
-     npx supabase functions deploy manage-family --project-ref <project-ref> --no-verify-jwt
-     ```
-4. **Check the URL slug.** The app calls the function at the slug in `src/config/functions.ts`. This project's function was made in the dashboard editor, which named its URL **`dynamic-api`** (the dashboard shows the name manage-family, but the URL is `/functions/v1/dynamic-api`), so that is what the constant holds. A CLI deploy from this repo uses the slug `manage-family`; if you deploy that way, or under any other slug, change the constant to match.
+3. **Deploy with the CLI, naming the function** (the way for any new project, production included). The name is the folder under `supabase/functions/`, and it becomes the URL slug, so the URL is `/functions/v1/manage-family`:
+   ```bash
+   npx supabase login
+   npx supabase functions deploy manage-family --project-ref <project-ref> --no-verify-jwt
+   ```
+   `--no-verify-jwt` is needed because the function checks the caller's session itself. (The dashboard's **Deploy a new function → Via editor** also works, but its editor may make up a slug of its own, as it did for the development project.)
+4. **Tell the app the slug.** The app calls the slug in `src/config/functions.ts`: `EXPO_PUBLIC_MANAGE_FAMILY_FUNCTION` if it is set, otherwise **`dynamic-api`**, the slug the dashboard editor gave the development project's function (its dashboard shows the name manage-family, but the URL is `/functions/v1/dynamic-api`). For a project deployed with the CLI, add `EXPO_PUBLIC_MANAGE_FAMILY_FUNCTION=manage-family` to `.env` (and, for a store build, to the EAS environment: `docs/RELEASE-STEPS.md`). The function's **Details** page shows its URL; the slug is its last part.
 
 ### 4b. If you deployed pair-phone before
 
@@ -104,9 +103,9 @@ You need a Supabase project and an Anthropic API key from [console.anthropic.com
 
 1. **Run the schema.** In a terminal: `pbcopy < ~/evermore-expo/supabase/schema.sql`. In Supabase open **SQL Editor → New snippet**, paste, and choose **Run**. This adds the limits tables, with AI switched off. It's safe to run again.
 2. **Copy the function.** In a terminal: `pbcopy < ~/evermore-expo/supabase/functions/generate-questions/index.ts`.
-3. **Deploy it.** In Supabase open **Edge Functions → Deploy a new function → Via editor**. Name it `generate-questions`, replace everything in the editor with what you copied, and deploy.
+3. **Deploy it.** In Supabase open **Edge Functions → Deploy a new function → Via editor**. Name it `generate-questions`, replace everything in the editor with what you copied, and deploy. Or, from this folder, with the CLI and its name: `npx supabase functions deploy generate-questions --project-ref <project-ref> --no-verify-jwt` (then skip step 4).
 4. **Turn Verify JWT off.** On the function's **Details** tab, turn **off** "Verify JWT" (it may read "Enforce JWT verification"), then save. AI has no login, so the function makes its own checks.
-5. **Check the URL.** The function's page shows its URL. This project's ends in `/functions/v1/clever-service`, the value of `GENERATE_QUESTIONS_FUNCTION` in `src/config/functions.ts`. If it ends in anything else, put that last part there.
+5. **Check the URL.** The function's page shows its URL. The development project's ends in `/functions/v1/clever-service`, the default of `GENERATE_QUESTIONS_FUNCTION` in `src/config/functions.ts`. If it ends in anything else (a CLI deploy ends in `generate-questions`), set `EXPO_PUBLIC_GENERATE_QUESTIONS_FUNCTION` to that last part in `.env`.
 6. **Add the key.** Open **Edge Functions → Secrets**. Add a secret named `ANTHROPIC_API_KEY` and paste your key as its value there. The function also uses the `EVERMORE_SECRET_KEY` secret from [Deploy the Edge Function](#4-deploy-the-edge-function), or Supabase's built-in key if the project has one.
 7. **Set a spending limit at Anthropic.** In the Anthropic Console, set a monthly spend limit you're comfortable with. This is the backstop behind the cap below.
 8. **Set the limits and turn it on.** In the SQL Editor, choose **New snippet**, paste this, and choose **Run**:

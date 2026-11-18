@@ -52,11 +52,13 @@ Photos are shown through signed links that last an hour. Supabase's CDN caches a
 
 ## Edge Functions
 
-| Function (deployed slug) | Receives | Keeps | Logs |
+| Function (slug: development project, production project) | Receives | Keeps | Logs |
 | --- | --- | --- | --- |
-| `manage-family` (`dynamic-api`) | The caregiver's session; a User ID, password and first name for the person's login; `delete-family` | Writes the person login and its profile; deletes the family | The kind of a failure only |
+| `manage-family` (`dynamic-api`, `manage-family`) | The caregiver's session; a User ID, password and first name for the person's login; `delete-family` | Writes the person login and its profile; deletes the family | The kind of a failure only |
 | `pair-phone` (`hyper-function`) | **Removed 2026-11-16.** Its source is gone from the repository; the deployed function and its `PAIRING_PEPPER` secret are to be deleted by hand | Nothing new | — |
-| `generate-questions` (`clever-service`) | One person's masked approved facts as text, an install token header. **Unreachable in the shipped app** (AI off, and needs sign-in off) | A hashed token and counters only | The kind of a failure only |
+| `generate-questions` (`clever-service`, `generate-questions`) | One person's masked approved facts as text, an install token header. **Unreachable in the shipped app** (AI off, and needs sign-in off) | A hashed token and counters only | The kind of a failure only |
+
+The app reads each slug from `src/config/functions.ts` (`EXPO_PUBLIC_MANAGE_FAMILY_FUNCTION`, `EXPO_PUBLIC_GENERATE_QUESTIONS_FUNCTION`, defaulting to the development project's). Only the URL changes; what each function receives and keeps is the same in both projects.
 
 Supabase's platform also keeps its own request logs (API gateway, Edge Functions, Auth, Storage) with request metadata such as path, time, IP address and user agent, for the period the plan allows. **[REVIEW]** Confirm the retention for the plan in use.
 
