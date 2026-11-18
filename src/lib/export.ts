@@ -3,7 +3,7 @@ import { strToU8, zipSync, type Zippable } from 'fflate';
 import { APP_NAME, APP_NAME_LOWER } from '@/config/brand';
 import type { RevealSetting, SessionLength } from '@/config/schedule';
 import { ATTEMPTS_KEPT_DAYS } from '@/config/insights';
-import { questionFor } from '@/data/questionnaire';
+import { labelOf, questionFor } from '@/data/questionnaire';
 import { sessionDay } from '@/lib/activity';
 import type { AiSentence } from '@/lib/ai-sentences';
 import { recordDay } from '@/lib/insights';
@@ -193,7 +193,7 @@ export function familyExport(source: ExportSource, now: Date, appVersion: string
         .map((card) => ({
           id: card.id,
           kind: card.type,
-          question: questionFor(card.type)?.label,
+          question: questionFor(card.type) ? labelOf(questionFor(card.type), person.name) : undefined,
           words: card.text,
           story: storyOf(person, card),
           status: statusWords[card.status] ?? card.status,

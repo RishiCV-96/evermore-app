@@ -913,7 +913,7 @@ const noLongerApproved = families.setStatus(gate, gate.cards.find((c) => c.perso
 assert.equal(profile.deckOf(noLongerApproved.people, noLongerApproved.cards, hasPicture).cards.length, deckNow.cards.length - 1, 'approval still decides each card');
 
 // One capitalization: sentence case, from one place, so it can't drift
-const KEEPS_ITS_CAPITAL = new Set(['ID', 'PDF', 'Me', 'Tandem', 'Caregiver']);
+const KEEPS_ITS_CAPITAL = new Set(['ID', 'PDF', 'Me', 'Tandem', 'Caregiver', 'I']);
 function sentenceCase(text, where) {
   const words = text.replace(/[^\p{L}\p{N}\s’'-]/gu, ' ').trim().split(/\s+/).filter(Boolean);
   assert.ok(words.length === 0 || /^[\p{Lu}\p{N}]/u.test(words[0]), `${where}: "${text}" starts with a capital`);

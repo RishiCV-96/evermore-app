@@ -388,7 +388,9 @@ export const SECTIONS: Section[] = [
       },
       {
         id: 'habit',
-        label: 'They always say or do',
+        // The label is the sentence being finished (2026-11-18, docs/SENTENCE-AUDIT.md): "They always say or
+        // do" led people to type "They always say …". NAME is the person's name (labelOf).
+        label: 'NAME always…',
         short: 'Always says or does',
         input: 'text',
         factType: 'habit',
@@ -478,7 +480,7 @@ export const SECTIONS: Section[] = [
     questions: [
       {
         id: 'shared',
-        label: 'A time we…',
+        label: 'NAME and I once…',
         short: 'Shared memory',
         input: 'memory',
         factType: 'shared',
@@ -488,13 +490,13 @@ export const SECTIONS: Section[] = [
         // Any of them is a shared memory.
         alsoAnsweredBy: ['regular', 'holiday', 'met'],
         placeholder: 'got lost in Rome',
-        frame: 'NAME and I …',
+        frame: 'NAME and I once …',
         limit: MEMORY,
       },
       {
         id: 'regular',
         behind: MORE,
-        label: 'The place we always…',
+        label: 'NAME and I always…',
         short: 'A place we went',
         input: 'memory',
         factType: 'regular',
@@ -505,17 +507,18 @@ export const SECTIONS: Section[] = [
       {
         id: 'holiday',
         behind: MORE,
-        label: 'A holiday we…',
+        label: 'NAME and I spent a holiday…',
         short: 'A holiday',
         input: 'memory',
         factType: 'holiday',
-        placeholder: 'spent at the lake',
-        frame: 'NAME and I had a holiday we …',
+        placeholder: 'at the lake',
+        frame: 'NAME and I spent a holiday …',
         limit: MEMORY,
       },
       {
         id: 'met',
-        label: 'How we met',
+        label: 'NAME and I met…',
+        short: 'How we met',
         input: 'text',
         factType: 'met',
         placeholder: 'at church in 1962',
@@ -654,6 +657,19 @@ const QUESTIONS = SECTIONS.flatMap((section) => section.questions);
 export function questionFor(type: FactType) {
   return QUESTIONS.find((question) => question.factType === type && !question.sets)!;
 }
+
+/**
+ * A question's label as the form shows it. Labels that are the start of the sentence being finished
+ * hold NAME: the person's first name ("June and I once…"), or "This person" before a name is typed or
+ * when the first name is long. The label line is one line, so a long name would hide the words that matter.
+ */
+export function labelOf(question: Pick<Question, 'label'>, name: string) {
+  const first = name.trim().split(/\s+/)[0] ?? '';
+  return question.label.replace('NAME', first && first.length <= LABEL_NAME_MOST ? first : 'This person');
+}
+
+/** The longest first name a label holds before it says "This person" (checked at 375 points wide). */
+export const LABEL_NAME_MOST = 12;
 
 /** A placeholder can't be mistaken for an answer already given. */
 export const exampleOf = (question: Question) => (question.placeholder ? `e.g. ${question.placeholder}` : undefined);
