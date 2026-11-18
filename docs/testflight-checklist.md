@@ -6,7 +6,7 @@ Written 2026-11-13. It covers only what relates to privacy. Apple changes its re
 - [Provide test information](https://developer.apple.com/help/app-store-connect/test-a-beta-version/provide-test-information)
 - [App Review information](https://developer.apple.com/help/app-store-connect/reference/app-review-information)
 
-Never run `eas build` or `eas update` from this repository without first deciding how to keep the real family's cards and photos out (`CLAUDE.md`, Privacy; `.easignore` and `scripts/check-release.mjs` exist for this).
+**The steps to build and submit are in `docs/RELEASE-STEPS.md`**, and the store copy, review notes and What to Test in `docs/app-store-listing.md`. The real family's cards and photos are kept out three ways: they load only in development builds, `.easignore` keeps the files out of the upload, and `npm test` checks both the upload (`scripts/check-store.mjs`) and the bundles (`scripts/check-release.mjs`).
 
 ## 1. The privacy policy URL
 
@@ -18,7 +18,7 @@ Never run `eas build` or `eas update` from this repository without first decidin
 
 `docs/privacy-policy.html` is one self-contained file: no scripts, no fonts or images from elsewhere, light and dark. Two simple options:
 
-1. **GitHub Pages, from a separate public repository** (free). Make a new public repository holding only `index.html` (a copy of `docs/privacy-policy.html`), and turn on Pages in its settings. **Don't publish this repository:** `src/data/deck.ts` holds the real family's cards. GitHub Pages from a *private* repository needs a paid GitHub plan (Pro, Team or Enterprise), which is the option that costs money.
+1. **GitHub Pages, from a separate public repository** (free). Make a new public repository holding only `index.html` (a copy of `docs/privacy-policy.html`), and turn on Pages in its settings. **Don't publish this repository:** its git history before 2026-11-13 still holds the real family's cards (`HANDOFF.md` has the steps to remove them). GitHub Pages from a *private* repository needs a paid GitHub plan (Pro, Team or Enterprise), which is the option that costs money.
 2. **Netlify Drop or Cloudflare Pages** (free tiers). Drag the single file onto Netlify Drop, or upload it to a Cloudflare Pages project; both give an `https://` address on their own domain, and a custom domain if you have one. Check that the free tier's terms still suit you.
 
 Either way, the URL must stay stable: App Store Connect and the app link to it. Update the page whenever `POLICY_VERSION` changes.
@@ -43,6 +43,8 @@ Guideline 2.1(a): "include demo account info (and turn on your back-end service!
 
 ## 6. Review notes (draft to adapt)
 
+The current version, with placeholders for both demo logins, is in `docs/app-store-listing.md`. This earlier draft is kept for reference.
+
 > Tandem helps a person with early memory loss practice recognizing family and friends with short fill-in-the-blank cards made from a caregiver's own words and photos. It is a practice tool, not a medical device: it doesn't test for, treat or measure any condition, and every chart is labelled "Practice activity, not a medical measure."
 >
 > Two roles. The caregiver signs in with the demo caregiver account below: dashboard, people, stories, Settings. The person practicing signs in on their own phone: on the welcome, tap "I am practicing", type the User ID and password below, then tap Continue.
@@ -57,9 +59,9 @@ Apple's notes field holds up to 4000 bytes.
 - **Guideline 5.1.3 (health data)**, if the Health data type is declared: no use for advertising or marketing, and for any future research, participant consent and an independent ethics review board.
 - **Third-party information.** The caregiver enters information and photos of other people. The sign-up confirmation covers this. **[REVIEW]**
 
-## 8. The privacy manifest (check)
+## 8. The privacy manifest
 
-Apple requires a privacy manifest (`PrivacyInfo.xcprivacy`) that declares "required reason" APIs. Expo writes it from `expo.ios.privacyManifests` in `app.json` at build time ([Expo's guide](https://docs.expo.dev/guides/apple-privacy/)), and Expo's own modules ship their manifests. **Not done in this change**: `app.json` has no `privacyManifests` yet. Before the first build, check Expo's current guide for SDK 58, and build once. Apple emails the developer about any reason that is missing. AsyncStorage and secure storage commonly need `NSPrivacyAccessedAPICategoryUserDefaults` (reason `CA92.1`) and file timestamps; confirm against the build's report rather than this list.
+Apple requires a privacy manifest (`PrivacyInfo.xcprivacy`) that declares "required reason" APIs. Expo writes it from `expo.ios.privacyManifests` in `app.json` at build time ([Expo's guide](https://docs.expo.dev/guides/apple-privacy/)). **Done on 2026-11-17**: `app.json` repeats every reason the installed native modules' own manifests declare (user defaults, file timestamps, system boot time, disk space), as Expo's guide recommends because Apple reads static CocoaPods' manifests badly, and says the app does no tracking. `scripts/check-store.mjs` fails if a module adds a reason `app.json` lacks. Apple still emails the developer about any reason it finds missing after an upload (ITMS-91053): add what it names.
 
 ## 9. Joining the Apple Developer Program
 
@@ -77,4 +79,5 @@ Apple requires a privacy manifest (`PrivacyInfo.xcprivacy`) that declares "requi
 - [ ] App Privacy answers entered from `docs/app-store-privacy-answers.md`.
 - [ ] Demo accounts work on the real project, with sample people only.
 - [ ] `node scripts/check-release.mjs` passes: no real photo, card or secret in the bundle.
-- [ ] Privacy manifest checked.
+- [ ] `node scripts/check-store.mjs` passes: the upload, `app.json` and `eas.json` (it runs in `npm test`).
+- [ ] No ITMS email after the upload about a privacy manifest reason or a purpose string.
