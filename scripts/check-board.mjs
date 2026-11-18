@@ -289,6 +289,20 @@ await check('Read aloud speaks the note with the app’s own read-aloud', async 
   assert.deepEqual(spoken.at(-1).text, 'Proud of you for practicing every day. From Lucy, wife.');
 });
 
+/** View dashboard must show only where it opens the caregiver's dashboard (sign-in off), never on the person's own phone. */
+const dashboardFaults = (home, buttons) => [
+  ...(/\{LOCAL_ONLY \? <ViewDashboardButton \/> : null\}/.test(home) ? [] : ['View dashboard isn’t limited to sign-in off']),
+  ...(/<Sheet\b|explaining|LOCAL_ONLY/.test(buttons.slice(buttons.indexOf('export function ViewDashboardButton'))) ? ['View dashboard has a path that only explains'] : []),
+];
+await check('View dashboard only where it opens the dashboard: never on the person’s own phone', () => {
+  const home = inRepo('src/app/index.tsx');
+  const buttons = inRepo('src/components/home-buttons.tsx');
+  assert.deepEqual(dashboardFaults(home, buttons), []);
+  assert.ok(/confirm\('Open the caregiver dashboard\?'/.test(buttons) && /openCaregiver\(\)/.test(buttons), 'it asks first, then opens the dashboard');
+  assert.deepEqual(dashboardFaults(home.replace('{LOCAL_ONLY ? <ViewDashboardButton /> : null}', '<ViewDashboardButton />'), buttons), ['View dashboard isn’t limited to sign-in off'], 'a planted button on every phone is caught');
+  assert.ok(/centered/.test(home) && /!notes\?\.length && styles\.centered/.test(home), 'with no notes the column is centered, so the home doesn’t look half empty');
+});
+
 await check('the home: Start practice first, then View dashboard, then the board; and the board hides without notes', () => {
   const home = inRepo('src/app/index.tsx');
   assert.ok(home.indexOf('<StartPracticeButton') < home.indexOf('<ViewDashboardButton') && home.indexOf('<ViewDashboardButton') < home.indexOf('<FamilyBoard'));

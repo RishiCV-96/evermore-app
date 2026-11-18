@@ -13,7 +13,7 @@ import { ProgressBar } from '@/components/progress-bar';
 import { ReminderQuestion, useReminderSync } from '@/components/reminders';
 import { SuccessBanner } from '@/components/success-banner';
 import { TextSizeButton } from '@/components/text-size';
-import { completedToday, deckCards, doneToday, refreshBoard, refreshPractice, takeHandoff, useBoardNotes, useHandoff, usePractice, useWho } from '@/data/app-data';
+import { LOCAL_ONLY, completedToday, deckCards, doneToday, refreshBoard, refreshPractice, takeHandoff, useBoardNotes, useHandoff, usePractice, useWho } from '@/data/app-data';
 import { mayAsk, useReminders } from '@/data/reminders';
 import { useStudyDay } from '@/data/study-clock';
 import { AFTER_THE_DAY, enoughPeople, todayLine } from '@/lib/session';
@@ -82,7 +82,7 @@ export default function Home() {
       </View>
       {/* One column, in order: who and how today is going, Start practice, View dashboard, then the board.
           The buttons come before the board, so the notes can never push them off the screen. */}
-      <ScrollView style={styles.middle} contentContainerStyle={styles.middleContent}>
+      <ScrollView style={styles.middle} contentContainerStyle={[styles.middleContent, !notes?.length && styles.centered]}>
         <TandemLogo size="home" testID="logo-home" />
         <AppText accessibilityRole="header" fit center bold size="display">
           {who.name ? `Hello, ${who.name}.` : 'Hello.'}
@@ -119,7 +119,9 @@ export default function Home() {
               <StartPracticeButton label={done === 0 ? 'Start practice' : 'Keep going'} onPress={() => router.push('/practice')} />
             )
           ) : null}
-          <ViewDashboardButton />
+          {/* Only where it opens the caregiver's dashboard: one phone shared, with sign-in off. On the
+              person's own phone (sign-in on) the dashboard is on the caregiver's phone, so no button. */}
+          {LOCAL_ONLY ? <ViewDashboardButton /> : null}
         </View>
         <FamilyBoard notes={notes ?? []} />
       </ScrollView>
@@ -153,6 +155,10 @@ const styles = StyleSheet.create({
   },
   ready: {
     gap: Space.s,
+  },
+  // With no notes on the board, the column sits in the middle of the screen, as the home always has.
+  centered: {
+    justifyContent: 'center',
   },
   actions: {
     gap: Space.l,

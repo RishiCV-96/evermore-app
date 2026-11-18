@@ -45,7 +45,7 @@ DESIGN-UI.md and the palette check gain one allowance: on the person's home, Sky
 The person has no dashboard of their own, and the caregiver's dashboard (with Insights) must stay behind the caregiver lock. **Assumed:** View dashboard is the visible way to the caregiver's side, with a deliberate second step, never one tap:
 
 - **Sign-in off** (one phone shared): a confirmation, "Open the caregiver dashboard? It's for your caregiver.", with **Open dashboard** and **Not now**. Open does what holding Caregiver does (`openCaregiver`).
-- **Sign-in on** (the person's own phone): a sheet that says "Your caregiver's dashboard is on their phone." with **Done**. It never signs the phone out. The held Caregiver control stays the only way to switch this phone to the caregiver.
+- **Sign-in on** (the person's own phone): **no View dashboard button** (changed 2026-11-18 at the owner's request; it first only explained where the dashboard is). Start practice stands alone, and with an empty board the column is centered. The held Caregiver control stays the only way to switch this phone to the caregiver.
 
 ## 4. The caregiver's editor
 
@@ -120,7 +120,7 @@ A web walk at 375x647 and 430x839, Large and Extra large text, with no notes, on
 ## 13. Risks
 
 - **Note tone (clinician review).** A note can upset as easily as comfort: a note about someone who has died, a test ("Do you remember…?"), urgency ("Call me now"), or guilt ("You forgot again"). The editor's guidance asks for short, warm words. A speech-language pathologist or dementia-care clinician should review the guidance and decide whether notes should avoid questions altogether.
-- **View dashboard on the person's phone** may lead the person to a confirmation they don't understand. Sign-in off it opens the caregiver's dashboard after "Open dashboard"; sign-in on it only explains.
+- **View dashboard on the person's phone** may lead the person to a confirmation they don't understand. Sign-in off it opens the caregiver's dashboard after "Open dashboard"; with sign-in on it isn't shown.
 - **Stale notes on a phone offline for a long time**: the board shows the last notes it saw, with no "updated" time (by the rules: no counters).
 - **The server not yet upgraded**: notes don't load or save until the schema runs, and the caregiver sees a calm message.
 
@@ -130,7 +130,7 @@ Typecheck, lint, all 16 `npm test` suites (with the new `scripts/check-board.mjs
 
 ## Assumed while unattended
 
-1. **View dashboard** opens the caregiver's dashboard after a confirmation with sign-in off, and explains that the dashboard is on the caregiver's phone with sign-in on (section 3).
+1. **View dashboard** opens the caregiver's dashboard after a confirmation with sign-in off, and is not shown on the person's own phone (decided by the owner on 2026-11-18; section 3).
 2. **The editor** lives in Settings → The person's phone (section 4).
 3. **The title** is "Family board" (section 5).
 4. **With no notes** the board is hidden on the person's home.
@@ -152,7 +152,7 @@ Typecheck, lint, all 16 `npm test` suites (with the new `scripts/check-board.mjs
 ## Needs my decision
 
 1. **Mock versus rules on the person's screen.** The mock's pink and yellow cards, tilt, shadows and gradient title are banned there. Built instead: Mist and Sky-tint cards, straight, hairline borders, a solid Ink title. If you want more warmth, the only allowed option is the logo itself beside the title, as the home already has.
-2. **View dashboard with sign-in on.** It only explains, because the person's phone can't open the caregiver's dashboard. Options: keep it; hide it with sign-in on; or make it the same switch as the held Caregiver control (which signs this phone out: risky for the person).
+2. **View dashboard with sign-in on.** Decided 2026-11-18: hidden on the person's own phone.
 3. **Two ways to the caregiver** with sign-in off (View dashboard and the held Caregiver control). Proposed: keep both for now; drop one after an older person tries the home.
 4. **Other look-alike buttons on person screens** (not changed):
    - Reminders, **Earlier** and **Later**: the same soft button side by side, told apart only by the word. Proposed: an arrow icon on each.
