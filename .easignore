@@ -13,15 +13,22 @@ scripts/private-denylist.local.txt
 *.local.txt
 *.local.md
 
-# Secrets and local settings
+# Secrets and local settings: every .env file (production values included), except the empty example
 .env
+.env.*
 .env*.local
+!.env.example
 *.pem
 *.key
 *.p8
 *.p12
 *.jks
 *.mobileprovision
+
+# Native folders: Continuous Native Generation makes them on the builder (as in .gitignore)
+/ios
+/android
+example
 
 # Dependencies, builds and caches
 node_modules/
@@ -41,3 +48,7 @@ yarn-error.*
 # Tests and fixtures: not part of the app
 supabase/tests/
 scripts/fakes/
+
+# Documentation screenshots: large (about 16 MB) and not part of the app
+docs/ui-polish-screenshots/
+docs/brand-screenshots/
