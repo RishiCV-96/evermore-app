@@ -154,8 +154,9 @@ export async function refreshPractice() {
       .select('id, name, relationship, photo_path, sample_portrait, hint_letter, hint_fact, hint_relationship, hint_fewer, best_clue, reveal_ok')
       .order('created_at'),
     supabase
+      // Every column, so this works whether or not the server has the wording column yet (2026-11-18).
       .from('cards')
-      .select('id, person_id, sentence, fact_type, memory_text, time_sensitive, as_of, memory_year, phrasings_off, hint_ok, photo_path')
+      .select('*')
       .order('created_at'),
     supabase.from('daily_goal').select('session_length, reveal_cards').maybeSingle(),
     supabase.from('card_schedule').select('card_id, step, due_at, updated_at').eq('person_user_id', id),
@@ -230,6 +231,9 @@ export async function refreshPractice() {
         timeSensitive: row.time_sensitive,
         asOf: row.as_of ?? undefined,
         year: row.memory_year ?? undefined,
+        id: row.id,
+        // Which wording the caregiver approved: missing (a server not yet upgraded) is version 1.
+        wording: row.wording ?? 1,
       },
       phrasingsOff: row.phrasings_off ?? [],
       hintOk: row.hint_ok,

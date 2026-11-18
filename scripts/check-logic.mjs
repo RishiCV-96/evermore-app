@@ -398,9 +398,11 @@ assert.deepEqual(show(asked('team', 'the Riverton Otters')), [
 assert.ok(show(asked('work', 'a carpenter')).includes('{name} is a carpenter.'));
 assert.deepEqual(asked('team', 'x').map((p) => p.kind), ['blank', 'blank', 'blank', 'ask', 'who', 'photo'], 'four kinds of question');
 // Template words, so a phrasing can be checked to say nothing beyond the caregiver's words
-const TEMPLATE_WORDS = new Set(
-  'my and i is enjoys loves watching listening to has a birthday on met who whose did you meet this person favorite team show food music as of worked in or studied at the movie place always we had holiday goes by call do known each other have lives with partner named child'.split(' '),
-);
+const TEMPLATE_WORDS = new Set([
+  ...'my and i is enjoys loves watching listening to has a birthday on met who whose did you meet this person favorite team show food music as of worked in or studied at the movie place always we had holiday goes by call do known each other have lives with partner named child'.split(' '),
+  // Wording 2's fixed bridge words (src/lib/wording.ts, docs/SENTENCE-AUDIT.md), and the article it may add.
+  ...'likes works used work career there was time when remember once back were one spent know that born also called name for home shares takes care of parent children are partners fan cheers eat planning plans going together me working studying an'.split(' '),
+]);
 for (const type of stories.FACT_TYPES) {
   for (const about of [withAll, { hasPhoto: false }]) {
     for (const more of [{}, { timeSensitive: true, asOf: '2026-05-01' }]) {

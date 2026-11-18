@@ -124,8 +124,9 @@ export function practiceFrom<P extends PracticePerson & { inDeck?: boolean; incl
   const cards: DeckCard[] = deck.cards.flatMap((card) => {
     const person = byId.get(card.personId);
     if (!person) return [];
-    const { type, text, timeSensitive, asOf, year, phrasingsOff, hintOk, photoUri, photoPath, photoUrl } = card;
-    const fact = { type, text, timeSensitive, asOf, year };
+    const { type, text, timeSensitive, asOf, year, wording, phrasingsOff, hintOk, photoUri, photoPath, photoUrl } = card;
+    // The card's id and wording travel with its fact: wording 2 picks its variant from the id.
+    const fact = { type, text, timeSensitive, asOf, year, id: card.id, wording };
     return [{ id: card.id, personId: card.personId, sentence: sentenceFor(person, card), fact, phrasingsOff, hintOk, photoUri, photoPath, photoUrl, variants: variantsFor(card, person) }];
   });
   return { people: deck.people, cards };

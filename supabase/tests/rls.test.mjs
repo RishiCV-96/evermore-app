@@ -815,6 +815,7 @@ check('and running the schema again adds no second one', (await old.query(`selec
 const upgraded = (
   await old.query(`select id, person_id, memory_text, sentence, status, fact_type, time_sensitive, as_of, confirmed_at, source, phrasings_off from public.cards order by id`)
 ).rows;
+check('the sample people\'s approved cards keep wording 1 after the upgrade', (await old.query(`select bool_and(wording = 1) as one from public.cards`)).rows[0].one === true);
 check(
   'upgrade keeps every card word for word',
   JSON.stringify(upgraded.map(({ id, person_id, memory_text, sentence, status }) => ({ id, person_id, memory_text, sentence, status }))) ===
@@ -850,12 +851,24 @@ await recent.query(`insert into auth.users (id, raw_user_meta_data) values ($1, 
 const recentPerson = (await recent.query(`select id from public.people limit 1`)).rows[0].id;
 await recent.query(`insert into public.cards (caregiver_id, person_id, memory_text, sentence, fact_type, time_sensitive, as_of, status, confirmed_at, phrasings_off)
   values ($1, $2, 'a nurse', '{name} is a nurse.', 'work', true, '2026-05-01', 'approved', now(), '{photo}')`, [A, recentPerson]);
+const waiting = (await recent.query(`insert into public.cards (caregiver_id, person_id, memory_text, sentence, fact_type, status)
+  values ($1, $2, 'got lost in Rome', '{name} and I got lost in Rome.', 'shared', 'pending') returning id`, [A, recentPerson])).rows[0].id;
 const recentBefore = (await recent.query(`select id, memory_text, sentence, status, fact_type, time_sensitive, as_of, confirmed_at, source, phrasings_off from public.cards order by id`)).rows;
 const recentUpgrade = await recent.exec(schema).then(() => null, (error) => error.message);
 check('the schema upgrades a project that already has facts', recentUpgrade === null, recentUpgrade);
 const recentAfter = (await recent.query(`select id, memory_text, sentence, status, fact_type, time_sensitive, as_of, confirmed_at, source, phrasings_off from public.cards order by id`)).rows;
 check('that upgrade keeps every fact as it was', JSON.stringify(recentAfter) === JSON.stringify(recentBefore));
 check('and leaves everyone active', (await recent.query(`select bool_and(archived_at is null) as active from public.people`)).rows[0].active === true);
+// Wording (2026-11-18): approved and skipped cards keep version 1; once, the drafts waiting move to 2.
+const wordings = (await recent.query(`select status, wording from public.cards order by id`)).rows;
+check('every approved card keeps wording 1', wordings.filter((row) => row.status !== 'pending').every((row) => row.wording === 1), JSON.stringify(wordings));
+check('and the draft waiting for approval moves to wording 2, once', (await recent.query(`select wording from public.cards where id = $1`, [waiting])).rows[0].wording === 2);
+const laterDraft = (await recent.query(`insert into public.cards (caregiver_id, person_id, memory_text, sentence, fact_type, status) values ($1, $2, 'y', '{name} y.', 'memory', 'pending') returning id, wording`, [A, recentPerson])).rows[0];
+check('a card written without a wording is version 1 (the app always says which)', laterDraft.wording === 1);
+await recent.exec(schema);
+check('running the schema again moves nothing: the move happens only when the column first appears', (await recent.query(`select wording from public.cards where id = $1`, [laterDraft.id])).rows[0].wording === 1 && (await recent.query(`select wording from public.cards where id = $1`, [waiting])).rows[0].wording === 2);
+const badWording = await recent.query(`update public.cards set wording = 3 where id = $1`, [waiting]).then(() => 'saved', () => 'refused');
+check('and only wordings 1 and 2 are allowed', badWording === 'refused');
 const newKind = await recent.query(`insert into public.cards (caregiver_id, person_id, memory_text, sentence, fact_type) values ($1, $2, 'x', '{name} x.', 'nickname')`, [A, recentPerson]).then(() => null, (error) => error.message);
 check('and takes the new kinds of fact', newKind === null, newKind);
 const stillRefused = await recent.query(`insert into public.cards (caregiver_id, person_id, memory_text, sentence, fact_type) values ($1, $2, 'x', '{name} x.', 'horoscope')`, [A, recentPerson]).then(() => 'saved', () => 'refused');

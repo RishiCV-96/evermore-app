@@ -15,6 +15,7 @@ import {
 } from '@/lib/facts';
 import { deckChanges, missingItems, profileCompletion, type ProfilePerson } from '@/lib/profile';
 import { ALL_HINTS, type BestClue, type Fact, type Hints, type Person } from '@/lib/stories';
+import { WORDING_LATEST } from '@/lib/wording';
 
 // The family kept on the phone when sign-in is off (src/data/local-store.ts): the people,
 // their facts and what the caregiver approved. It starts as a copy of the example deck and
@@ -65,6 +66,8 @@ export type LocalFamily = {
   testSeeded?: boolean;
   /** AI sentences, in the caregiver's queue or approved. They never leave the phone. */
   sentences?: AiSentence[];
+  /** Drafts waiting for approval were moved to the newest wording, once (2026-11-18). */
+  waitingReworded?: boolean;
 };
 
 /** How the rules read a person: only the phone's store knows who has a photo. */
@@ -119,6 +122,8 @@ function newCard(personId: string, fact: Fact, id: string): SavedCard {
     status: 'pending',
     source: CAREGIVER_SOURCE,
     phrasingsOff: [],
+    // A new draft is written in the newest wording (docs/SENTENCE-AUDIT.md).
+    wording: WORDING_LATEST,
   };
 }
 
@@ -135,6 +140,41 @@ function reworded(card: SavedCard, fact: Fact): SavedCard {
     status: 'pending',
     confirmedAt: undefined,
     testData: card.testData && card.text === text ? true : undefined,
+    // Edited words are a new draft, in the newest wording.
+    wording: WORDING_LATEST,
+  };
+}
+
+/**
+ * Once (2026-11-18): drafts still waiting for approval move to the newest wording, so the caregiver reads
+ * it before approving. Approved and skipped cards, the example deck's among them, keep theirs.
+ */
+export function rewordWaitingDrafts(family: LocalFamily): LocalFamily {
+  if (family.waitingReworded) return family;
+  return {
+    ...family,
+    waitingReworded: true,
+    cards: family.cards.map((card) => (card.status === 'pending' && (card.wording ?? 1) < WORDING_LATEST ? { ...card, wording: WORDING_LATEST } : card)),
+  };
+}
+
+/**
+ * One person's cards in an older wording move to the newest, on purpose ("Use the new wording" on their
+ * sheet). An approved card goes back to story approval, so the new sentence is read before practice uses
+ * it; a skipped card stays skipped. The count is how many moved.
+ */
+export function moveToNewWording(family: LocalFamily, personId: string): { family: LocalFamily; moved: number } {
+  const older = (card: SavedCard) => card.personId === personId && (card.wording ?? 1) < WORDING_LATEST;
+  const moved = family.cards.filter(older).length;
+  if (moved === 0) return { family, moved };
+  return {
+    family: {
+      ...family,
+      cards: family.cards.map((card) =>
+        older(card) ? { ...card, wording: WORDING_LATEST, ...(card.status === 'approved' ? { status: 'pending' as const, confirmedAt: undefined } : {}) } : card,
+      ),
+    },
+    moved,
   };
 }
 

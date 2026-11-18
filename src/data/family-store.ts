@@ -24,6 +24,7 @@ import { deckChanges, profileCompletion } from '@/lib/profile';
 import { spreadOnReturn } from '@/lib/queue';
 import { cardsOf, dailyTarget, practiceFrom } from '@/lib/session';
 import { sentenceFor, type BestClue, type Fact, type Hints } from '@/lib/stories';
+import { WORDING_LATEST } from '@/lib/wording';
 import { supabase } from '@/lib/supabase';
 import { warnKind } from '@/lib/log';
 
@@ -186,8 +187,9 @@ async function load() {
       .select('id, name, relationship, photo_path, sample_portrait, hint_letter, hint_fact, hint_relationship, hint_fewer, profile_step, best_clue, not_applicable, in_deck, include_in_practice, reveal_ok, archived_at')
       .order('created_at'),
     supabase
+      // Every column, so this works whether or not the server has the wording column yet (2026-11-18).
       .from('cards')
-      .select('id, person_id, memory_text, status, fact_type, time_sensitive, as_of, memory_year, confirmed_at, source, phrasings_off, hint_ok, photo_path')
+      .select('*')
       .order('created_at'),
     supabase.from('daily_goal').select('session_length, reveal_cards').maybeSingle(),
     // The family's person logins: the one with a User ID is "Their login". A login without one was made
@@ -238,6 +240,8 @@ async function load() {
       hintOk: row.hint_ok,
       photoPath: row.photo_path ?? undefined,
       photoUrl: row.photo_path ? urls[row.photo_path] : undefined,
+      // Which wording its sentences use: missing (a server not yet upgraded) is version 1.
+      wording: row.wording ?? 1,
     })),
     goal: 0,
     sessionLength: goal.data?.session_length ?? DEFAULT_SESSION_LENGTH,
@@ -274,11 +278,15 @@ function check<T extends { error: { message: string } | null }>(result: T) {
   return result;
 }
 
-/** The columns a fact fills. The sentence is the one story approval shows. */
-function factColumns(person: { relationship?: string }, fact: Fact) {
+/**
+ * The columns a fact fills. The sentence is the one story approval shows. Every new or edited fact is a
+ * draft in the newest wording (docs/SENTENCE-AUDIT.md): an approved card keeps its own until edited.
+ */
+function factColumns(person: { relationship?: string; name?: string }, fact: Fact) {
   return {
     memory_text: fact.text,
-    sentence: sentenceFor(person, fact),
+    sentence: sentenceFor(person, { ...fact, wording: WORDING_LATEST }),
+    wording: WORDING_LATEST,
     fact_type: fact.type,
     time_sensitive: fact.timeSensitive,
     as_of: fact.asOf ?? null,
@@ -494,6 +502,35 @@ export async function undoApproveAll(undo: ApprovalUndo) {
   } finally {
     await reload();
   }
+}
+
+/**
+ * Moves one person's cards to the newest wording, on purpose (their sheet's "Use the new wording"). Each
+ * card in an older wording goes back to story approval, so the caregiver reads the new sentence before
+ * it reaches practice; a skipped card stays skipped. Nothing else about a card changes.
+ */
+export async function moveToNewWording(personId: string) {
+  const { people, cards } = current();
+  const person = people.find((candidate) => candidate.id === personId);
+  if (!person) return 0;
+  const older = cards.filter((card) => card.personId === personId && (card.wording ?? 1) < WORDING_LATEST);
+  if (older.length === 0) return 0;
+  const now = new Date().toISOString();
+  for (const card of older) {
+    check(
+      await supabase
+        .from('cards')
+        .update({
+          wording: WORDING_LATEST,
+          sentence: sentenceFor(person, { ...card, wording: WORDING_LATEST }),
+          ...(card.status === 'approved' ? { status: 'pending', confirmed_at: null } : {}),
+          updated_at: now,
+        })
+        .eq('id', card.id),
+    );
+  }
+  await reload();
+  return older.length;
 }
 
 /** A changed fact makes a new sentence, so it waits for approval again. */
