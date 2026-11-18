@@ -14,6 +14,17 @@ import type { Fact, FactType } from '@/lib/stories';
 /** The wording new drafts get. */
 export const WORDING_LATEST = 2;
 
+/** What "Refresh wording" says when the server can't keep the new wording yet (no cards.wording column). */
+export const WORDING_UNAVAILABLE = 'The new wording needs the latest database update first. Your stories keep their wording until then.';
+
+/**
+ * The stories "Refresh wording" would rewrite: in an older wording, not skipped (a skipped story never
+ * reaches practice), and not an archived person's (they come back exactly as they were).
+ */
+export function olderWording<C extends { personId: string; status: string; wording?: number }>(cards: C[], archived: Set<string> = new Set()) {
+  return cards.filter((card) => card.status !== 'skipped' && (card.wording ?? 1) < WORDING_LATEST && !archived.has(card.personId));
+}
+
 /** The blank, as in src/lib/stories.ts (BLANK). scripts/check-sentences.mjs checks they agree. */
 const BLANK = '{name}';
 

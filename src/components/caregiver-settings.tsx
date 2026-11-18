@@ -10,11 +10,12 @@ import { profileOf } from '@/components/person-photo';
 import { Sheet } from '@/components/sheet';
 import { REVEAL_CHOICES, SESSION_LENGTH_CHOICES, type RevealSetting, type SessionLength } from '@/config/schedule';
 import { MIN_PASSWORD, USERNAME_PATTERN, changePassword, createPersonLogin, resetPersonLogin, useAccount } from '@/data/account';
-import { LOCAL_ONLY, setAiOn, setRevealCards, setSessionLength } from '@/data/app-data';
+import { LOCAL_ONLY, moveToNewWording, setAiOn, setRevealCards, setSessionLength } from '@/data/app-data';
 import { refreshFamily, type Family, type PersonLogin } from '@/data/family-store';
 import { RESET_LOGIN_TITLE, RESET_LOGIN_WORDS, isClear, newPasswordProblems } from '@/lib/auth-form';
 import { confirm } from '@/lib/confirm';
 import { cardsOf, dailyTarget, minutesLabel, practiceFrom } from '@/lib/session';
+import { WORDING_UNAVAILABLE, olderWording } from '@/lib/wording';
 import { COMPACT_TAP } from '@/theme/layout';
 
 // Rows of the dashboard's Settings tab (laid out in src/components/settings-page.tsx). Each action
@@ -23,6 +24,54 @@ import { COMPACT_TAP } from '@/theme/layout';
 const NOT_SAVED = LOCAL_ONLY ? 'That change couldn’t be saved. Please try again.' : 'That change couldn’t be saved. Please check the internet connection.';
 
 /** How long a day of practice is, with what each choice means for this deck, in plain words. */
+/**
+ * "Refresh wording" for the whole family (Settings → Practice): every story still in an older wording is
+ * written again with the current templates, after a confirmation that says what happens. Approved ones go
+ * back to story approval, so no approved card changes without the caregiver reading it first. Shown only
+ * while some story uses an older wording; each person's sheet has the same action for them alone.
+ */
+export function RefreshWordingSetting({ family }: { family: Family }) {
+  const [notice, setNotice] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const archived = new Set(family.people.filter((person) => person.archivedAt).map((person) => person.id));
+  const older = olderWording(family.cards, archived);
+  if (older.length === 0 && !notice) return null;
+
+  async function refresh() {
+    const approved = older.filter((card) => card.status === 'approved').length;
+    const sure = await confirm(
+      'Refresh wording?',
+      `${older.length} ${older.length === 1 ? 'story is' : 'stories are'} written again with the current wording, so they read more naturally. ${approved ? `${approved} approved ${approved === 1 ? 'story goes' : 'stories go'} back to story approval so you can read each one first. Until you approve them, they aren’t in practice.` : 'You can read each one in story approval.'}`,
+      'Refresh wording',
+    );
+    if (!sure) return;
+    setBusy(true);
+    let moved = 0;
+    try {
+      for (const personId of new Set(older.map((card) => card.personId))) moved += await moveToNewWording(personId);
+      setNotice(`${moved} ${moved === 1 ? 'story uses' : 'stories use'} the new wording. Open each person on People, then Stories, to read and approve them.`);
+    } catch (error) {
+      setNotice(error instanceof Error && error.message === WORDING_UNAVAILABLE ? WORDING_UNAVAILABLE : NOT_SAVED);
+    }
+    setBusy(false);
+  }
+
+  return (
+    <>
+      {older.length ? (
+        <Row
+          testID="refresh-wording"
+          label="Refresh wording"
+          icon="refresh-outline"
+          subtitle={busy ? 'Refreshing…' : `${older.length} ${older.length === 1 ? 'story uses' : 'stories use'} the old wording.`}
+          onPress={busy ? () => undefined : refresh}
+        />
+      ) : null}
+      {notice ? <Notice>{notice}</Notice> : null}
+    </>
+  );
+}
+
 export function SessionLengthSetting({ family }: { family: Family }) {
   const [notice, setNotice] = useState<string>();
   const deck = practiceFrom(family.people, family.cards, profileOf);

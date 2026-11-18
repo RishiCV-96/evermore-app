@@ -162,7 +162,7 @@ export function rewordWaitingDrafts(family: LocalFamily): LocalFamily {
 }
 
 /**
- * One person's cards in an older wording move to the newest, on purpose ("Use the new wording" on their
+ * One person's cards in an older wording move to the newest, on purpose ("Refresh wording" on their
  * sheet). An approved card goes back to story approval, so the new sentence is read before practice uses
  * it; a skipped card stays skipped. The count is how many moved.
  */

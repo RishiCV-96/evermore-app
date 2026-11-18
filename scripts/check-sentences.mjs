@@ -348,6 +348,25 @@ check('new and edited drafts get wording 2; approved, in-use and deck cards keep
   assert.ok(/update public\.cards set wording = 2 where status = 'pending'/.test(schema), 'once, when it first appears: drafts waiting for approval move to wording 2');
 });
 
+check('Refresh wording: for one person or the whole family, after a confirmation, never silently', () => {
+  const cards = [
+    { personId: 'june', status: 'approved', wording: undefined },
+    { personId: 'june', status: 'pending', wording: 1 },
+    { personId: 'june', status: 'skipped', wording: 1 },
+    { personId: 'june', status: 'approved', wording: 2 },
+    { personId: 'leo', status: 'approved', wording: 1 },
+  ];
+  assert.equal(wording.olderWording(cards).length, 3, 'stories in an older wording, skipped ones left out');
+  assert.equal(wording.olderWording(cards, new Set(['leo'])).length, 2, 'and an archived person’s left as they were');
+  const settings = inRepo('src/components/caregiver-settings.tsx');
+  const block = /export function RefreshWordingSetting[\s\S]*?\n}\n/.exec(settings)[0];
+  assert.ok(/await confirm\(\s*'Refresh wording\?'/.test(block) && /if \(!sure\) return;/.test(block) && block.indexOf('if (!sure) return;') < block.indexOf('moveToNewWording('), 'the family-wide action asks first, then moves');
+  assert.ok(/back to story approval/.test(block) && /WORDING_UNAVAILABLE/.test(block), 'it says approved stories wait for approval, and says when the server needs its update');
+  assert.ok(/<RefreshWordingSetting family=\{family\} \/>/.test(inRepo('src/components/settings-page.tsx')), 'in Settings → Practice');
+  const sheet = inRepo('src/components/person-sheet.tsx');
+  assert.ok(/label="Refresh wording"/.test(sheet) && /'Refresh wording\?'/.test(sheet), 'and on each person’s sheet');
+});
+
 check('the version-1 check itself fails when one version-1 sentence changes', () => {
   const changed = { ...stories, sentenceFor: (about, fact) => (fact.type === 'pet' ? `${stories.sentenceFor(about, fact)} ` : stories.sentenceFor(about, fact)) };
   assert.notDeepEqual(versionOneFingerprint(changed), VERSION_ONE);

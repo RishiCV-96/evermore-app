@@ -24,7 +24,7 @@ import { deckChanges, profileCompletion } from '@/lib/profile';
 import { spreadOnReturn } from '@/lib/queue';
 import { cardsOf, dailyTarget, practiceFrom } from '@/lib/session';
 import { sentenceFor, type BestClue, type Fact, type Hints } from '@/lib/stories';
-import { WORDING_LATEST } from '@/lib/wording';
+import { WORDING_LATEST, WORDING_UNAVAILABLE } from '@/lib/wording';
 import { supabase } from '@/lib/supabase';
 import { warnKind } from '@/lib/log';
 
@@ -287,10 +287,10 @@ function check<T extends { error: { message: string } | null }>(result: T) {
  * column, so saving still works; "Refresh wording" says the update is needed (WORDING_UNAVAILABLE).
  */
 let serverHasWording = true;
+
+export { WORDING_UNAVAILABLE };
 export const wordingOnServer = () => serverHasWording;
 
-/** The words "Refresh wording" gives when the server can't keep the new wording yet. */
-export const WORDING_UNAVAILABLE = 'The new wording needs the latest database update first. Your stories keep their wording until then.';
 
 /** Whether a refusal is the server not knowing the wording column. */
 export const missingWording = (error: { code?: string; message?: string } | null) =>
@@ -541,7 +541,7 @@ export async function undoApproveAll(undo: ApprovalUndo) {
 }
 
 /**
- * Moves one person's cards to the newest wording, on purpose (their sheet's "Use the new wording"). Each
+ * Moves one person's cards to the newest wording, on purpose ("Refresh wording" on their sheet, or for everyone in Settings). Each
  * card in an older wording goes back to story approval, so the caregiver reads the new sentence before
  * it reaches practice; a skipped card stays skipped. Nothing else about a card changes.
  */

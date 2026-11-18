@@ -18,7 +18,7 @@ import { inPractice } from '@/lib/facts';
 import { missingItems, needsFinishing, profileCompletion, resumeLine, resumeStep } from '@/lib/profile';
 import { confirm } from '@/lib/confirm';
 import { HINT_LADDER, type HintRung } from '@/lib/stories';
-import { WORDING_LATEST } from '@/lib/wording';
+import { WORDING_UNAVAILABLE, olderWording } from '@/lib/wording';
 import { Space } from '@/theme/layout';
 
 const HINT_LABELS: Record<HintRung, string> = {
@@ -220,30 +220,30 @@ export function PersonSheet({ person, cards, ai, practiceReady, visible, onClose
  */
 function NewWording({ person, cards }: { person: SavedPerson; cards: SavedCard[] }) {
   const [notice, setNotice] = useState<string>();
-  const older = cards.filter((card) => card.status !== 'skipped' && (card.wording ?? 1) < WORDING_LATEST);
+  const older = olderWording(cards);
   if (older.length === 0 && !notice) return null;
 
   async function move() {
     const approved = older.filter((card) => card.status === 'approved').length;
     const sure = await confirm(
-      'Use the new wording?',
-      `${person.name}’s stories will read more naturally. ${approved ? 'Approved stories go back to story approval so you can read each one first. Until you approve them, they aren’t in practice.' : 'You can read each one in story approval.'}`,
-      'Use the new wording',
+      'Refresh wording?',
+      `${person.name}’s stories are written again with the current wording, so they read more naturally. ${approved ? 'Approved stories go back to story approval so you can read each one first. Until you approve them, they aren’t in practice.' : 'You can read each one in story approval.'}`,
+      'Refresh wording',
     );
     if (!sure) return;
     try {
       const moved = await moveToNewWording(person.id);
       setNotice(`${moved} ${moved === 1 ? 'story uses' : 'stories use'} the new wording. Open Stories to read and approve them.`);
-    } catch {
-      setNotice(NOT_SAVED);
+    } catch (error) {
+      setNotice(error instanceof Error && error.message === WORDING_UNAVAILABLE ? WORDING_UNAVAILABLE : NOT_SAVED);
     }
   }
 
   return (
     <>
       {older.length ? (
-        <FormGroup footnote="Stories written before the new wording keep theirs until you change them.">
-          <Row testID="new-wording" label="Use the new wording" icon="text-outline" value={`${older.length}`} onPress={move} />
+        <FormGroup footnote="Stories written before the new wording keep theirs until you refresh them.">
+          <Row testID="new-wording" label="Refresh wording" icon="refresh-outline" subtitle={`${older.length} ${older.length === 1 ? 'story uses' : 'stories use'} the old wording.`} onPress={move} />
         </FormGroup>
       ) : null}
       {notice ? <Notice>{notice}</Notice> : null}

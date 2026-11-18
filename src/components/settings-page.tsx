@@ -7,7 +7,7 @@ import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { Card, Enter, FormGroup, Notice, Row, TypeToConfirm } from '@/components/caregiver-ui';
 import { FamilyBoardRow } from '@/components/family-board-tab';
-import { AiSetting, ChangePasswordSetting, PersonLoginSetting, RevealCardsSetting, SessionLengthSetting, SignedInAs } from '@/components/caregiver-settings';
+import { AiSetting, ChangePasswordSetting, PersonLoginSetting, RefreshWordingSetting, RevealCardsSetting, SessionLengthSetting, SignedInAs } from '@/components/caregiver-settings';
 import { Note } from '@/components/dashboard';
 import { ExportPanel, ExportSetting } from '@/components/export-data';
 import { AiConsentSetting, ResearchSetting } from '@/components/consent';
@@ -55,6 +55,7 @@ export function SettingsPage({ family, failed, onOpenBoard }: SettingsPageProps)
             <>
               <SessionLengthSetting family={family} />
               <RevealCardsSetting family={family} />
+              <RefreshWordingSetting family={family} />
               {family.ai ? <AiSetting on={family.ai.on} /> : null}
             </>
           ) : (
