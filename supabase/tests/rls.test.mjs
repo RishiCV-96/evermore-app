@@ -34,6 +34,28 @@ function check(label, ok, detail = '') {
   if (!ok) failures++;
 }
 
+// Postgres has no IF NOT EXISTS for these, so the file would stop there in the SQL Editor:
+// create policy, trigger, constraint trigger, type, rule, domain or publication, and add constraint.
+// (create table, create index and add column if not exists are fine.) The rerunnable form is
+// drop ... if exists, then create, or a do $$ ... $$ block. Comments are ignored.
+const NO_IF_NOT_EXISTS = /\b(?:create\s+(?:or\s+replace\s+)?(?:constraint\s+)?(?:policy|trigger|type|rule|domain|publication)|add\s+constraint)\s+if\s+not\s+exists\b/i;
+function unsupportedIfNotExists(sql) {
+  return sql
+    .split('\n')
+    .map((line, index) => [index + 1, line.replace(/--.*$/, '')])
+    .filter(([, line]) => NO_IF_NOT_EXISTS.test(line))
+    .map(([number]) => number);
+}
+check('schema.sql uses no IF NOT EXISTS that Postgres lacks (create policy, trigger, type …)', unsupportedIfNotExists(schema).length === 0, `lines ${unsupportedIfNotExists(schema).join(', ')}`);
+check(
+  'the check fails on a planted create policy, trigger or type if not exists, and ignores comments',
+  unsupportedIfNotExists(`${schema}\ncreate policy if not exists "x" on public.people for select using (true);`).length === 1 &&
+    unsupportedIfNotExists('create trigger if not exists t before insert on t for each row execute function f();').length === 1 &&
+    unsupportedIfNotExists("create type if not exists mood as enum ('calm');").length === 1 &&
+    unsupportedIfNotExists('alter table t add constraint if not exists c check (true);').length === 1 &&
+    unsupportedIfNotExists('-- create policy if not exists in a comment\ncreate table if not exists t (id int);\nalter table t add column if not exists x int;').length === 0,
+);
+
 /** Runs sql as a signed-in user (RLS applies) and returns rows, or the error message. */
 async function as(user, sql, params = [], on = db) {
   await on.exec('begin');
