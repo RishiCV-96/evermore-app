@@ -1,5 +1,7 @@
 # Question audit
 
+> Since 2026-11-18 the sentences themselves have a second, fluent wording for new drafts: `docs/SENTENCE-AUDIT.md`. The shapes, cue levels and hints audited here are unchanged; wording 1 below is kept exactly for cards approved before then.
+
 Written 2026-11-11. It lists every way Evermore asks a question, checks each against a set of design principles, and records what was changed and what wasn't.
 
 **What this is, and isn't.** Only two points below rest on published evidence, and even those are summarized loosely here:
