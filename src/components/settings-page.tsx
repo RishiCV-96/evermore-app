@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/app-text';
 import { BigButton } from '@/components/big-button';
 import { Card, Enter, FormGroup, Notice, Row, TypeToConfirm } from '@/components/caregiver-ui';
-import { FamilyBoardSetting } from '@/components/family-board-editor';
+import { FamilyBoardRow } from '@/components/family-board-tab';
 import { AiSetting, ChangePasswordSetting, PersonLoginSetting, RevealCardsSetting, SessionLengthSetting, SignedInAs } from '@/components/caregiver-settings';
 import { Note } from '@/components/dashboard';
 import { ExportPanel, ExportSetting } from '@/components/export-data';
@@ -35,9 +35,11 @@ type SettingsPageProps = {
   family: Family | null;
   /** The family couldn't load; the dashboard says why above, with Try again. */
   failed: boolean;
+  /** Jumps to the Board tab, where the Family board now lives. */
+  onOpenBoard: () => void;
 };
 
-export function SettingsPage({ family, failed }: SettingsPageProps) {
+export function SettingsPage({ family, failed, onOpenBoard }: SettingsPageProps) {
   const [privacy, setPrivacy] = useState(false);
   const [stores, setStores] = useState(false);
   return (
@@ -65,7 +67,7 @@ export function SettingsPage({ family, failed }: SettingsPageProps) {
           <TextSizeSetting />
         </Section>
       </Enter>
-      {/* The person's phone: Their login (sign-in on), and the Family board, whose notes show on their home. */}
+      {/* The person's phone: Their login (sign-in on), and a row that jumps to the Board tab, where the Family board lives. */}
       <Enter index={2}>
         <Section title="The person’s phone">
           {LOCAL_ONLY ? null : family ? (
@@ -77,7 +79,7 @@ export function SettingsPage({ family, failed }: SettingsPageProps) {
               </AppText>
             </View>
           )}
-          <FamilyBoardSetting />
+          <FamilyBoardRow onOpen={onOpenBoard} />
         </Section>
       </Enter>
       {/* Privacy and data: the policy, a plain list of what is stored, the choices that can change at any time, and the export. Delete account sits last, apart. */}

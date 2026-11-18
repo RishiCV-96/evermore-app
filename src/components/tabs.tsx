@@ -1,53 +1,63 @@
+import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Pressed } from '@/components/pressed';
 import { TAB_BAR } from '@/lib/caregiver-tabs';
 import { useAccent } from '@/theme/accent';
 import { Colors } from '@/theme/colors';
 import { COMPACT_MAX_SCALE, Fonts, MIN_FONT_SCALE } from '@/theme/type';
-import { Elevation } from '@/theme/elevation';
-import { COMPACT_TAP, RADIUS, Radius, Space } from '@/theme/layout';
+import { COMPACT_TAP, Radius, Space } from '@/theme/layout';
 
 export type TabItem<T extends string> = {
   id: T;
   label: string;
   /** The icon, drawn in `color`: filled when its tab is chosen. */
   icon: (selected: boolean, color: string) => ReactNode;
-  /** The chosen tab's color and the soft pill behind its icon; the primary blues unless given (Insights is pink). */
-  accent?: { color: string; soft: string };
+  /** The chosen tab's icon and label color; the caregiver's Deep Rose unless given (Insights has its own pink). */
+  accent?: string;
 };
 
 type TabsProps<T extends string> = {
   tabs: TabItem<T>[];
   active: T;
   onChange: (id: T) => void;
+  /** The short bar over the chosen tab: a shape, so Rose may draw it (never as text or an icon). */
+  indicator: string;
   onLayout?: (event: LayoutChangeEvent) => void;
 };
 
 /**
- * The caregiver's tab bar, pinned at the bottom: five tabs, each an icon over a short label, every one
- * a full fifth of the width and at least 44pt tall. The chosen tab's icon sits on a soft pill, in its
- * color. Labels stay on one line (src/lib/caregiver-tabs.ts checks they fit at every width).
+ * The caregiver's tab bar, pinned at the bottom over a hairline: six tabs, each an icon over a short
+ * label, every one a full sixth of the width and at least 44pt tall. The chosen tab has a short bar
+ * along its top edge and its icon and label in the accent; the others are muted Ink, never pink.
+ * Labels stay on one line (src/lib/caregiver-tabs.ts checks they fit at every width). A press is the
+ * caregiver's interruptible one, with a light tap under the finger.
  */
-export function Tabs<T extends string>({ tabs, active, onChange, onLayout }: TabsProps<T>) {
+export function Tabs<T extends string>({ tabs, active, onChange, indicator, onLayout }: TabsProps<T>) {
   const accent = useAccent();
   const insets = useSafeAreaInsets();
   return (
     <View accessibilityRole="tablist" onLayout={onLayout} style={[styles.bar, { paddingBottom: Math.max(insets.bottom, Space.s) }]}>
       {tabs.map((tab) => {
         const selected = tab.id === active;
-        const color = selected ? (tab.accent?.color ?? accent) : Colors.textMuted;
+        const color = selected ? (tab.accent ?? accent) : Colors.textMuted;
         return (
-          <Pressable
+          <Pressed
             key={tab.id}
             testID={`tab-${tab.id}`}
             accessibilityRole="tab"
             accessibilityLabel={tab.label}
             aria-selected={selected}
-            onPress={() => onChange(tab.id)}
-            style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
-            <View style={[styles.pill, selected && styles.pillChosen, selected && { backgroundColor: tab.accent?.soft ?? Colors.surface }]}>{tab.icon(selected, color)}</View>
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+              onChange(tab.id);
+            }}
+            tone={[Colors.background, Colors.surface]}
+            style={styles.tab}>
+            <View style={[styles.indicator, selected && { backgroundColor: indicator }]} />
+            <View style={styles.icon}>{tab.icon(selected, color)}</View>
             <Text
               numberOfLines={1}
               adjustsFontSizeToFit
@@ -56,7 +66,7 @@ export function Tabs<T extends string>({ tabs, active, onChange, onLayout }: Tab
               style={[styles.label, { color, fontFamily: selected ? Fonts.bold : Fonts.regular }]}>
               {tab.label}
             </Text>
-          </Pressable>
+          </Pressed>
         );
       })}
     </View>
@@ -66,10 +76,10 @@ export function Tabs<T extends string>({ tabs, active, onChange, onLayout }: Tab
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    paddingTop: Space.xs,
     paddingHorizontal: TAB_BAR.bar,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.divider,
     backgroundColor: Colors.background,
-    ...Elevation.float,
   },
   tab: {
     flex: 1,
@@ -78,21 +88,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
     paddingHorizontal: TAB_BAR.side,
-    borderRadius: RADIUS,
+    paddingBottom: Space.xs,
+    borderRadius: Radius.control,
   },
-  pressed: {
-    backgroundColor: Colors.surface,
+  // A short bar at the top edge of the chosen tab, over the hairline.
+  indicator: {
+    width: 28,
+    height: 3,
+    marginBottom: Space.xs,
+    borderBottomLeftRadius: Radius.xs,
+    borderBottomRightRadius: Radius.xs,
   },
-  pill: {
-    width: 52,
+  icon: {
     height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radius.pill,
-  },
-  // The chosen tab's soft pill, with a hairline edge so it reads as a shape, not only a color.
-  pillChosen: {
-    ...Elevation.edge,
   },
   label: {
     fontSize: TAB_BAR.label,

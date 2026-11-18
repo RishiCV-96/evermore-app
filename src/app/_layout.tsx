@@ -71,6 +71,7 @@ export default function RootLayout() {
         <Stack.Protected guard={who.role === 'person'}>
           <Stack.Screen name="index" options={{ animation: 'fade' }} />
           <Stack.Screen name="practice" options={{ animation: 'fade' }} />
+          <Stack.Screen name="board" options={{ animation: 'fade' }} />
         </Stack.Protected>
         <Stack.Protected guard={who.role === 'caregiver'}>
           <Stack.Screen name="caregiver" />

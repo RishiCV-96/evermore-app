@@ -9,11 +9,11 @@ import { confirm } from '@/lib/confirm';
 import { Colors } from '@/theme/colors';
 import { ICON, RADIUS, Space, TAP, touchSlop } from '@/theme/layout';
 
-// Small and quiet, at the top of the person's home screen. It opens only when held, so a tap
+// Small and quiet, at the top of the person's home screen and their Family board (which says "Hold to open"). It opens only when held, so a tap
 // by the person does nothing but show how to use it. With sign-in on, holding it (and confirming)
 // signs the person out on this phone so the caregiver can sign in: the only way the person's phone
 // is ever signed out from here. With sign-in off, it opens the dashboard.
-export function CaregiverButton() {
+export function CaregiverButton({ label = 'Caregiver' }: { label?: string }) {
   const [tapped, setTapped] = useState(false);
 
   async function open() {
@@ -43,7 +43,7 @@ export function CaregiverButton() {
       style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
       <Ionicons name="lock-closed-outline" size={ICON} color={Colors.textMuted} aria-hidden />
       <AppText fit bold size="caption" muted>
-        {tapped ? 'Hold to open' : 'Caregiver'}
+        {tapped ? 'Hold to open' : label}
       </AppText>
     </Pressable>
   );

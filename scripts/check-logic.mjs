@@ -2139,8 +2139,11 @@ for (const hex of ['#FF0000', '#D32F2F', '#E53935', '#C62828']) assert.ok(isRed(
   // Deep Rose links and accents on every caregiver screen (since 2026-11-16): the caregiver layout gives the
   // color through src/theme/accent.tsx, so the shared components a person's screen also reaches never name it.
   const caregiverAccent = (path) => path === 'src/app/caregiver/_layout.tsx';
+  // The caregiver's Family board tab (since 2026-11-18, docs/FAMILY-BOARD-TAB-PLAN.md): its Caregiver chip
+  // and the rose card are the caregiver's side only; the person's board never imports it (below).
+  const caregiverBoard = (path) => path === 'src/components/family-board-tab.tsx';
   const users = walkFiles('src').filter((path) => PINK.test(inRepo(path)));
-  for (const path of users) assert.ok(insightsFamily(path) || caregiverAccent(path), `${path} uses the Insights pinks`);
+  for (const path of users) assert.ok(insightsFamily(path) || caregiverAccent(path) || caregiverBoard(path), `${path} uses the Insights pinks`);
   assert.ok(/<AccentProvider color=\{Colors\.deepRose\}>/.test(inRepo('src/app/caregiver/_layout.tsx')), 'the caregiver layout gives Deep Rose to its screens');
   assert.ok(!PINK.test(inRepo('src/theme/accent.tsx')) && /createContext<Accent>\(\{ link: Colors\.primaryDark, progress: Colors\.text \}\)/.test(inRepo('src/theme/accent.tsx')), 'without the caregiver layout, links are the person’s ink-blue and the progress bar Ink');
   // The progress bar (2026-11-16): an outline track and a solid fill in one color, Ink or Deep Rose, never Sky on Mist.
@@ -2155,7 +2158,7 @@ for (const hex of ['#FF0000', '#D32F2F', '#E53935', '#C62828']) assert.ok(isRed(
     return [`${base}.tsx`, `${base}.ts`, `${base}.web.ts`, `${base}/index.ts`].find((candidate) => existsSync(new URL(`../${candidate}`, import.meta.url)));
   };
   const reached = new Set();
-  const stack = ['src/app/index.tsx', 'src/app/practice.tsx', 'src/app/sign-in.tsx', 'src/app/_layout.tsx'];
+  const stack = ['src/app/index.tsx', 'src/app/practice.tsx', 'src/app/board.tsx', 'src/app/sign-in.tsx', 'src/app/_layout.tsx'];
   while (stack.length) {
     const path = stack.pop();
     if (reached.has(path)) continue;
@@ -2165,7 +2168,8 @@ for (const hex of ['#FF0000', '#D32F2F', '#E53935', '#C62828']) assert.ok(isRed(
       if (next) stack.push(next);
     }
   }
-  assert.ok(reached.has('src/components/practice-screen.tsx') && reached.has('src/theme/colors.ts') && reached.size > 20, `the walk follows the person's imports (${reached.size} files)`);
+  assert.ok(reached.has('src/components/practice-screen.tsx') && reached.has('src/components/family-board.tsx') && reached.has('src/theme/colors.ts') && reached.size > 20, `the walk follows the person's imports (${reached.size} files)`);
+  assert.ok(!reached.has('src/components/family-board-tab.tsx') && !reached.has('src/lib/board-look.ts'), 'the person’s screens never reach the caregiver’s board tab or its tilt and pastels');
   for (const path of reached) {
     if (path === 'src/theme/colors.ts') continue;
     assert.ok(!PINK.test(inRepo(path)), `${path} is reached from a person's screen and uses pink`);
@@ -2220,7 +2224,7 @@ for (const level of levels) assert.deepEqual(Object.keys(TYPE_SCALE[level]).sort
     return [`${base}.tsx`, `${base}.ts`, `${base}.web.ts`, `${base}/index.ts`].find((candidate) => existsSync(new URL(`../${candidate}`, import.meta.url)));
   };
   const seen = new Set();
-  const stack = ['src/app/index.tsx', 'src/app/practice.tsx', 'src/app/sign-in.tsx', 'src/app/_layout.tsx'];
+  const stack = ['src/app/index.tsx', 'src/app/practice.tsx', 'src/app/board.tsx', 'src/app/sign-in.tsx', 'src/app/_layout.tsx'];
   while (stack.length) {
     const path = stack.pop();
     if (seen.has(path)) continue;
@@ -3012,22 +3016,27 @@ for (const level of levels) assert.deepEqual(Object.keys(TYPE_SCALE[level]).sort
   assert.ok(ratio(right, second) >= 3 && ratio(right, help) >= 2 && ratio(second, help) >= 1.5, 'three shades that stay apart in lightness, not only in hue');
 }
 
-// The caregiver's tab bar: five tabs, Insights its own, every label on one line at every iPhone width
+// The caregiver's tab bar: six tabs (the Family board's since 2026-11-18), Insights its own, every label on one line at every iPhone width
 {
   const { CAREGIVER_TABS, TAB_BAR, tabShrink } = await import('@/lib/caregiver-tabs');
   const { MIN_FONT_SCALE, COMPACT_MAX_SCALE } = await import('@/theme/type-scale');
-  assert.deepEqual(CAREGIVER_TABS.map((tab) => tab.label), ['Today', 'Trends', 'Insights', 'People', 'Settings'], 'five tabs, Insights between Trends and People');
+  assert.deepEqual(CAREGIVER_TABS.map((tab) => tab.label), ['Today', 'Trends', 'Insights', 'People', 'Board', 'Settings'], 'six tabs, Insights between Trends and People, the Family board before Settings');
   for (const width of [375, 390, 393, 402, 414, 428, 430, 440]) assert.equal(tabShrink(width), 1, `every label fits as it is at ${width}pt`);
   for (const width of [320, 375, 390, 430]) assert.ok(tabShrink(width, COMPACT_MAX_SCALE) >= MIN_FONT_SCALE, `at the largest caregiver text scale on a ${width}pt phone, labels shrink no further than ${MIN_FONT_SCALE * 100}%, so nothing wraps or cuts off`);
   assert.ok(tabShrink(320) >= 0.9, 'even the 320pt phone barely shrinks a label');
   assert.ok(tabShrink(375, 1, [...CAREGIVER_TABS, { id: 'x', label: 'Notifications' }]) < 1, 'the check notices a label that wouldn’t fit');
-  assert.equal(TAB_BAR.label, 12);
+  assert.equal(TAB_BAR.label, 11, 'labels at iOS’s own tab label size, so six fit');
   const dashboard = inRepo('src/app/caregiver/index.tsx');
   assert.ok(/<BrainIcon\b/.test(dashboard) && /tab\.id === 'insights'/.test(dashboard) && /Colors\.pinkInk/.test(dashboard), 'Insights has the pink brain');
   assert.ok(/<TandemLogo size="header"/.test(dashboard) && LOGO_HEADER_IS_MARK(), 'a compact header: the mark, not the large lockup');
   assert.ok(!/Segmented[^]*trends-view|TRENDS_VIEWS/.test(dashboard) && /tab === 'trends' \? <TrendsTab/.test(dashboard) && /tab === 'insights' \? <InsightsPanel/.test(dashboard), 'Trends is Activity, as it was; Insights is its own tab');
   const tabs = inRepo('src/components/tabs.tsx');
   assert.ok(/minHeight: COMPACT_TAP/.test(tabs) && /numberOfLines=\{1\}/.test(tabs) && /adjustsFontSizeToFit/.test(tabs) && /aria-selected/.test(tabs), '44pt tabs, one-line labels, the chosen one announced');
+  // Since 2026-11-18: a hairline over the bar, the chosen tab under a Rose bar (a shape) in Deep Rose, the others muted, a light tap, the caregiver's press.
+  assert.ok(/borderTopWidth: StyleSheet\.hairlineWidth/.test(tabs) && !/Elevation/.test(tabs), 'a hairline top border, no floating shadow');
+  assert.ok(/: Colors\.textMuted/.test(tabs) && /useAccent\(\)/.test(tabs) && /indicator=\{Colors\.pinkDeep\}/.test(dashboard), 'chosen: the accent under a Rose bar; the others muted Ink, never pink');
+  assert.ok(/<BrainIcon filled=\{selected\} color=\{color\}/.test(dashboard), 'the Insights brain is muted until chosen');
+  assert.ok(/Haptics\.impactAsync\(Haptics\.ImpactFeedbackStyle\.Light\)/.test(tabs) && /<Pressed\b/.test(tabs), 'a light tap and the caregiver’s interruptible press');
   const brain = inRepo('src/components/insight-brain.tsx');
   assert.ok(/<Path\b/.test(brain) && !/require\(|Image/.test(brain), 'the brain is drawn, not the logo asset');
 }
@@ -3414,7 +3423,7 @@ for (const level of levels) assert.deepEqual(Object.keys(TYPE_SCALE[level]).sort
   assert.ok(/fill=\{palette\.(rose|sky|sun|word)\}/.test(logo) && !/fill=\{Colors/.test(logo), 'only the kit’s own colors');
   // Every place keeps the guide's minimums: the mark 24 points wide, the lockup 140, clear space not counted.
   const places = [...logo.matchAll(/^  (\w+): \{ variant: '(\w+)', width: (\d+), short: (\d+) \},$/gm)];
-  assert.ok(places.length === 6, 'six places');
+  assert.ok(places.length === 7, 'seven places');
   for (const [, place, variant, width, short] of places) {
     const [, , boxWidth] = LAYOUTS[variant].viewBox;
     const drawing = (Math.min(Number(width), Number(short)) * (boxWidth - 2 * LOBE_RADIUS)) / boxWidth;
@@ -3432,6 +3441,8 @@ for (const level of levels) assert.deepEqual(Object.keys(TYPE_SCALE[level]).sort
     'src/components/sign-in/caregiver-sign-up.tsx': ['logo-create-account'],
     'src/components/sign-in/person-sign-in.tsx': ['logo-person-sign-in'],
     'src/app/caregiver/index.tsx': ['logo-header'],
+    'src/components/family-board.tsx': ['logo-board'],
+    'src/components/family-board-tab.tsx': ['logo-board-caregiver'],
     'src/components/settings-page.tsx': ['logo-about'],
     'src/components/practice-screen.tsx': ['logo-wrap-up'],
   };
@@ -3449,8 +3460,8 @@ for (const level of levels) assert.deepEqual(Object.keys(TYPE_SCALE[level]).sort
   assert.ok(/logo \? <TandemLogo size="form" testID=\{logo\} foldWithKeyboard \/>/.test(inRepo('src/components/caregiver-ui.tsx')), 'the caregiver forms’ logo folds with the keyboard');
   // On the person's home the logo is above Start, and the middle scrolls, so Start is never pushed off.
   const home = inRepo('src/app/index.tsx');
-  // Since 2026-11-18 (docs/PERSON-HOME-PLAN.md): Start practice, then View dashboard, then the Family board, so notes never push Start off.
-  assert.ok(home.indexOf('logo-home') < home.indexOf('<StartPracticeButton') && home.indexOf('<StartPracticeButton') < home.indexOf('<ViewDashboardButton') && home.indexOf('<ViewDashboardButton') < home.indexOf('<FamilyBoard') && /<ScrollView style=\{styles\.middle\}/.test(home), 'home: the logo above Start practice, then View dashboard, then the board, in a middle that can scroll');
+  // Since 2026-11-18 (docs/FAMILY-BOARD-TAB-PLAN.md): Start practice, then View dashboard, which opens the Family board on its own screen.
+  assert.ok(home.indexOf('logo-home') < home.indexOf('<StartPracticeButton') && home.indexOf('<StartPracticeButton') < home.indexOf('<ViewDashboardButton') && !/<FamilyBoard|<NoteCard/.test(home) && /<ScrollView style=\{styles\.middle\}/.test(home), 'home: the logo above Start practice, then View dashboard, and no board, in a middle that can scroll');
   assert.ok(/testID="start"/.test(inRepo('src/components/home-buttons.tsx')), 'Start practice keeps its test id');
 }
 

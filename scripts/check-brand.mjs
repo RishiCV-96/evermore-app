@@ -113,6 +113,22 @@ check('the name comes from src/config/brand.ts: app.json, the policy and its pag
   assert.equal(appJson.scheme, 'evermore', 'the scheme is unchanged');
 });
 
+check('the person’s second home button reads its words from src/config/brand.ts (since 2026-11-18)', () => {
+  assert.equal(brand.HOME_BOARD_BUTTON, 'View dashboard');
+  const buttons = readFileSync(`${root}src/components/home-buttons.tsx`, 'utf8');
+  assert.ok(/import \{ HOME_BOARD_BUTTON \} from '@\/config\/brand';/.test(buttons) && !/'View dashboard'|>\s*View dashboard\s*</.test(buttons), 'home-buttons.tsx uses the constant, not its own copy');
+});
+
+check('the Family board shows the mark on both sides, through <TandemLogo />, never on a note card (since 2026-11-18)', () => {
+  const person = readFileSync(`${root}src/components/family-board.tsx`, 'utf8');
+  const caregiver = readFileSync(`${root}src/components/family-board-tab.tsx`, 'utf8');
+  assert.ok(/<TandemLogo size="board" testID="logo-board"/.test(person) && /<TandemLogo size="board" testID="logo-board-caregiver"/.test(caregiver), 'the board’s header has the mark');
+  for (const [path, code] of [['family-board.tsx', person], ['family-board-tab.tsx', caregiver]]) {
+    const cards = code.slice(code.search(/function (NoteCard|BoardCard)\(/));
+    assert.ok(!/<TandemLogo/.test(cards.slice(0, cards.indexOf('\n}\n'))), `${path}: no logo on a note card`);
+  }
+});
+
 // ---- 3. The logo files ----
 
 const kit = readKit();

@@ -20,12 +20,23 @@ import { Fonts, MIN_FONT_SCALE, typeFor } from '@/theme/type';
  * the same sheet (src/components/reminders.tsx), so no sheet opens on a sheet. The caregiver's copy
  * has no Reminders: they live on the person's phone only.
  */
-export function TextSizeSheet({ visible, onClose, reminders = false }: { visible: boolean; onClose: () => void; reminders?: boolean }) {
+export function TextSizeSheet({
+  visible,
+  onClose,
+  reminders = false,
+  startOn = 'size',
+}: {
+  visible: boolean;
+  onClose: () => void;
+  reminders?: boolean;
+  /** Where it opens: the sizes, or straight on the Reminders view (the Family board's TODAY row). */
+  startOn?: 'size' | 'reminders';
+}) {
   const accent = useAccent();
   const current = useTextSize();
-  const [view, setView] = useState<'size' | 'reminders'>('size');
+  const [view, setView] = useState<'size' | 'reminders'>(startOn);
   const close = () => {
-    setView('size');
+    setView(startOn);
     onClose();
   };
   if (view === 'reminders') {

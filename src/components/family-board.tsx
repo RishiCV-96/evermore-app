@@ -3,25 +3,27 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
-import { fromLine, initialsOf, orderNotes, spokenNote, type FamilyNote } from '@/lib/family-notes';
+import { TandemLogo } from '@/components/tandem-logo';
+import { BOARD_SUBTITLE, BOARD_TITLE, VIEW_ONLY, initialsOf, spokenNote, type FamilyNote } from '@/lib/family-notes';
 import { speak } from '@/lib/speak';
 import { Colors } from '@/theme/colors';
-import { ICON, RADIUS, Space, TAP, touchSlop } from '@/theme/layout';
+import { ICON, PERSON_TOUCH, RADIUS, Space } from '@/theme/layout';
 
-// The Family board on the person's home (docs/PERSON-HOME-PLAN.md): notes the caregiver wrote, read
-// only. Calm on purpose: Mist cards (the pinned one in the soft Sky tint, and labelled), Ink words, a
-// hairline edge, straight, with no shadow, motion, gradient or decoration, and no pink or yellow.
-// Authors are told apart by their initials and names, never by color. scripts/check-board.mjs checks.
+// The person's Family board (src/app/board.tsx, docs/FAMILY-BOARD-TAB-PLAN.md), the left-hand phone of
+// the concept: notes the caregiver wrote, read only. Calm on purpose: Mist and Sky-tint cards with an Ink
+// hairline, the pinned one with a thicker Ink outline and "Pinned", Ink words, straight, with no shadow,
+// motion, gradient or decoration, and no pink, red or yellow. Authors are told apart by their initials
+// and names, never by color. Every target is at least 56pt. scripts/check-board.mjs checks.
 
-export const BOARD_TITLE = 'Family board';
-export const BOARD_SUBTITLE = 'Notes from the people who love you.';
+/** The two fills, in turn down the board: Mist, then the Sky tint. Ink words on both pass 7:1. */
+const FILLS = [Colors.surface, Colors.softSuccess];
 
-/** The title, the notes (pinned first, then newest) and the quiet "View only" line. Nothing at all without notes. */
-export function FamilyBoard({ notes }: { notes: FamilyNote[] }) {
-  if (notes.length === 0) return null;
+/** The flower mark, the title and the subtitle. */
+export function BoardHeader() {
   return (
-    <View testID="family-board" style={styles.board}>
-      <View style={styles.heading}>
+    <View style={styles.header}>
+      <TandemLogo size="board" testID="logo-board" decorative />
+      <View style={styles.headerWords}>
         <AppText testID="board-title" accessibilityRole="header" bold size="title">
           {BOARD_TITLE}
         </AppText>
@@ -29,45 +31,54 @@ export function FamilyBoard({ notes }: { notes: FamilyNote[] }) {
           {BOARD_SUBTITLE}
         </AppText>
       </View>
-      {orderNotes(notes).map((note) => (
-        <NoteCard key={note.id} note={note} />
-      ))}
-      <View testID="board-view-only" style={styles.viewOnly}>
-        <View style={styles.viewOnlyLabel}>
-          <Ionicons name="eye-outline" size={ICON} color={Colors.textMuted} aria-hidden />
-          <AppText bold size="caption" muted>
-            View only
-          </AppText>
-        </View>
-        <AppText size="caption" muted center>
-          New notes from your family appear here.
-        </AppText>
-      </View>
     </View>
   );
 }
 
-/** One note: the words, who it is from, and Read aloud. `actions` lets the caregiver's editor add its own menu. */
-export function NoteCard({ note, actions }: { note: FamilyNote; actions?: ReactNode }) {
-  const from = fromLine(note);
+/** "TODAY", "NOTES": small and letter-spaced, upper case on screen only, so screen readers say "Today". */
+export function SectionLabel({ children }: { children: string }) {
   return (
-    <View testID={`note-${note.id}`} style={[styles.card, note.pinned && styles.pinned]}>
-      {note.pinned || actions ? (
-        <View style={styles.top}>
-          {note.pinned ? (
-            <View testID="note-pinned" style={styles.pinnedLabel}>
-              <Ionicons name="pin" size={20} color={Colors.text} aria-hidden />
-              <AppText bold size="caption">
-                Pinned
-              </AppText>
-            </View>
-          ) : (
-            <View />
-          )}
-          {actions}
+    <AppText accessibilityRole="header" bold size="caption" muted style={styles.sectionLabel}>
+      {children}
+    </AppText>
+  );
+}
+
+/** One thing happening today: a dot, its title and its time. A tap opens it. */
+export function TodayRow({ title, time, onPress, testID }: { title: string; time: string; onPress: () => void; testID?: string }) {
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${time}`}
+      accessibilityHint="Opens your reminder."
+      onPress={onPress}
+      style={({ pressed }) => [styles.todayRow, pressed && styles.pressed]}>
+      <View style={styles.dot} aria-hidden />
+      <View style={styles.todayWords}>
+        <AppText bold>{title}</AppText>
+        <AppText size="caption" muted>
+          {time}
+        </AppText>
+      </View>
+      <Ionicons name="chevron-forward" size={ICON} color={Colors.textMuted} aria-hidden />
+    </Pressable>
+  );
+}
+
+/** One note: "Pinned" if it is, the words, who it is from, and Read aloud. */
+export function NoteCard({ note, index }: { note: FamilyNote; index: number }) {
+  return (
+    <View testID={`note-${note.id}`} style={[styles.card, { backgroundColor: FILLS[index % FILLS.length] }, note.pinned && styles.pinned]}>
+      {note.pinned ? (
+        <View testID="note-pinned" style={styles.pinnedLabel}>
+          <Ionicons name="pin" size={20} color={Colors.text} aria-hidden />
+          <AppText bold size="caption">
+            Pinned
+          </AppText>
         </View>
       ) : null}
-      <AppText testID="note-body" size="body">
+      <AppText testID="note-body" bold>
         {note.body}
       </AppText>
       <View style={styles.footer}>
@@ -81,7 +92,7 @@ export function NoteCard({ note, actions }: { note: FamilyNote; actions?: ReactN
               <Ionicons name="heart-outline" size={20} color={Colors.text} />
             )}
           </View>
-          {from ? (
+          {note.fromName || note.fromRelationship ? (
             <View style={styles.fromWords}>
               {note.fromName ? (
                 <AppText testID="note-from" bold size="caption">
@@ -102,7 +113,7 @@ export function NoteCard({ note, actions }: { note: FamilyNote; actions?: ReactN
   );
 }
 
-/** Reads the note, then who it is from, with the phone's own voice (the read-aloud practice uses). */
+/** Reads the note, then who it is from, with the phone's own voice (the read-aloud practice uses). Drawn 56pt tall. */
 function ReadAloud({ note }: { note: FamilyNote }) {
   return (
     <Pressable
@@ -111,50 +122,97 @@ function ReadAloud({ note }: { note: FamilyNote }) {
       accessibilityLabel="Read aloud"
       accessibilityHint="Reads this note out loud."
       onPress={() => speak(spokenNote(note))}
-      hitSlop={touchSlop()}
-      style={({ pressed }) => [styles.readAloud, pressed && styles.readAloudPressed]}>
-      <Ionicons name="volume-high-outline" size={20} color={Colors.text} aria-hidden />
-      <AppText fit bold size="caption">
+      style={({ pressed }) => [styles.readAloud, pressed && styles.pressed]}>
+      <Ionicons name="volume-high-outline" size={ICON} color={Colors.text} aria-hidden />
+      <AppText fit bold>
         Read aloud
       </AppText>
     </Pressable>
   );
 }
 
+/** The quiet line at the end: the board is for reading, and new notes come here. */
+export function ViewOnly() {
+  return (
+    <View testID="board-view-only" style={styles.viewOnly}>
+      <Ionicons name="eye-outline" size={ICON} color={Colors.textMuted} aria-hidden />
+      <AppText size="caption" muted center style={styles.viewOnlyWords}>
+        {VIEW_ONLY}
+      </AppText>
+    </View>
+  );
+}
+
+/** A section: its label and what is in it. */
+export function BoardSection({ label, children, testID }: { label: string; children: ReactNode; testID?: string }) {
+  return (
+    <View testID={testID} style={styles.section}>
+      <SectionLabel>{label}</SectionLabel>
+      {children}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  board: {
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Space.m,
   },
-  heading: {
+  headerWords: {
+    flex: 1,
     gap: Space.xs,
-    paddingBottom: Space.xs,
+  },
+  section: {
+    gap: Space.m,
+  },
+  sectionLabel: {
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  todayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.m,
+    minHeight: PERSON_TOUCH + Space.l,
+    paddingHorizontal: Space.l,
+    paddingVertical: Space.m,
+    borderRadius: RADIUS,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.text,
+    backgroundColor: Colors.surface,
+  },
+  dot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.text,
+  },
+  todayWords: {
+    flex: 1,
   },
   card: {
     gap: Space.m,
     padding: Space.l,
     borderRadius: RADIUS,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.divider,
-    backgroundColor: Colors.surface,
+    borderColor: Colors.text,
   },
+  // Pinned is said in words ("Pinned") and drawn with a thicker Ink outline, never by color alone.
   pinned: {
-    backgroundColor: Colors.softSuccess,
-  },
-  // Above the words below it, so the caregiver's floating note menu (family-board-editor.tsx) covers them.
-  top: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    zIndex: 1,
+    borderWidth: 2,
   },
   pinnedLabel: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Space.xs,
   },
-  // Who it is from, then Read aloud on its own line: the same on every card, whatever the name's length.
+  // Who it is from, and Read aloud beside it where they fit, under it where they don't.
   footer: {
-    alignItems: 'flex-start',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: Space.m,
   },
   from: {
@@ -178,24 +236,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Space.s,
-    minHeight: TAP,
+    minHeight: PERSON_TOUCH,
     paddingHorizontal: Space.l,
     borderRadius: RADIUS,
     borderWidth: 1.5,
     borderColor: Colors.text,
     backgroundColor: Colors.background,
   },
-  readAloudPressed: {
+  pressed: {
     backgroundColor: Colors.skySoft,
   },
   viewOnly: {
-    alignItems: 'center',
-    gap: Space.xs,
-    paddingVertical: Space.s,
-  },
-  viewOnlyLabel: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: Space.s,
+    paddingVertical: Space.s,
+  },
+  viewOnlyWords: {
+    flexShrink: 1,
   },
 });

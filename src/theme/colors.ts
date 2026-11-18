@@ -42,7 +42,7 @@ export const Colors = {
   sky: Brand.sky,
   /** Sky at half: progress tracks and pressed surfaces. */
   skySoft: '#C6E2F9',
-  /** Sun at 40%: the hint panel. */
+  /** Sun at 40%: the hint panel, and the pinned note on the caregiver's Family board tab (never the person's). */
   accentSoft: '#FCE9B6',
   /** Ink, for text on the success banner. */
   onSoftSuccess: Brand.ink,
@@ -112,6 +112,10 @@ export const TEXT_PAIRS: [text: Color, on: Color][] = [
   ['onPrimary', 'pinkInk'],
   ['deepRose', 'background'],
   ['deepRose', 'surface'],
+  // The caregiver's Family board tab (since 2026-11-18): the Caregiver chip, and the relationship on its pastels.
+  ['deepRose', 'pinkTint'],
+  ['textMuted', 'accentSoft'],
+  ['textMuted', 'softSuccess'],
 ];
 
 /** Marks that carry meaning without words (a line, a point, a marker), and what they sit on: at least 3:1. */

@@ -70,6 +70,7 @@ Supabase's platform also keeps its own request logs (API gateway, Edge Functions
 | Secure storage | `sb-<project>-auth-token` | The Supabase session (in pieces) | Sign out |
 | AsyncStorage | `evermore.profile.<user id>` | The signed-in profile and email, so the app opens offline | Sign out |
 | AsyncStorage | `evermore.insightsCache.v1.<caregiver id>` | Card records by month (120 days), when fetched, and Trends: names, archived and included flags, approved fact ids, settings, 30 days of sessions. No facts' words | Sign out; Delete account |
+| AsyncStorage | `tandem.boardAuthor.v1.<caregiver id>` | The From name and relationship last saved on a Family board note, so Add note can fill them in (since 2026-11-18). Never sent | Sign out |
 | AsyncStorage | `evermore.textSize.v1` | The text size | Stays |
 | AsyncStorage | `evermore.studyDay.v1` | The furthest study day this phone has reached | Stays |
 | Memory only | The family, the agreements | | Sign out |
@@ -123,7 +124,7 @@ Supabase's platform also keeps its own request logs (API gateway, Edge Functions
 
 ## Local-only development mode (not shipped)
 
-With `EXPO_PUBLIC_LOCAL_ONLY=1` there is no account and no server: the family is kept in `evermore.family.v1` (people, facts, approvals, AI sentences, photos copied into the app's folder), practice and settings in `evermore.local.v1` (including the AI on/off and the AI consent time), card records in `evermore.attempts.v1.<YYYY-MM>`, the AI install token in secure storage under `evermore.installToken.v1`. The web build's stand-in for notifications uses `evermore.reminderStandIn.v1`. Only the AI request leaves the phone, and only as described above. Development builds also bundle your real family cards and photos, if you keep them in the gitignored `src/data/deck.local.ts` and `assets/photos/`; release builds exclude both (`scripts/check-release.mjs`), and a clone without them uses the fictional sample deck (`src/data/sample-deck.ts`).
+With `EXPO_PUBLIC_LOCAL_ONLY=1` there is no account and no server: the family is kept in `evermore.family.v1` (people, facts, approvals, AI sentences, photos copied into the app's folder), practice and settings in `evermore.local.v1` (including the AI on/off and the AI consent time), card records in `evermore.attempts.v1.<YYYY-MM>`, the last Family board author in `tandem.boardAuthor.v1.local`, the AI install token in secure storage under `evermore.installToken.v1`. The web build's stand-in for notifications uses `evermore.reminderStandIn.v1`. Only the AI request leaves the phone, and only as described above. Development builds also bundle your real family cards and photos, if you keep them in the gitignored `src/data/deck.local.ts` and `assets/photos/`; release builds exclude both (`scripts/check-release.mjs`), and a clone without them uses the fictional sample deck (`src/data/sample-deck.ts`).
 
 ## In the repository (git)
 

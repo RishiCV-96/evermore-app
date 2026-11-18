@@ -1,7 +1,17 @@
-// The Family board's rules (docs/PERSON-HOME-PLAN.md): a few short notes the caregiver writes for the
-// person's home screen. Pure, so both stores (src/data/board-store.ts with sign-in on, the phone's family
+// The Family board's rules (docs/PERSON-HOME-PLAN.md, docs/FAMILY-BOARD-TAB-PLAN.md): a few short notes
+// the caregiver writes for the person's Family board. Pure, so both stores (src/data/board-store.ts with sign-in on, the phone's family
 // with sign-in off) follow the same rules, and scripts/check-board.mjs checks them. supabase/schema.sql
 // repeats the limits in the database.
+
+/** The board's title and subtitle, the same on both sides. */
+export const BOARD_TITLE = 'Family board';
+export const BOARD_SUBTITLE = 'Notes from the people who love you.';
+
+/** The person's board with no notes: one calm sentence, and nothing else. */
+export const BOARD_EMPTY = 'No notes yet. Your family can leave notes here.';
+
+/** The quiet line at the end of the person's board. */
+export const VIEW_ONLY = 'View only. New notes from family appear here.';
 
 /** At most this many notes per family, pinned one included. */
 export const NOTES_MOST = 3;
@@ -13,7 +23,7 @@ export const FROM_LETTERS = 40;
 export type FamilyNote = {
   id: string;
   body: string;
-  /** Who it is from, as the caregiver typed it ("Mikayla"). Optional. */
+  /** Who it is from, as the caregiver typed it ("Mae"). Optional. */
   fromName?: string;
   /** Their relationship to the person ("Daughter"). Optional. */
   fromRelationship?: string;
@@ -54,7 +64,7 @@ export function orderNotes(notes: FamilyNote[]) {
   return [...notes].sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.createdAt.localeCompare(a.createdAt));
 }
 
-/** Two letters for the avatar: the first letters of the first two words ("Mary Kate" → "MK"), or a single word's first two ("Lucy" → "LU"). */
+/** Two letters for the avatar: the first letters of the first two words ("Ana Lee" → "AL"), or a single word's first two ("Ruth" → "RU"). */
 export function initialsOf(name: string | undefined) {
   const words = tidy(name).split(' ').filter(Boolean);
   if (words.length === 0) return '';
@@ -62,7 +72,7 @@ export function initialsOf(name: string | undefined) {
   return letters.toUpperCase();
 }
 
-/** "Mikayla · Daughter", "Mikayla", "Daughter", or nothing. */
+/** "Mae · Granddaughter", "Mae", "Granddaughter", or nothing. */
 export function fromLine(note: Pick<FamilyNote, 'fromName' | 'fromRelationship'>) {
   return [note.fromName, note.fromRelationship].filter(Boolean).join(' · ');
 }

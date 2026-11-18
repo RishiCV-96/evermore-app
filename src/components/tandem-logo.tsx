@@ -32,6 +32,8 @@ export const LOGO_SIZES = {
   about: { variant: 'horizontal', width: 168, short: 168 },
   /** The caregiver dashboard's compact header. */
   header: { variant: 'mark', width: 40, short: 40 },
+  /** The Family board's header, on both sides, beside its title. */
+  board: { variant: 'mark', width: 48, short: 44 },
   /** The session wrap-up, above "All done". */
   wrapUp: { variant: 'mark', width: 120, short: 96 },
 } as const satisfies Record<string, { variant: LogoVariant; width: number; short: number }>;
@@ -104,5 +106,6 @@ const styles = StyleSheet.create({
   form: { alignSelf: 'center', marginVertical: Space.s },
   about: { alignSelf: 'center', marginVertical: Space.s },
   header: {},
+  board: {},
   wrapUp: { alignSelf: 'center', marginBottom: Space.s },
 });

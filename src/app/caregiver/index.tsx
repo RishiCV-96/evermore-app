@@ -11,6 +11,7 @@ import { ArchivedPeople } from '@/components/archived-people';
 import { BigButton } from '@/components/big-button';
 import { SettingsPage } from '@/components/settings-page';
 import { EmptyState, Notice } from '@/components/caregiver-ui';
+import { FamilyBoardTab } from '@/components/family-board-tab';
 import { Hero, MonthGrid, Note, PeopleCounts, StatRow, WeekBars } from '@/components/dashboard';
 import { InsightsPanel, InsightsSegments, type InsightsSegment } from '@/components/insights';
 import { PeopleGrid } from '@/components/people-grid';
@@ -41,18 +42,21 @@ const ICONS: Record<Exclude<Tab, 'insights'>, [outline: IconName, filled: IconNa
   today: ['sunny-outline', 'sunny'],
   trends: ['calendar-outline', 'calendar'],
   people: ['people-outline', 'people'],
+  board: ['chatbubble-ellipses-outline', 'chatbubble-ellipses'],
   settings: ['settings-outline', 'settings'],
 };
 
+// The chosen tab is Deep Rose under a Rose bar; the others muted Ink. Insights' brain is pink only when chosen.
 const TABS: TabItem<Tab>[] = CAREGIVER_TABS.map((tab) =>
   tab.id === 'insights'
-    ? { ...tab, accent: { color: Colors.pinkInk, soft: Colors.pinkTint }, icon: (selected) => <BrainIcon filled={selected} /> }
+    ? { ...tab, accent: Colors.pinkInk, icon: (selected, color) => <BrainIcon filled={selected} color={color} /> }
     : { ...tab, icon: (selected, color) => <Ionicons name={ICONS[tab.id as Exclude<Tab, 'insights'>][selected ? 1 : 0]} size={ICON} color={color} aria-hidden /> },
 );
 
-// Screens 4 and 8: the caregiver dashboard, as five tabs so no page needs a long scroll. Today,
+// Screens 4, 8 and 9: the caregiver dashboard, as six tabs so no page needs a long scroll. Today,
 // Trends, People and Settings show only how much was practiced against the daily goal, never how
-// answers went; Insights is the caregiver-only exception (see "Insights" in CLAUDE.md).
+// answers went; Insights is the caregiver-only exception (see "Insights" in CLAUDE.md); the Family
+// board (docs/FAMILY-BOARD-TAB-PLAN.md) is the notes the caregiver writes for the person.
 export default function Dashboard() {
   const insets = useSafeAreaInsets();
   // Re-renders when a new study day begins (05:30), so Today, Trends and Insights move into it.
@@ -100,44 +104,52 @@ export default function Dashboard() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + Space.s }]}>
-      {/* A compact header: the logo's mark and the tab's name, so the page keeps the room. */}
-      <View style={styles.header}>
-        <TandemLogo size="header" testID="logo-header" />
-        <AppText testID="page-title" fit bold size="largeTitle" accessibilityRole="header" color={tab === 'insights' ? Colors.pinkInk : Colors.text} style={styles.title}>
-          {CAREGIVER_TABS.find((one) => one.id === tab)!.label}
-        </AppText>
-      </View>
-      <ScrollView
-        key={tab}
-        ref={scroll}
-        // On Insights, the sections' control stays at the top as the page scrolls.
-        stickyHeaderIndices={tab === 'insights' && trends ? [0] : undefined}
-        style={styles.screen}
-        contentContainerStyle={[styles.content, { paddingBottom: Space.xxl }]}
-        refreshControl={canRefresh ? <RefreshControl refreshing={refreshing} onRefresh={refreshInsights} tintColor={Colors.primary} colors={[Colors.primary]} /> : undefined}>
-        {tab === 'insights' && trends ? <InsightsSegments value={segment} onChange={chooseSegment} /> : null}
-        <Animated.View entering={FadeIn.duration(200)} style={styles.page}>
-          {failed ? (
-            <>
-              <Notice>{DASHBOARD_PROBLEM[problem ?? 'offline']}</Notice>
-              <BigButton testID="dashboard-retry" small label="Try again" onPress={reload} />
-            </>
-          ) : null}
-          {/* Never a blank tab: while its data is on the way, one calm line. */}
-          {!failed && ((tab === 'today' && !(family && activity)) || ((tab === 'trends' || tab === 'insights') && !trends) || (tab === 'people' && !family)) ? (
-            <AppText testID="dashboard-loading" size="caption" muted>
-              Getting your family’s practice…
-            </AppText>
-          ) : null}
-          {family && activity && tab === 'today' ? <TodayTab family={family} activity={activity} since={since} /> : null}
-          {trends && tab === 'trends' ? <TrendsTab family={trends.family} activity={trends.activity} /> : null}
-          {trends && tab === 'insights' ? <InsightsPanel segment={segment} family={trends.family} data={insights} sync={insightsSync} activity={trends.activity} onStep={openStep} /> : null}
-          {family && tab === 'people' ? <PeopleTab family={family} onToast={showToast} openPerson={personToOpen} onOpened={() => setPersonToOpen(undefined)} /> : null}
-          {/* With sign-in on, Settings always shows, so Sign out is there even when nothing else could load. */}
-          {tab === 'settings' && (family || !LOCAL_ONLY) ? <SettingsPage family={family} failed={failed} /> : null}
+      {tab === 'board' ? (
+        <Animated.View entering={FadeIn.duration(200)} style={styles.screen}>
+          <FamilyBoardTab />
         </Animated.View>
-      </ScrollView>
-      <Tabs tabs={TABS} active={tab} onChange={setTab} onLayout={(event) => setBarHeight(event.nativeEvent.layout.height)} />
+      ) : (
+        <>
+          {/* A compact header: the logo's mark and the tab's name, so the page keeps the room. */}
+          <View style={styles.header}>
+            <TandemLogo size="header" testID="logo-header" />
+            <AppText testID="page-title" fit bold size="largeTitle" accessibilityRole="header" color={tab === 'insights' ? Colors.pinkInk : Colors.text} style={styles.title}>
+              {CAREGIVER_TABS.find((one) => one.id === tab)!.label}
+            </AppText>
+          </View>
+          <ScrollView
+            key={tab}
+            ref={scroll}
+            // On Insights, the sections' control stays at the top as the page scrolls.
+            stickyHeaderIndices={tab === 'insights' && trends ? [0] : undefined}
+            style={styles.screen}
+            contentContainerStyle={[styles.content, { paddingBottom: Space.xxl }]}
+            refreshControl={canRefresh ? <RefreshControl refreshing={refreshing} onRefresh={refreshInsights} tintColor={Colors.primary} colors={[Colors.primary]} /> : undefined}>
+            {tab === 'insights' && trends ? <InsightsSegments value={segment} onChange={chooseSegment} /> : null}
+            <Animated.View entering={FadeIn.duration(200)} style={styles.page}>
+              {failed ? (
+                <>
+                  <Notice>{DASHBOARD_PROBLEM[problem ?? 'offline']}</Notice>
+                  <BigButton testID="dashboard-retry" small label="Try again" onPress={reload} />
+                </>
+              ) : null}
+              {/* Never a blank tab: while its data is on the way, one calm line. */}
+              {!failed && ((tab === 'today' && !(family && activity)) || ((tab === 'trends' || tab === 'insights') && !trends) || (tab === 'people' && !family)) ? (
+                <AppText testID="dashboard-loading" size="caption" muted>
+                  Getting your family’s practice…
+                </AppText>
+              ) : null}
+              {family && activity && tab === 'today' ? <TodayTab family={family} activity={activity} since={since} /> : null}
+              {trends && tab === 'trends' ? <TrendsTab family={trends.family} activity={trends.activity} /> : null}
+              {trends && tab === 'insights' ? <InsightsPanel segment={segment} family={trends.family} data={insights} sync={insightsSync} activity={trends.activity} onStep={openStep} /> : null}
+              {family && tab === 'people' ? <PeopleTab family={family} onToast={showToast} openPerson={personToOpen} onOpened={() => setPersonToOpen(undefined)} /> : null}
+              {/* With sign-in on, Settings always shows, so Sign out is there even when nothing else could load. */}
+              {tab === 'settings' && (family || !LOCAL_ONLY) ? <SettingsPage family={family} failed={failed} onOpenBoard={() => setTab('board')} /> : null}
+            </Animated.View>
+          </ScrollView>
+        </>
+      )}
+      <Tabs tabs={TABS} active={tab} onChange={setTab} indicator={Colors.pinkDeep} onLayout={(event) => setBarHeight(event.nativeEvent.layout.height)} />
       {toast ? <Toast key={toast.id} message={toast.message} action={toast.action} onHide={hideToast} lift={barHeight} /> : null}
     </View>
   );

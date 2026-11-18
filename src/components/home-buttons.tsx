@@ -2,21 +2,18 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet } from 'react-native';
 
 import { AppText } from '@/components/app-text';
-import { openCaregiver } from '@/data/app-data';
-import { confirm } from '@/lib/confirm';
+import { HOME_BOARD_BUTTON } from '@/config/brand';
 import { Colors } from '@/theme/colors';
 import { RADIUS, Space } from '@/theme/layout';
 
-// The two main buttons on the person's home (docs/PERSON-HOME-PLAN.md), told apart by lightness, icon
-// and words, never by color alone: Start practice, Ink with white words, the largest; View dashboard,
-// Sky with Ink words and an Ink outline (Sky alone is 1.84:1 on white). Both pass 7:1 for their words,
-// and their backgrounds differ by 7.6:1. scripts/check-board.mjs checks, in grayscale and three kinds of
-// color blindness too.
+// The two main buttons on the person's home (docs/FAMILY-BOARD-TAB-PLAN.md): equal in size, both full
+// width and 72pt tall, with the same corner and the same words' size, and told apart by lightness, icon
+// and words, never by color alone. Start practice: Ink with white words (13.90:1). View dashboard: Sky
+// with Ink words (7.56:1) and an Ink outline (Sky alone is 1.84:1 on white). Their backgrounds differ by
+// 7.6:1. scripts/check-board.mjs checks, in grayscale and three kinds of color blindness too.
 
-/** The tallest button on the screen. */
-export const START_HEIGHT = 72;
-/** The second button: tall enough for older fingers, and smaller than Start. */
-export const DASHBOARD_HEIGHT = 64;
+/** Both buttons' height: large for older fingers, and the same, so neither looks like the lesser choice. */
+export const HOME_BUTTON_HEIGHT = 72;
 
 export function StartPracticeButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
@@ -35,27 +32,21 @@ export function StartPracticeButton({ label, onPress }: { label: string; onPress
 }
 
 /**
- * The way to the caregiver's dashboard on a phone they share with the person (sign-in off), always with a
- * second step: a confirmation opens it, as holding Caregiver does. The home shows it only then: on the
- * person's own phone (sign-in on) the dashboard is on the caregiver's phone, so there is no button.
+ * Opens the person's Family board (src/app/board.tsx): the notes their family left, read only. On every
+ * phone, signed in or not, because it never leads to the caregiver's screens.
  */
-export function ViewDashboardButton() {
-  async function press() {
-    const sure = await confirm('Open the caregiver dashboard?', 'It’s for your caregiver.', 'Open dashboard');
-    if (sure) openCaregiver();
-  }
-
+export function ViewDashboardButton({ onPress }: { onPress: () => void }) {
   return (
     <Pressable
       testID="view-dashboard"
       accessibilityRole="button"
-      accessibilityLabel="View dashboard"
-      accessibilityHint="Asks first, then opens the caregiver’s dashboard."
-      onPress={press}
+      accessibilityLabel={HOME_BOARD_BUTTON}
+      accessibilityHint="Opens your Family board, with notes from your family."
+      onPress={onPress}
       style={({ pressed }) => [styles.button, styles.dashboard, pressed && styles.dashboardPressed]}>
-      <Ionicons name="grid-outline" size={26} color={Colors.text} aria-hidden />
-      <AppText fit bold size="body">
-        View dashboard
+      <Ionicons name="grid-outline" size={30} color={Colors.text} aria-hidden />
+      <AppText fit bold size="title">
+        {HOME_BOARD_BUTTON}
       </AppText>
     </Pressable>
   );
@@ -67,18 +58,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Space.m,
+    minHeight: HOME_BUTTON_HEIGHT,
     paddingHorizontal: Space.xl,
     borderRadius: RADIUS,
   },
   start: {
-    minHeight: START_HEIGHT,
     backgroundColor: Colors.primary,
   },
   startPressed: {
     backgroundColor: Colors.primaryDark,
   },
   dashboard: {
-    minHeight: DASHBOARD_HEIGHT,
     borderWidth: 2,
     borderColor: Colors.text,
     backgroundColor: Colors.sky,

@@ -20,3 +20,9 @@ export const SUPPORT_EMAIL = 'tandemsupport26@gmail.com';
 
 /** Where the privacy policy says to write about your information: the same address. Changing it changes the policy (a new POLICY_VERSION). */
 export const POLICY_CONTACT = SUPPORT_EMAIL;
+
+/**
+ * The words on the person's second home button, which opens their Family board (docs/FAMILY-BOARD-TAB-PLAN.md).
+ * Kept as the owner asked; one edit here changes it everywhere.
+ */
+export const HOME_BOARD_BUTTON = 'View dashboard';
