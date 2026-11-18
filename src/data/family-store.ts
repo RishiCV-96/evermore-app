@@ -198,6 +198,8 @@ async function load() {
   ]);
   const error = people.error ?? cards.error ?? goal.error ?? person.error;
   const named = (person.data ?? []).find((row) => row.username);
+  // A row read with every column says whether the server has the wording column (an empty family can't say).
+  if (cards.data?.length) serverHasWording = 'wording' in cards.data[0];
   if (loadedFor !== forId) return;
   if (error) {
     warnKind('Could not load the family', error);
@@ -279,14 +281,43 @@ function check<T extends { error: { message: string } | null }>(result: T) {
 }
 
 /**
+ * Whether the server has `cards.wording` (added 2026-11-18 in supabase/schema.sql). Until the schema is
+ * rerun it doesn't: PostgREST refuses any write that names the column (PGRST204), so no fact could be
+ * saved, and every card reads as version 1. Without it, cards are written in version 1 and without the
+ * column, so saving still works; "Refresh wording" says the update is needed (WORDING_UNAVAILABLE).
+ */
+let serverHasWording = true;
+export const wordingOnServer = () => serverHasWording;
+
+/** The words "Refresh wording" gives when the server can't keep the new wording yet. */
+export const WORDING_UNAVAILABLE = 'The new wording needs the latest database update first. Your stories keep their wording until then.';
+
+/** Whether a refusal is the server not knowing the wording column. */
+export const missingWording = (error: { code?: string; message?: string } | null) =>
+  Boolean(error && /\bwording\b/.test(error.message ?? '') && (error.code === 'PGRST204' || error.code === '42703' || /column/i.test(error.message ?? '')));
+
+/** Runs a card write; if the server lacks the wording column, notes it and runs the write again without it. */
+async function writeCards<T extends { error: { code?: string; message: string } | null }>(run: () => PromiseLike<T>) {
+  let result = await run();
+  if (serverHasWording && missingWording(result.error)) {
+    serverHasWording = false;
+    warnKind('The server has no wording column yet', result.error);
+    result = await run();
+  }
+  return check(result);
+}
+
+/**
  * The columns a fact fills. The sentence is the one story approval shows. Every new or edited fact is a
- * draft in the newest wording (docs/SENTENCE-AUDIT.md): an approved card keeps its own until edited.
+ * draft in the newest wording (docs/SENTENCE-AUDIT.md): an approved card keeps its own until edited. On a
+ * server without the wording column, version 1, which is how that server's cards read back.
  */
 function factColumns(person: { relationship?: string; name?: string }, fact: Fact) {
+  const wording = serverHasWording ? WORDING_LATEST : 1;
   return {
     memory_text: fact.text,
-    sentence: sentenceFor(person, { ...fact, wording: WORDING_LATEST }),
-    wording: WORDING_LATEST,
+    sentence: sentenceFor(person, { ...fact, wording }),
+    ...(serverHasWording ? { wording } : {}),
     fact_type: fact.type,
     time_sensitive: fact.timeSensitive,
     as_of: fact.asOf ?? null,
@@ -338,21 +369,24 @@ export async function addPerson({ id, name, relationship, facts, pickedPhoto }: 
 /** New facts, waiting for approval, each with its memory photo if it has one. */
 async function insertFacts(caregiverId: string, personId: string, person: { relationship?: string }, facts: DraftFact[]) {
   if (facts.length === 0) return;
-  const rows = [];
+  const rows: { fact: DraftFact; row: Record<string, unknown> }[] = [];
   for (const fact of facts) {
     const id = fact.id ?? Crypto.randomUUID();
     rows.push({
-      id,
-      caregiver_id: caregiverId,
-      person_id: personId,
-      ...factColumns(person, fact),
-      status: 'pending',
-      source: CAREGIVER_SOURCE,
-      hint_ok: fact.hintOk ?? true,
-      photo_path: fact.photo ? await uploadPhoto(caregiverId, id, fact.photo) : null,
+      fact,
+      row: {
+        id,
+        caregiver_id: caregiverId,
+        person_id: personId,
+        status: 'pending',
+        source: CAREGIVER_SOURCE,
+        hint_ok: fact.hintOk ?? true,
+        photo_path: fact.photo ? await uploadPhoto(caregiverId, id, fact.photo) : null,
+      },
     });
   }
-  check(await supabase.from('cards').insert(rows));
+  // The fact's own columns are worked out on each try, so a retry without the wording column writes version 1.
+  await writeCards(() => supabase.from('cards').insert(rows.map(({ fact, row }) => ({ ...row, ...factColumns(person, fact) }))));
 }
 
 /**
@@ -382,12 +416,14 @@ export async function updatePerson(personId: string, { name, relationship, photo
     const now = new Date().toISOString();
     for (const card of cards.filter((candidate) => candidate.personId === personId)) {
       const reapprove = card.status === 'approved' ? { status: 'pending', confirmed_at: null } : {};
-      check(
-        await supabase
+      // Every sentence is written again and waits for approval anyway, so it is written in the newest wording.
+      await writeCards(() => {
+        const wording = serverHasWording ? WORDING_LATEST : (card.wording ?? 1);
+        return supabase
           .from('cards')
-          .update({ sentence: sentenceFor({ relationship }, card), ...reapprove, updated_at: now })
-          .eq('id', card.id),
-      );
+          .update({ sentence: sentenceFor({ relationship, name: name ?? before.name }, { ...card, wording }), ...(serverHasWording ? { wording } : {}), ...reapprove, updated_at: now })
+          .eq('id', card.id);
+      });
     }
   }
   await reload();
@@ -412,8 +448,8 @@ export async function saveFacts(personId: string, allDrafts: DraftFact[]) {
 
   await insertFacts(caregiverId, personId, person, add);
   for (const fact of change) {
-    check(
-      await supabase
+    await writeCards(() =>
+      supabase
         .from('cards')
         .update({ ...factColumns(person, fact), status: 'pending', confirmed_at: null, updated_at: now })
         .eq('id', fact.id!),
@@ -513,12 +549,14 @@ export async function moveToNewWording(personId: string) {
   const { people, cards } = current();
   const person = people.find((candidate) => candidate.id === personId);
   if (!person) return 0;
-  const older = cards.filter((card) => card.personId === personId && (card.wording ?? 1) < WORDING_LATEST);
+  const older = cards.filter((card) => card.personId === personId && card.status !== 'skipped' && (card.wording ?? 1) < WORDING_LATEST);
   if (older.length === 0) return 0;
+  // Without the wording column the server can't keep the new wording: nothing changes, and the caregiver is told.
+  if (!serverHasWording) throw new Error(WORDING_UNAVAILABLE);
   const now = new Date().toISOString();
   for (const card of older) {
-    check(
-      await supabase
+    await writeCards(() =>
+      supabase
         .from('cards')
         .update({
           wording: WORDING_LATEST,
@@ -528,6 +566,7 @@ export async function moveToNewWording(personId: string) {
         })
         .eq('id', card.id),
     );
+    if (!serverHasWording) throw new Error(WORDING_UNAVAILABLE);
   }
   await reload();
   return older.length;
@@ -539,8 +578,8 @@ export async function editCard(cardId: string, fact: Fact) {
   const card = cards.find((candidate) => candidate.id === cardId);
   const person = people.find((candidate) => candidate.id === card?.personId);
   if (!card || !person) return;
-  check(
-    await supabase
+  await writeCards(() =>
+    supabase
       .from('cards')
       .update({ ...factColumns(person, fact), status: 'pending', confirmed_at: null, updated_at: new Date().toISOString() })
       .eq('id', cardId),

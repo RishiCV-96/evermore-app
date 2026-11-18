@@ -194,11 +194,13 @@ export function updatePerson(family: LocalFamily, changed: LocalPerson): LocalFa
   return {
     ...family,
     people: family.people.map((person) => (person.id === changed.id ? changed : person)),
+    // Every sentence holds the relationship, so each is written again: in the newest wording, and approved
+    // ones wait for approval again. A skipped card stays as it was.
     cards: reapprove
       ? family.cards.map((card) =>
-          card.personId === changed.id && card.status === 'approved'
-            ? { ...card, status: 'pending' as const, confirmedAt: undefined }
-            : card,
+          card.personId !== changed.id || card.status === 'skipped'
+            ? card
+            : { ...card, wording: WORDING_LATEST, ...(card.status === 'approved' ? { status: 'pending' as const, confirmedAt: undefined } : {}) },
         )
       : family.cards,
   };

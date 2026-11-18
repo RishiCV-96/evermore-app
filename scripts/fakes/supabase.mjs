@@ -18,6 +18,8 @@ export const server = {
   failRemove: false,
   /** No connection: every call fails the way supabase-js reports a network error. */
   offline: false,
+  /** A server whose schema predates cards.wording: PostgREST refuses a write naming it (PGRST204), and reads lack it. */
+  noWordingColumn: false,
   /** The server stores card records, then its reply never arrives: the app was closed meanwhile. */
   hang: false,
   /** The server stores card records, then its reply is lost to a dropped connection. */
@@ -166,6 +168,9 @@ class Query {
     const entry = { table: this.table, action: this.action, values: this.values, calls: this.calls };
     server.log.push(entry);
     if (server.offline) return { data: null, error: NETWORK_ERROR, status: 0 };
+    if (server.noWordingColumn && this.table === 'cards' && ['insert', 'update', 'upsert'].includes(this.action) && [this.values].flat().some((row) => 'wording' in row)) {
+      return { data: null, error: { code: 'PGRST204', message: "Could not find the 'wording' column of 'cards' in the schema cache" }, status: 400 };
+    }
     if (this.table === 'attempt_records' && this.action === 'insert') {
       server.onInsert?.([this.values].flat());
       if (server.busy) return { data: null, error: { message: 'Service Unavailable', code: 'PGRST000' }, status: 503 };
@@ -189,6 +194,8 @@ class Query {
       if (this.window) data = data.slice(this.window[0], this.window[1] + 1);
       entry.rows = data.length;
       if (this.table === 'attempt_records') data = data.map(recordOut);
+      // Cards: the column's default (1) where a row has no wording of its own, or no column at all on an older server.
+      if (this.table === 'cards') data = data.map(({ wording, ...row }) => (server.noWordingColumn ? row : { ...row, wording: wording ?? 1 }));
       return { data: this.one ? (data[0] ?? null) : data, error: null };
     }
     if (this.action === 'update') {

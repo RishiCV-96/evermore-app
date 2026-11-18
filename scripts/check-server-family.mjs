@@ -176,4 +176,53 @@ assert.equal(row(MAE), undefined, 'trying again works');
   await store.restorePerson(LEO);
 }
 
+// The wording column (2026-11-18): until supabase/schema.sql is rerun the server has no cards.wording, and
+// PostgREST refuses any write naming it. Facts must still save (in version 1, how that server reads them
+// back); Refresh wording must say the update is needed and change nothing; once the column is there, new
+// facts are version 2, a new relationship regenerates in version 2, and Refresh wording moves approved
+// cards back to story approval, never silently.
+{
+  const leo = () => server.tables.cards.filter((card) => card.person_id === LEO);
+  server.noWordingColumn = true;
+  await store.saveFacts(LEO, [{ type: 'food', text: 'lasagna', timeSensitive: false }]);
+  const saved = leo().find((card) => card.memory_text === 'lasagna');
+  assert.ok(saved, 'a new fact still saves when the server has no wording column');
+  assert.ok(!('wording' in saved) && saved.sentence === 'My friend, {name}, loves lasagna.', `written in version 1, without the column: ${saved.sentence}`);
+  assert.equal(store.wordingOnServer(), false, 'the store remembers the server lacks it');
+  const refused = server.log.filter((entry) => entry.table === 'cards' && entry.action === 'insert').length;
+  await store.saveFacts(LEO, [{ type: 'pet', text: 'dog', timeSensitive: false }]);
+  assert.equal(server.log.filter((entry) => entry.table === 'cards' && entry.action === 'insert').length - refused, 1, 'and asks once, not on every write');
+  await store.refreshFamily();
+  assert.equal(store.wordingOnServer(), false, 'a read without the column says so too');
+  const statuses = leo().map((card) => card.status).join();
+  await assert.rejects(store.moveToNewWording(LEO), (error) => error.message === store.WORDING_UNAVAILABLE, 'Refresh wording says the update is needed');
+  assert.equal(leo().map((card) => card.status).join(), statuses, 'and changes nothing');
+
+  server.noWordingColumn = false;
+  await store.refreshFamily();
+  assert.equal(store.wordingOnServer(), true, 'once the schema is rerun, the column is seen');
+  await store.saveFacts(LEO, [{ type: 'work', text: 'nurse', timeSensitive: false }]);
+  const nurse = leo().find((card) => card.memory_text === 'nurse');
+  assert.deepEqual([nurse.wording, nurse.sentence], [2, 'My friend, {name}, is a nurse.'], 'a new fact is version 2');
+  // Leo's version-1 cards approved, as a family's cards from before 2026-11-18 are.
+  for (const card of leo()) if ((card.wording ?? 1) === 1) card.status = 'approved';
+  await store.refreshFamily();
+  const approved = leo().filter((card) => card.status === 'approved' && (card.wording ?? 1) === 1).map((card) => card.id);
+  assert.ok(approved.length > 0, 'Leo has approved cards in version 1');
+  const moved = await store.moveToNewWording(LEO);
+  assert.ok(moved >= approved.length, `Refresh wording moved ${moved}`);
+  for (const id of approved) {
+    const card = server.tables.cards.find((one) => one.id === id);
+    assert.deepEqual([card.wording, card.status], [2, 'pending'], 'each approved card is version 2 and waits for approval again');
+  }
+  assert.equal(await store.moveToNewWording(LEO), 0, 'nothing left to refresh');
+  // A new relationship rewrites every sentence and sends them back for approval: in the newest wording.
+  const leoCard = leo()[0];
+  Object.assign(leoCard, { status: 'approved', wording: 1 });
+  await store.refreshFamily();
+  await store.updatePerson(LEO, { name: 'Leo', relationship: 'neighbor' });
+  assert.deepEqual([leoCard.wording, leoCard.status], [2, 'pending'], 'a relationship change regenerates in the newest wording, for approval');
+  assert.ok(/\bmy neighbor, \{name\},/i.test(leoCard.sentence), leoCard.sentence);
+}
+
 console.log('All server family checks passed');

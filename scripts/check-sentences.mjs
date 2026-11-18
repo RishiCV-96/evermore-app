@@ -336,7 +336,9 @@ check('names: possessives, apostrophes, hyphens and a title that is also the rel
 
 check('new and edited drafts get wording 2; approved, in-use and deck cards keep version 1', () => {
   const store = inRepo('src/data/family-store.ts');
-  assert.ok(/function factColumns[\s\S]*?wording: WORDING_LATEST/.test(store), 'the server store writes wording 2 for every new or edited fact');
+  const columns = /function factColumns[\s\S]*?\n}\n/.exec(store)[0];
+  assert.ok(columns.includes('const wording = serverHasWording ? WORDING_LATEST : 1;') && columns.includes('...(serverHasWording ? { wording } : {})'), 'the server store writes wording 2 for every new or edited fact, and version 1 without the column on a server not yet upgraded');
+  assert.ok(/export async function moveToNewWording[\s\S]*?if \(!serverHasWording\) throw new Error\(WORDING_UNAVAILABLE\)/.test(store), 'Refresh wording refuses, and says why, on a server without the column');
   assert.ok(/wording: row\.wording \?\? 1/.test(store) && /wording: row\.wording \?\? 1/.test(inRepo('src/data/practice-store.ts')), 'both stores read a missing wording as version 1');
   const family = inRepo('src/lib/local-family.ts');
   assert.ok(/function newCard[\s\S]*?wording: WORDING_LATEST/.test(family) && /function reworded[\s\S]*?wording: WORDING_LATEST/.test(family), 'the phone writes wording 2 for new and edited facts');
@@ -365,6 +367,8 @@ check('the version-1 check itself fails when one version-1 sentence changes', ()
   assert.equal(added.cards.find((card) => card.id === 'new-1').wording, 2, 'a new draft is wording 2');
   const edited = families.editCard(family, 'june-0', { type: 'memory', text: 'grows beans', timeSensitive: false });
   assert.deepEqual([edited.cards[0].wording, edited.cards[0].status], [2, 'pending'], 'an edited card is a wording-2 draft');
+  const renamed = families.updatePerson(family, { ...family.people[0], relationship: 'cousin' });
+  assert.deepEqual([renamed.cards[0].wording, renamed.cards[0].status], [2, 'pending'], 'a new relationship regenerates in the newest wording, for approval');
   const moved = families.moveToNewWording(family, 'june');
   assert.equal(moved.moved, 1);
   assert.deepEqual([moved.family.cards[0].wording, moved.family.cards[0].status], [2, 'pending'], 'moving on purpose: the approved card waits for approval in the new wording');
