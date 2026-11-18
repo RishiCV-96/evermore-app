@@ -103,7 +103,7 @@ await check('every table in the schema is named in docs/DATA-INVENTORY.md', () =
 await check('every key the app keeps on a phone is named in docs/DATA-INVENTORY.md', () => {
   const inventory = inRepo('docs/DATA-INVENTORY.md');
   const keys = new Set();
-  for (const path of walk('src').filter((one) => /\.tsx?$/.test(one))) for (const match of inRepo(path).matchAll(/['`](evermore\.[A-Za-z]+(?:\.v\d+)?)/g)) keys.add(match[1]);
+  for (const path of walk('src').filter((one) => /\.tsx?$/.test(one))) for (const match of inRepo(path).matchAll(/['`]((?:evermore|tandem)\.[A-Za-z]+(?:\.v\d+)?)/g)) keys.add(match[1]);
   assert.ok(keys.size >= 14, 'the keys are found');
   const missing = [...keys].filter((key) => !inventory.includes(key));
   assert.deepEqual(missing, [], `keys not in the data inventory: ${missing.join(', ')}`);

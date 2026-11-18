@@ -1010,3 +1010,55 @@ drop policy if exists "photos: person reads family" on storage.objects;
 create policy "photos: person reads family" on storage.objects for select to authenticated
   using (bucket_id = 'photos' and (storage.foldername(name))[1] = (select public.my_caregiver())::text
          and public.person_sees_photo(name));
+
+-- =======================================================================================
+-- FAMILY BOARD (added 2026-11-18 on branch person-home-board; docs/PERSON-HOME-PLAN.md)
+-- Kept as one block at the end so it merges cleanly with other branches. Safe to rerun.
+-- A few short notes the caregiver writes for the person's home screen. The caregiver reads and
+-- writes only their family's; the person's login reads only its family's and never writes; nobody
+-- else reads anything. At most 3 a family, 200 characters each, one pinned. Deleting the account
+-- deletes them (the cascade from profiles).
+-- =======================================================================================
+
+create table if not exists public.family_notes (
+  id uuid primary key default gen_random_uuid(),
+  caregiver_id uuid not null default auth.uid() references public.profiles (id) on delete cascade,
+  body text not null check (char_length(btrim(body)) between 1 and 200 and char_length(body) <= 200),
+  from_name text check (from_name is null or char_length(btrim(from_name)) between 1 and 40),
+  from_relationship text check (from_relationship is null or char_length(btrim(from_relationship)) between 1 and 40),
+  pinned boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists family_notes_caregiver on public.family_notes (caregiver_id, created_at);
+-- One pinned note a family.
+create unique index if not exists family_notes_one_pinned on public.family_notes (caregiver_id) where pinned;
+
+-- At most 3 notes a family. A lock per family, so two inserts at once can't both pass the count.
+create or replace function public.family_notes_limit()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  perform pg_advisory_xact_lock(hashtextextended('family_notes:' || new.caregiver_id::text, 0));
+  if (select count(*) from public.family_notes where caregiver_id = new.caregiver_id) >= 3 then
+    raise exception 'family_notes: at most 3 notes a family' using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists family_notes_limit on public.family_notes;
+create trigger family_notes_limit before insert on public.family_notes
+  for each row execute function public.family_notes_limit();
+
+revoke all on public.family_notes from public, anon;
+grant select, insert, update, delete on public.family_notes to authenticated;
+grant select, insert, update, delete on public.family_notes to service_role;
+
+alter table public.family_notes enable row level security;
+drop policy if exists "family_notes: caregiver family" on public.family_notes;
+create policy "family_notes: caregiver family" on public.family_notes for all to authenticated
+  using (caregiver_id = (select auth.uid()) and (select public.is_caregiver()))
+  with check (caregiver_id = (select auth.uid()) and (select public.is_caregiver()));
+drop policy if exists "family_notes: person reads family" on public.family_notes;
+create policy "family_notes: person reads family" on public.family_notes for select to authenticated
+  using (caregiver_id = (select public.my_caregiver()));
+-- ============================== END FAMILY BOARD =======================================

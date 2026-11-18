@@ -9,7 +9,7 @@
 // foreign key (23503). The server sets uploaded_at, and sends times the way Postgres writes them.
 
 export const server = {
-  tables: { people: [], cards: [], daily_goal: [], profiles: [], card_schedule: [], attempts: [], sessions: [], attempt_records: [] },
+  tables: { people: [], cards: [], daily_goal: [], profiles: [], card_schedule: [], attempts: [], sessions: [], attempt_records: [], family_notes: [] },
   /** Paths in the photo bucket. */
   objects: [],
   /** Every call, in order. */
@@ -32,6 +32,7 @@ export const server = {
   failSelect: null,
 };
 
+let noteClock = 0;
 const NETWORK_ERROR = { message: 'TypeError: Network request failed', details: '', hint: '', code: '' };
 const KEYS = { card_schedule: ['card_id', 'person_user_id'], daily_goal: ['caregiver_id'] };
 const keyOf = (table, row) => (KEYS[table] ?? ['id']).map((column) => row[column]).join('|');
@@ -191,11 +192,31 @@ class Query {
       return { data: this.one ? (data[0] ?? null) : data, error: null };
     }
     if (this.action === 'update') {
+      // The Family board's one pinned note a family (a unique index in supabase/schema.sql).
+      if (this.table === 'family_notes' && this.values.pinned === true) {
+        const target = rows.filter(match);
+        if (target.some((row) => rows.some((other) => other.pinned && other.id !== row.id && other.caregiver_id === row.caregiver_id))) {
+          return { data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "family_notes_one_pinned"' } };
+        }
+      }
       for (const row of rows.filter(match)) Object.assign(row, structuredClone(this.values));
       return { data: null, error: null };
     }
     if (this.action === 'delete') {
       removeRows(this.table, match);
+      return { data: null, error: null };
+    }
+    // The Family board's limit, as the database's trigger: at most 3 notes a family.
+    if (this.table === 'family_notes' && this.action === 'insert') {
+      for (const row of [this.values].flat()) {
+        if (rows.filter((other) => other.caregiver_id === row.caregiver_id).length >= 3) return { data: null, error: { code: '23514', message: 'family_notes: at most 3 notes a family' } };
+      }
+      for (const row of [this.values].flat()) {
+        // Strictly later than the note before, as the database's clock is, so "newest first" is never a tie.
+        noteClock = Math.max(Date.now(), noteClock + 1);
+        const at = new Date(noteClock).toISOString();
+        rows.push({ pinned: false, created_at: at, updated_at: at, ...structuredClone(row) });
+      }
       return { data: null, error: null };
     }
     for (const row of [this.values].flat()) {

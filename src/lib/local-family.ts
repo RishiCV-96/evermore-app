@@ -1,5 +1,6 @@
 import type { TestData, TestFact } from '@/data/test-data';
 import type { AiSentence } from '@/lib/ai-sentences';
+import type { FamilyNote } from '@/lib/family-notes';
 import {
   CAREGIVER_SOURCE,
   planFacts,
@@ -68,6 +69,8 @@ export type LocalFamily = {
   sentences?: AiSentence[];
   /** Drafts waiting for approval were moved to the newest wording, once (2026-11-18). */
   waitingReworded?: boolean;
+  /** The Family board's notes (src/lib/family-notes.ts), written by the caregiver on this phone. */
+  notes?: FamilyNote[];
 };
 
 /** How the rules read a person: only the phone's store knows who has a photo. */

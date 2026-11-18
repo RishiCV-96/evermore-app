@@ -18,6 +18,7 @@ const suites = [
   'scripts/check-reminders.mjs',
   'scripts/check-privacy.mjs',
   'scripts/check-brand.mjs',
+  'scripts/check-board.mjs',
   'scripts/check-store.mjs',
   'supabase/tests/rls.test.mjs',
   'supabase/tests/records.test.mjs',

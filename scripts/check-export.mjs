@@ -205,6 +205,12 @@ for (let back = RECORD_DAYS - 1; back >= 0; back--) {
 let uploaded = Date.now() - RECORD_DAYS * 86_400_000;
 server.tables.attempt_records = records.map((record) => ({ ...toRow(record, { personUserId: PERSON, caregiverId: CAREGIVER }), uploaded_at: new Date((uploaded += 1_000)).toISOString() }));
 server.tables.attempt_records.push({ ...toRow({ ...records[0], id: randomUUID() }, { personUserId: randomUUID(), caregiverId: OTHER }), uploaded_at: new Date().toISOString() });
+// The Family board (docs/PERSON-HOME-PLAN.md): two notes in the family, one pinned, and one in another family.
+server.tables.family_notes = [
+  { id: 'note-1', caregiver_id: CAREGIVER, body: 'Lake photos this weekend?', from_name: 'Cooper', from_relationship: 'Dad', pinned: false, created_at: '2026-11-10T10:00:00Z', updated_at: '2026-11-10T10:00:00Z' },
+  { id: 'note-2', caregiver_id: CAREGIVER, body: 'Dinner Sunday at 5.', from_name: null, from_relationship: null, pinned: true, created_at: '2026-11-09T10:00:00Z', updated_at: '2026-11-11T10:00:00Z' },
+  { id: 'note-other', caregiver_id: OTHER, body: 'Another family’s note.', from_name: null, from_relationship: null, pinned: false, created_at: '2026-11-09T10:00:00Z', updated_at: '2026-11-09T10:00:00Z' },
+];
 server.tables.card_schedule = [
   { card_id: cardIds[JUNE][0], person_user_id: PERSON, caregiver_id: CAREGIVER, step: 3, due_at: '2026-11-20T10:30:00.000Z', updated_at: '2026-11-10T10:00:00.000Z' },
   { card_id: cardIds[JUNE][0], person_user_id: randomUUID(), caregiver_id: CAREGIVER, step: 1, due_at: '2026-11-14T10:30:00.000Z', updated_at: '2026-09-10T10:00:00.000Z' },
@@ -251,7 +257,13 @@ await check('the file holds everything: people with every answer, archived peopl
   assert.equal(copy.about.appVersion, '1.2.3');
   assert.equal(copy.about.exportedAt, now.toISOString());
   assert.equal(copy.about.complete, true);
-  assert.deepEqual(Object.keys(copy.about.sections), ['settings', 'people', 'sessions', 'cardRecords', 'schedule'], 'a plain description of each section at the top');
+  assert.deepEqual(Object.keys(copy.about.sections), ['settings', 'people', 'sessions', 'cardRecords', 'schedule', 'familyBoard'], 'a plain description of each section at the top');
+  // The Family board: the family's notes only, pinned first, with who each is from, and no ids.
+  assert.deepEqual(copy.familyBoard, [
+    { words: 'Dinner Sunday at 5.', shownFirst: true, writtenAt: '2026-11-09T10:00:00Z', changedAt: '2026-11-11T10:00:00Z' },
+    { words: 'Lake photos this weekend?', from: 'Cooper', relationship: 'Dad', shownFirst: false, writtenAt: '2026-11-10T10:00:00Z', changedAt: '2026-11-10T10:00:00Z' },
+  ], 'the Family board’s notes: the family’s own, pinned first');
+  assert.equal(copy.about.counts.familyBoardNotes, 2);
   assert.ok(Object.values(copy.about.sections).every((words) => words.length > 40));
   assert.deepEqual(copy.settings, { sessionLength: 'long', revealCards: 'often' });
   assert.deepEqual(copy.people.map((one) => [one.name, one.status]), [['June', 'in practice'], ['Leo', 'archived'], ['Mae', 'in practice']], 'everyone in the family, the archived person marked so');
@@ -379,13 +391,13 @@ await check('offline: no file from the server, then this phone’s copy, which s
   server.offline = false;
   assert.ok(fallback.ok);
   const offline = fallback.value;
-  assert.deepEqual(offline.origin, { from: 'phone-copy', missing: ['people', 'sessions', 'schedule'] });
+  assert.deepEqual(offline.origin, { from: 'phone-copy', missing: ['people', 'sessions', 'schedule', 'familyBoard'] });
   assert.equal(offline.records.length, 300);
   const file = familyExport(offline, now, '1.2.3');
   assert.equal(file.about.complete, false, 'the file says it is not complete');
   assert.match(file.about.madeFrom, /this phone’s copy/);
   assert.match(file.about.madeFrom, /may be missing newer data/);
-  assert.deepEqual(file.about.notIncluded, ['people', 'sessions', 'schedule'].map((section) => SECTION_WORDS[section]), 'and what it may lack');
+  assert.deepEqual(file.about.notIncluded, ['people', 'sessions', 'schedule', 'familyBoard'].map((section) => SECTION_WORDS[section]), 'and what it may lack');
   assert.equal(file.people[1].status, 'archived', 'archived people stay marked');
   const html = reportHtml(reportOf(offline, today));
   assert.ok(html.includes(REPORT_NOTES.phoneCopy.replace(/’/g, '&#39;').replace(/'/g, '&#39;')) || html.includes(REPORT_NOTES.phoneCopy), 'and so does the report');

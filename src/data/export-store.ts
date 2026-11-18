@@ -1,6 +1,7 @@
 import { DEFAULT_REVEAL_CARDS, DEFAULT_SESSION_LENGTH } from '@/config/schedule';
 import { currentProfile } from '@/data/account';
 import { hintsOf, latestFamily } from '@/data/family-store';
+import { boardNotesNow } from '@/data/board-store';
 import { phoneCopy } from '@/data/insights-store';
 import { fromRow, type ServerRow } from '@/lib/attempt-records';
 import type { CardAttempt } from '@/lib/attempts';
@@ -21,6 +22,7 @@ import {
   type ExportSource,
   type ExportStep,
 } from '@/lib/export';
+import { noteFromRow } from '@/lib/family-notes';
 import { warnKind } from '@/lib/log';
 import { downloadBytes } from '@/lib/save-file';
 import { supabase } from '@/lib/supabase';
@@ -98,11 +100,29 @@ export function readServerExport(onProgress: (progress: ExportProgress) => void,
     const sessions = await allRows<Record<string, any>>('sessions', '*', ['started_at', 'id'], family, cancel, step('sessions'), (query) => query.eq('is_sample', false));
     const records = await allRows<ServerRow>('attempt_records', '*', ['uploaded_at', 'id'], family, cancel, step('records'));
     const schedule = await allRows<Record<string, any>>('card_schedule', 'card_id, person_user_id, step, due_at, updated_at', ['card_id', 'person_user_id'], family, cancel, step('schedule'));
-    return serverSource({ people, cards, settings: settings.data, sessions, records, schedule });
+    const notes = await boardRows(family, cancel);
+    return serverSource({ people, cards, settings: settings.data, sessions, records, schedule, notes });
   });
 }
 
+/**
+ * The Family board's notes. A server that hasn't been upgraded yet has no table: then there is no board to
+ * export and the section is left out. Any other failure fails the export, as every other table does.
+ */
+async function boardRows(family: string, cancel: Cancel) {
+  try {
+    return await allRows<NoteRow>('family_notes', 'id, body, from_name, from_relationship, pinned, created_at, updated_at', ['created_at', 'id'], family, cancel, () => undefined);
+  } catch (error) {
+    const { code, message } = (error ?? {}) as { code?: string; message?: string };
+    if (code === '42P01' || code === 'PGRST205' || /family_notes.*(does not exist|schema cache)/i.test(message ?? '')) return undefined;
+    throw error;
+  }
+}
+
+type NoteRow = Parameters<typeof noteFromRow>[0];
+
 type Rows = {
+  notes?: NoteRow[];
   people: Record<string, any>[];
   cards: Record<string, any>[];
   settings: Record<string, any> | null;
@@ -170,6 +190,7 @@ export function serverSource(rows: Rows): ExportSource {
     sessions,
     records: rows.records.flatMap(readRecord),
     schedule: [...latest.values()],
+    ...(rows.notes ? { notes: rows.notes.map(noteFromRow) } : {}),
   };
 }
 
@@ -195,6 +216,9 @@ export async function phoneCopySource(): Promise<ExportRead<ExportSource>> {
   const copy = await phoneCopy(family);
   const missing: ExportSection[] = ['sessions', 'schedule'];
   const known = loaded ?? copy.trends?.family;
+  // The Family board as this phone last saw it, if it has opened the board this session.
+  const notes = boardNotesNow();
+  if (!notes) missing.push('familyBoard');
   if (!loaded) missing.unshift('people');
   return {
     ok: true,
@@ -213,6 +237,7 @@ export async function phoneCopySource(): Promise<ExportRead<ExportSource>> {
       sessions: copy.trends?.activity.sessions ?? [],
       records: copy.records,
       schedule: [],
+      ...(notes ? { notes } : {}),
     },
   };
 }

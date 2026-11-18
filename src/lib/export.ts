@@ -4,6 +4,7 @@ import { APP_NAME, APP_NAME_LOWER } from '@/config/brand';
 import type { RevealSetting, SessionLength } from '@/config/schedule';
 import { ATTEMPTS_KEPT_DAYS } from '@/config/insights';
 import { labelOf, questionFor } from '@/data/questionnaire';
+import { orderNotes, type FamilyNote } from '@/lib/family-notes';
 import { sessionDay } from '@/lib/activity';
 import type { AiSentence } from '@/lib/ai-sentences';
 import { recordDay } from '@/lib/insights';
@@ -86,10 +87,11 @@ export type ExportSource = {
   sessions: ExportSession[];
   records: CardAttempt[];
   schedule: ExportSchedule[];
-  /** With sign-in on only. */
+  /** The Family board's notes (docs/PERSON-HOME-PLAN.md). Left out where the source has none to give (a server not yet upgraded). */
+  notes?: FamilyNote[];
 };
 
-export type ExportSection = 'people' | 'aiSentences' | 'settings' | 'sessions' | 'cardRecords' | 'schedule';
+export type ExportSection = 'people' | 'aiSentences' | 'settings' | 'sessions' | 'cardRecords' | 'schedule' | 'familyBoard';
 
 /** What each section holds, in plain words, at the top of the file. */
 export const SECTION_WORDS: Record<ExportSection, string> = {
@@ -100,6 +102,7 @@ export const SECTION_WORDS: Record<ExportSection, string> = {
   sessions: 'Every practice session: the study day it counts toward, when it started and ended, how many of the day’s cards were finished, and the day’s target.',
   cardRecords: `Each card practiced, kept for ${ATTEMPTS_KEPT_DAYS} days: the study day, whether it was extra practice, who was in the photo, the fact and how it was asked, each answer chosen and when, the hints shown, each time the person asked for help with “I’m not sure” and the hint it reached (asking for help is not an answer), and time on screen. Practice activity, not a medical measure.`,
   schedule: 'When each fact comes back in practice, and its step.',
+  familyBoard: 'The Family board: the short notes you wrote for the person’s home screen, who each is from, whether it is pinned (shownFirst), and when it was written and last changed.',
 };
 
 const ORIGIN_WORDS: Record<ExportOrigin['from'], string> = {
@@ -144,7 +147,7 @@ export function familyExport(source: ExportSource, now: Date, appVersion: string
   const people = [...source.people].sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? ''));
   const personIds = new Set(people.map((person) => person.id));
   const cardIds = new Set(cards.map((card) => card.id));
-  const sections: ExportSection[] = ['settings', 'people', ...(source.ai ? (['aiSentences'] as const) : []), 'sessions', 'cardRecords', 'schedule'];
+  const sections: ExportSection[] = ['settings', 'people', ...(source.ai ? (['aiSentences'] as const) : []), 'sessions', 'cardRecords', 'schedule', ...(source.notes ? (['familyBoard'] as const) : [])];
   const missing = source.origin.from === 'phone-copy' ? source.origin.missing : [];
   return {
     about: {
@@ -166,6 +169,7 @@ export function familyExport(source: ExportSource, now: Date, appVersion: string
         facts: cards.filter((card) => personIds.has(card.personId)).length,
         sessions: source.sessions.length,
         cardRecords: records.length,
+        ...(source.notes ? { familyBoardNotes: source.notes.length } : {}),
       },
     },
     settings: {
@@ -264,6 +268,18 @@ export function familyExport(source: ExportSource, now: Date, appVersion: string
       .filter((entry) => cardIds.has(entry.cardId))
       .sort((a, b) => a.cardId.localeCompare(b.cardId))
       .map((entry) => ({ cardId: entry.cardId, step: entry.step, dueAt: entry.dueAt, ...(entry.updatedAt ? { updatedAt: entry.updatedAt } : {}) })),
+    ...(source.notes
+      ? {
+          familyBoard: orderNotes(source.notes).map((note) => ({
+            words: note.body,
+            ...(note.fromName ? { from: note.fromName } : {}),
+            ...(note.fromRelationship ? { relationship: note.fromRelationship } : {}),
+            shownFirst: note.pinned,
+            writtenAt: note.createdAt,
+            changedAt: note.updatedAt,
+          })),
+        }
+      : {}),
   };
 }
 
