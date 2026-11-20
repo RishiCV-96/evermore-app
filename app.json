@@ -10,6 +10,10 @@
     "ios": {
       "bundleIdentifier": "com.rishiverma.memorypractice",
       "supportsTablet": false,
+      "icon": {
+        "light": "./assets/images/icon.png",
+        "dark": "./assets/images/icon-dark.png"
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
